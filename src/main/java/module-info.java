@@ -4,6 +4,12 @@ module com.roguelike.main {
 
     requires com.almasb.fxgl.all;
 
-    opens com.roguelike.main to javafx.fxml;
-    exports com.roguelike.main;
+    opens com.roguelike.core to javafx.fxml;
+    opens com.roguelike.entities to javafx.fxml;
+    opens com.roguelike.map to javafx.fxml;
+    opens com.roguelike.ui to javafx.fxml;
+    opens com.roguelike.utils to javafx.fxml;
+
+    exports com.roguelike.core;
+    exports com.roguelike.entities to com.almasb.fxgl.core;
 }
