@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="b9b11920-85e2-4fa4-9244-93b69b95a647" name="更改" comment="完成了对entities的编写，玩家添加了血量 经验值 等级的功能，敌人添加了血量 死亡给予玩家经验的功能；完成了敌人的寻路算法，现在敌人会自动追寻玩家；添加了计时器。&#10;目前存在bug：刚进入游戏时的敌人移速和时间流逝不正常。">
+      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/core/GameApp.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/core/GameEvent.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/core/GameState.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/entities/Enemy.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/entities/EntityBase.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/entities/EntityFactory.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/entities/GameEntityFactory.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/entities/Player.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/map/Layer.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/map/MapRenderer.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/map/TiledMap.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/map/Tileset.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/ui/GameHUD.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/ui/Menus.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/utils/FlowField.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/utils/MathUtils.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/roguelike/utils/RandomUtils.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/assets/levels/grass.tmx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/assets/maps/grass.tmx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/system/Readme.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/system/fxgl.bundle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/roguelike/main/HelloApplication.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/roguelike/main/HelloController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/module-info.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/module-info.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/com/roguelike/main/hello-view.fxml" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;DuskTillDawn111&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/NeverDie4/RoguelikeGame.git&quot;,
+    &quot;accountId&quot;: &quot;d7fd3273-189d-4a9f-ae92-e8638451ada7&quot;
+  }
+}</component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="mavenHomeTypeForPersistence" value="WRAPPER" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 8
+}</component>
+  <component name="ProjectId" id="32RSCkmMzEKr7z1bcUUDJajwmPn" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "dev__entity",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "D:/java/RoguelikeGame/src/main/java/com/roguelike/utils",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable",
+    "vue.rearranger.settings.migration": "true",
+    "应用程序.GameApp.executor": "Run"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\java\RoguelikeGame\src\main\java\com\roguelike\utils" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9f38398b9061-39b83d9b5494-intellij.indexing.shared.core-IU-241.19416.15" />
+        <option value="bundled-js-predefined-1d06a55b98c1-0b3e54e931b4-JavaScript-IU-241.19416.15" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="应用程序级" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="默认任务">
+      <changelist id="b9b11920-85e2-4fa4-9244-93b69b95a647" name="更改" comment="" />
+      <created>1757381767306</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1757381767306</updated>
+      <workItem from="1757381768815" duration="3453000" />
+      <workItem from="1757385325647" duration="412000" />
+      <workItem from="1757385753356" duration="2027000" />
+      <workItem from="1757387810874" duration="6694000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="完成了对entities的编写，玩家添加了血量 经验值 等级的功能，敌人添加了血量 死亡给予玩家经验的功能；完成了敌人的寻路算法，现在敌人会自动追寻玩家；添加了计时器。&#10;目前存在bug：刚进入游戏时的敌人移速和时间流逝不正常。" />
+    <option name="LAST_COMMIT_MESSAGE" value="完成了对entities的编写，玩家添加了血量 经验值 等级的功能，敌人添加了血量 死亡给予玩家经验的功能；完成了敌人的寻路算法，现在敌人会自动追寻玩家；添加了计时器。&#10;目前存在bug：刚进入游戏时的敌人移速和时间流逝不正常。" />
+  </component>
+</project>

@@ -42,7 +42,8 @@ public class GameApp extends GameApplication {
         getWorldProperties().setValue("score", 0);
 
         // 注册实体工厂
-        FXGL.getGameWorld().addEntityFactory(new com.roguelike.entities.GameEntityFactory());
+        com.roguelike.entities.EntityFactory.setGameState(gameState);
+        FXGL.getGameWorld().addEntityFactory(new com.roguelike.entities.EntityFactory());
 
         // 地图渲染器 - 加载Tiled地图
         mapRenderer = new MapRenderer("grass.tmx");
@@ -155,6 +156,10 @@ public class GameApp extends GameApplication {
         if (mapRenderer != null) {
             mapRenderer.onUpdate(tpf);
         }
+        // 更新所有敌人的AI（包括流场寻路）
+        getGameWorld().getEntitiesByType().stream()
+                .filter(e -> e instanceof com.roguelike.entities.Enemy)
+                .forEach(e -> ((com.roguelike.entities.Enemy) e).onUpdate(tpf));
     }
 
     public static void main(String[] args) {

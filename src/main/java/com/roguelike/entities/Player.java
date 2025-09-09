@@ -10,6 +10,7 @@ import com.almasb.fxgl.entity.components.CollidableComponent;
 import com.almasb.fxgl.entity.components.TypeComponent;
 import com.almasb.fxgl.texture.Texture;
 import com.roguelike.core.GameEvent;
+import com.roguelike.core.GameState;
 import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -19,12 +20,21 @@ import static com.almasb.fxgl.dsl.FXGL.*;
 public class Player extends EntityBase {
 
     private final double speed = 200;
+    private GameState gameState;
 
     public Player() {
         Rectangle view = new Rectangle(32, 32, Color.DODGERBLUE);
         getViewComponent().addChild(view);
         addComponent(new CollidableComponent(true));
         setSize(32, 32);
+    }
+
+    public void setGameState(GameState gameState) {
+        this.gameState = gameState;
+    }
+
+    public GameState getGameState() {
+        return gameState;
     }
 
     public void move(double dx, double dy) {
@@ -38,10 +48,25 @@ public class Player extends EntityBase {
                 // 从玩家位置出发（基于玩家中心调整）
                 .at(getCenter().subtract(0, 2))
                 .viewWithBBox(new Rectangle(8, 4, Color.ORANGE))
-                .at(getCenter().subtract(0, 2))
                 .with(new CollidableComponent(true))
                 .with(new ProjectileComponent(new Point2D(1, 0), 500))
                 .buildAndAttach();
+    }
+
+    public void takeDamage(int damage) {
+        if (gameState != null) {
+            gameState.damagePlayer(damage);
+            GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_HURT));
+
+            if (gameState.getPlayerHP() <= 0) {
+                onDeath();
+            }
+        }
+    }
+
+    public void onDeath() {
+        GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_DEATH));
+        // 可以在这里添加死亡逻辑，比如显示游戏结束界面
     }
 
     public Point2D getPositionVec() {
