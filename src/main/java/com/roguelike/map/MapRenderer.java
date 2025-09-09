@@ -5,6 +5,8 @@ import com.almasb.fxgl.dsl.FXGL;
 import javafx.scene.Group;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import com.almasb.fxgl.app.scene.GameView;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -15,68 +17,37 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
+import java.util.logging.Logger;
 
 /**
  * Tiled地图渲染器：解析TMX文件并创建对应的视觉表示。
- * 支持JDK21和JavaFX21，不依赖外部图像文件。
+ * 支持JDK21和JavaFX21，集成PNG瓦片集支持。
  */
 public class MapRenderer {
 
+    private static final Logger logger = Logger.getLogger(MapRenderer.class.getName());
+    
     private Level currentLevel;
     private String mapPath;
-    private int tileWidth = 32;  // 默认瓦片宽度
-    private int tileHeight = 32; // 默认瓦片高度
     private GameView mapView;
     private boolean useFallbackBackground = false;
     
     // TMX文件解析相关
-    private int mapWidth = 30;
-    private int mapHeight = 30;
-    private List<TileLayer> tileLayers = new ArrayList<>();
-    private List<Tileset> tilesets = new ArrayList<>();
+    private TiledMap tiledMap;
+    private Map<String, Image> tilesetImages = new HashMap<>();
     
-    // 瓦片层数据结构
-    private static class TileLayer {
-        String name;
-        int width;
-        int height;
-        int[] data;
-        
-        TileLayer(String name, int width, int height, int[] data) {
-            this.name = name;
-            this.width = width;
-            this.height = height;
-            this.data = data;
-        }
-    }
-    
-    // 瓦片集数据结构
-    private static class Tileset {
-        String name;
-        int firstGid;
-        int tileWidth;
-        int tileHeight;
-        int tileCount;
-        int columns;
-        
-        Tileset(String name, int firstGid, int tileWidth, int tileHeight, int tileCount, int columns) {
-            this.name = name;
-            this.firstGid = firstGid;
-            this.tileWidth = tileWidth;
-            this.tileHeight = tileHeight;
-            this.tileCount = tileCount;
-            this.columns = columns;
-        }
-    }
-
     public MapRenderer() {
         this.mapPath = "grass.tmx";
+        this.tiledMap = new TiledMap();
     }
 
     public MapRenderer(String mapPath) {
         this.mapPath = mapPath;
+        this.tiledMap = new TiledMap();
     }
 
     public void init() {
@@ -98,8 +69,8 @@ public class MapRenderer {
         }
         
         System.out.println("✅ 地图渲染器初始化完成");
-        System.out.println("地图尺寸: " + mapWidth + "x" + mapHeight);
-        System.out.println("瓦片尺寸: " + tileWidth + "x" + tileHeight);
+        System.out.println("地图尺寸: " + tiledMap.getWidth() + "x" + tiledMap.getHeight());
+        System.out.println("瓦片尺寸: " + tiledMap.getTilewidth() + "x" + tiledMap.getTileheight());
     }
 
     /**
@@ -107,12 +78,16 @@ public class MapRenderer {
      */
     private boolean parseTMXFile() {
         try {
-            // 从资源文件加载TMX文件
-            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("assets/levels/" + mapPath);
+            // 从固定的assets/maps目录加载TMX文件
+            String resourcePath = "assets/maps/" + mapPath;
+            InputStream inputStream = getClass().getResourceAsStream("/" + resourcePath);
+            
             if (inputStream == null) {
-                System.err.println("无法找到TMX文件: assets/levels/" + mapPath);
+                System.err.println("❌ 无法找到TMX文件: /" + resourcePath);
                 return false;
             }
+            
+            System.out.println("✅ 找到TMX文件: /" + resourcePath);
             
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
@@ -121,12 +96,13 @@ public class MapRenderer {
             Element mapElement = document.getDocumentElement();
             
             // 解析地图属性
-            mapWidth = Integer.parseInt(mapElement.getAttribute("width"));
-            mapHeight = Integer.parseInt(mapElement.getAttribute("height"));
-            tileWidth = Integer.parseInt(mapElement.getAttribute("tilewidth"));
-            tileHeight = Integer.parseInt(mapElement.getAttribute("tileheight"));
+            tiledMap.setWidth(Integer.parseInt(mapElement.getAttribute("width")));
+            tiledMap.setHeight(Integer.parseInt(mapElement.getAttribute("height")));
+            tiledMap.setTilewidth(Integer.parseInt(mapElement.getAttribute("tilewidth")));
+            tiledMap.setTileheight(Integer.parseInt(mapElement.getAttribute("tileheight")));
             
-            System.out.println("📊 地图信息: " + mapWidth + "x" + mapHeight + ", 瓦片: " + tileWidth + "x" + tileHeight);
+            System.out.println("📊 地图信息: " + tiledMap.getWidth() + "x" + tiledMap.getHeight() + 
+                             ", 瓦片: " + tiledMap.getTilewidth() + "x" + tiledMap.getTileheight());
             
             // 解析瓦片集
             parseTilesets(mapElement);
@@ -152,18 +128,100 @@ public class MapRenderer {
         for (int i = 0; i < tilesetNodes.getLength(); i++) {
             Element tilesetElement = (Element) tilesetNodes.item(i);
             
-            String name = tilesetElement.getAttribute("name");
-            int firstGid = Integer.parseInt(tilesetElement.getAttribute("firstgid"));
-            int tileWidth = Integer.parseInt(tilesetElement.getAttribute("tilewidth"));
-            int tileHeight = Integer.parseInt(tilesetElement.getAttribute("tileheight"));
-            int tileCount = Integer.parseInt(tilesetElement.getAttribute("tilecount"));
-            int columns = Integer.parseInt(tilesetElement.getAttribute("columns"));
+            Tileset tileset = new Tileset();
+            tileset.setFirstgid(Integer.parseInt(tilesetElement.getAttribute("firstgid")));
+            tileset.setName(tilesetElement.getAttribute("name"));
+            tileset.setTilewidth(Integer.parseInt(tilesetElement.getAttribute("tilewidth")));
+            tileset.setTileheight(Integer.parseInt(tilesetElement.getAttribute("tileheight")));
+            tileset.setTilecount(Integer.parseInt(tilesetElement.getAttribute("tilecount")));
+            tileset.setColumns(Integer.parseInt(tilesetElement.getAttribute("columns")));
             
-            Tileset tileset = new Tileset(name, firstGid, tileWidth, tileHeight, tileCount, columns);
-            tilesets.add(tileset);
+            // 解析图像信息
+            Element imageElement = (Element) tilesetElement.getElementsByTagName("image").item(0);
+            if (imageElement != null) {
+                tileset.setImage(imageElement.getAttribute("source"));
+                tileset.setImagewidth(Integer.parseInt(imageElement.getAttribute("width")));
+                tileset.setImageheight(Integer.parseInt(imageElement.getAttribute("height")));
+                
+                // 加载瓦片集图像
+                loadTilesetImage(tileset);
+            }
             
-            System.out.println("🎨 瓦片集: " + name + " (GID: " + firstGid + "-" + (firstGid + tileCount - 1) + ")");
+            tiledMap.getTilesets().add(tileset);
+            
+            System.out.println("🎨 瓦片集: " + tileset.getName() + " (GID: " + tileset.getFirstgid() + 
+                             "-" + (tileset.getFirstgid() + tileset.getTilecount() - 1) + 
+                             ", 图像: " + tileset.getImage() + ")");
         }
+    }
+    
+    /**
+     * 加载瓦片集图像
+     * 根据tmx文件名构建图片路径：如果tmx为a.tmx，则图片为a1.png, a2.png等
+     */
+    private void loadTilesetImage(Tileset tileset) {
+        try {
+            // 从tmx文件名中提取基础名称（去掉.tmx扩展名）
+            String baseName = mapPath;
+            if (baseName.endsWith(".tmx")) {
+                baseName = baseName.substring(0, baseName.length() - 4);
+            }
+            
+            // 根据瓦片集名称构建图片文件名
+            // 如果瓦片集名称为"2dmap"，则图片为baseName + "1.png"
+            // 如果瓦片集名称为"2dmap2"，则图片为baseName + "2.png"
+            String imageFileName = buildImageFileName(baseName, tileset.getName());
+            
+            // 从固定的assets/maps目录加载图片文件
+            String imagePath = "assets/maps/" + imageFileName;
+            InputStream imageStream = getClass().getResourceAsStream("/" + imagePath);
+            
+            if (imageStream != null) {
+                Image image = new Image(imageStream);
+                tilesetImages.put(tileset.getName(), image);
+                logger.info("🖼️ 成功加载瓦片集图像: /" + imagePath + " (原始路径: " + tileset.getImage() + ")");
+                System.out.println("🖼️ 成功加载瓦片集图像: /" + imagePath + " (原始路径: " + tileset.getImage() + ")");
+            } else {
+                logger.warning("❌ 无法加载瓦片集图像: /" + imagePath + " (原始路径: " + tileset.getImage() + ")");
+                System.err.println("❌ 无法加载瓦片集图像: /" + imagePath + " (原始路径: " + tileset.getImage() + ")");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ 加载瓦片集图像失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 根据tmx基础名称和瓦片集名称构建图片文件名
+     * 例如：baseName="grass", tilesetName="2dmap" -> "grass1.png"
+     *      baseName="grass", tilesetName="2dmap2" -> "grass2.png"
+     */
+    private String buildImageFileName(String baseName, String tilesetName) {
+        // 从瓦片集名称中提取数字后缀
+        String suffix = "1"; // 默认后缀
+        
+        if (tilesetName.endsWith("2")) {
+            suffix = "2";
+        } else if (tilesetName.endsWith("3")) {
+            suffix = "3";
+        } else if (tilesetName.endsWith("4")) {
+            suffix = "4";
+        } else if (tilesetName.endsWith("5")) {
+            suffix = "5";
+        } else if (tilesetName.endsWith("6")) {
+            suffix = "6";
+        } else if (tilesetName.endsWith("7")) {
+            suffix = "7";
+        } else if (tilesetName.endsWith("8")) {
+            suffix = "8";
+        } else if (tilesetName.endsWith("9")) {
+            suffix = "9";
+        }
+        
+        String imageFileName = baseName + suffix + ".png";
+        logger.info("🔧 构建图片文件名: baseName=" + baseName + ", tilesetName=" + tilesetName + " -> " + imageFileName);
+        System.out.println("🔧 构建图片文件名: baseName=" + baseName + ", tilesetName=" + tilesetName + " -> " + imageFileName);
+        
+        return imageFileName;
     }
     
     /**
@@ -174,9 +232,10 @@ public class MapRenderer {
         for (int i = 0; i < layerNodes.getLength(); i++) {
             Element layerElement = (Element) layerNodes.item(i);
             
-            String name = layerElement.getAttribute("name");
-            int width = Integer.parseInt(layerElement.getAttribute("width"));
-            int height = Integer.parseInt(layerElement.getAttribute("height"));
+            Layer layer = new Layer();
+            layer.setName(layerElement.getAttribute("name"));
+            layer.setWidth(Integer.parseInt(layerElement.getAttribute("width")));
+            layer.setHeight(Integer.parseInt(layerElement.getAttribute("height")));
             
             // 解析瓦片数据
             Element dataElement = (Element) layerElement.getElementsByTagName("data").item(0);
@@ -184,15 +243,15 @@ public class MapRenderer {
             
             // 解析CSV格式的瓦片数据
             String[] dataStrings = dataText.split(",");
-            int[] data = new int[dataStrings.length];
-            for (int j = 0; j < dataStrings.length; j++) {
-                data[j] = Integer.parseInt(dataStrings[j].trim());
+            List<Integer> data = new ArrayList<>();
+            for (String dataString : dataStrings) {
+                data.add(Integer.parseInt(dataString.trim()));
             }
+            layer.setData(data);
             
-            TileLayer layer = new TileLayer(name, width, height, data);
-            tileLayers.add(layer);
+            tiledMap.getLayers().add(layer);
             
-            System.out.println("🗺️ 瓦片层: " + name + " (" + width + "x" + height + ")");
+            System.out.println("🗺️ 瓦片层: " + layer.getName() + " (" + layer.getWidth() + "x" + layer.getHeight() + ")");
         }
     }
     
@@ -206,28 +265,24 @@ public class MapRenderer {
         Group layer = new Group();
         
         // 为每个瓦片层创建瓦片
-        for (TileLayer tileLayer : tileLayers) {
-            System.out.println("创建瓦片层: " + tileLayer.name);
+        for (Layer tileLayer : tiledMap.getLayers()) {
+            System.out.println("创建瓦片层: " + tileLayer.getName());
             
-            for (int y = 0; y < tileLayer.height; y++) {
-                for (int x = 0; x < tileLayer.width; x++) {
-                    int index = y * tileLayer.width + x;
-                    int gid = tileLayer.data[index];
+            for (int y = 0; y < tileLayer.getHeight(); y++) {
+                for (int x = 0; x < tileLayer.getWidth(); x++) {
+                    int index = y * tileLayer.getWidth() + x;
+                    int gid = tileLayer.getData().get(index);
                     
                     if (gid > 0) {
                         // 找到对应的瓦片集
                         Tileset tileset = findTilesetForGid(gid);
                         if (tileset != null) {
-                            Color tileColor = getTileColor(gid, tileset);
-                            
-                            Rectangle tile = new Rectangle(tileWidth, tileHeight);
-                            tile.setFill(tileColor);
-                            tile.setStroke(Color.web("#2a5c39"));
-                            tile.setStrokeWidth(0.5);
-                            tile.setTranslateX(x * tileWidth);
-                            tile.setTranslateY(y * tileHeight);
-                            
-                            layer.getChildren().add(tile);
+                            // 尝试使用PNG瓦片集，如果失败则使用颜色
+                            if (tilesetImages.containsKey(tileset.getName())) {
+                                createTileFromImage(layer, x, y, gid, tileset);
+                            } else {
+                                createTileFromColor(layer, x, y, gid, tileset);
+                            }
                         }
                     }
                 }
@@ -240,11 +295,56 @@ public class MapRenderer {
     }
     
     /**
+     * 从图像创建瓦片
+     */
+    private void createTileFromImage(Group layer, int x, int y, int gid, Tileset tileset) {
+        try {
+            Image tilesetImage = tilesetImages.get(tileset.getName());
+            int localId = gid - tileset.getFirstgid();
+            
+            // 计算瓦片在瓦片集中的位置
+            int tileX = (localId % tileset.getColumns()) * tileset.getTilewidth();
+            int tileY = (localId / tileset.getColumns()) * tileset.getTileheight();
+            
+            // 创建ImageView显示瓦片
+            ImageView tileView = new ImageView(tilesetImage);
+            tileView.setViewport(new javafx.geometry.Rectangle2D(tileX, tileY, 
+                                                               tileset.getTilewidth(), 
+                                                               tileset.getTileheight()));
+            tileView.setTranslateX(x * tiledMap.getTilewidth());
+            tileView.setTranslateY(y * tiledMap.getTileheight());
+            
+            layer.getChildren().add(tileView);
+        } catch (Exception e) {
+            System.err.println("创建图像瓦片失败: " + e.getMessage());
+            // 回退到颜色瓦片
+            createTileFromColor(layer, x, y, gid, tileset);
+        }
+    }
+    
+    /**
+     * 从颜色创建瓦片
+     */
+    private void createTileFromColor(Group layer, int x, int y, int gid, Tileset tileset) {
+        int localId = gid - tileset.getFirstgid();
+        Color tileColor = getTileColor(localId, tileset);
+        
+        Rectangle tile = new Rectangle(tiledMap.getTilewidth(), tiledMap.getTileheight());
+        tile.setFill(tileColor);
+        tile.setStroke(Color.web("#2a5c39"));
+        tile.setStrokeWidth(0.5);
+        tile.setTranslateX(x * tiledMap.getTilewidth());
+        tile.setTranslateY(y * tiledMap.getTileheight());
+        
+        layer.getChildren().add(tile);
+    }
+    
+    /**
      * 根据GID找到对应的瓦片集
      */
     private Tileset findTilesetForGid(int gid) {
-        for (Tileset tileset : tilesets) {
-            if (gid >= tileset.firstGid && gid < tileset.firstGid + tileset.tileCount) {
+        for (Tileset tileset : tiledMap.getTilesets()) {
+            if (gid >= tileset.getFirstgid() && gid < tileset.getFirstgid() + tileset.getTilecount()) {
                 return tileset;
             }
         }
@@ -254,12 +354,9 @@ public class MapRenderer {
     /**
      * 根据瓦片ID和瓦片集获取颜色
      */
-    private Color getTileColor(int gid, Tileset tileset) {
+    private Color getTileColor(int localId, Tileset tileset) {
         // 根据瓦片集名称和瓦片ID生成不同的颜色
-        int localId = gid - tileset.firstGid;
-        
-        // 为不同的瓦片集使用不同的颜色方案
-        switch (tileset.name) {
+        switch (tileset.getName()) {
             case "2dmap":
                 return getGrassColor(localId);
             case "2dmap2":
@@ -351,7 +448,7 @@ public class MapRenderer {
         
         for (int y = 0; y < rows; y++) {
             for (int x = 0; x < cols; x++) {
-                Rectangle r = new Rectangle(tileWidth, tileHeight);
+                Rectangle r = new Rectangle(32, 32);
                 
                 // 使用伪随机算法生成多样化的草地图案
                 int colorIndex = (x * 7 + y * 11) % grassColors.length;
@@ -361,12 +458,12 @@ public class MapRenderer {
                 r.setStroke(Color.web("#2a5c39"));
                 r.setStrokeWidth(0.5);
                 
-                r.setTranslateX(x * tileWidth);
-                r.setTranslateY(y * tileHeight);
+                r.setTranslateX(x * 32);
+                r.setTranslateY(y * 32);
                 layer.getChildren().add(r);
             }
         }
-        
+
         mapView = new GameView(layer, 0);
         getGameScene().addGameView(mapView);
         System.out.println("✅ 优化的草地背景创建完成");
@@ -377,37 +474,10 @@ public class MapRenderer {
         // Tiled地图的更新由FXGL自动处理
     }
 
-    public void render(Object graphics) {
-        // FXGL 使用场景图渲染，这里保留接口
-    }
-
     /**
-     * 获取当前地图的关卡对象
+     * 检查指定位置是否可通行
      */
-    public Level getCurrentLevel() {
-        return currentLevel;
-    }
-
-    /**
-     * 检查指定坐标是否可通行
-     * @param x 世界坐标X
-     * @param y 世界坐标Y
-     * @return 是否可通行
-     */
-    public boolean isPassable(double x, double y) {
-        if (currentLevel == null) {
-            return true; // 如果没有地图，默认可通行
-        }
-        
-        // 将世界坐标转换为瓦片坐标
-        int tileX = (int) (x / tileWidth);
-        int tileY = (int) (y / tileHeight);
-        
-        // 检查边界
-        if (tileX < 0 || tileY < 0 || tileX >= currentLevel.getWidth() || tileY >= currentLevel.getHeight()) {
-            return false;
-        }
-        
+    public boolean isPassable(int x, int y) {
         // 这里可以根据瓦片属性判断是否可通行
         // 目前简单返回true，您可以根据需要扩展
         return true;
@@ -417,28 +487,26 @@ public class MapRenderer {
      * 获取地图尺寸
      */
     public int getMapWidth() {
-        return mapWidth;
+        return tiledMap.getWidth();
     }
 
     public int getMapHeight() {
-        return mapHeight;
+        return tiledMap.getHeight();
     }
 
     public int getTileWidth() {
-        return tileWidth;
+        return tiledMap.getTilewidth();
     }
 
     public int getTileHeight() {
-        return tileHeight;
+        return tiledMap.getTileheight();
     }
 
     /**
      * 设置瓦片尺寸
      */
     public void setTileSize(int width, int height) {
-        this.tileWidth = width;
-        this.tileHeight = height;
+        // 这个方法可以用于动态调整瓦片尺寸
+        // 目前瓦片尺寸从TMX文件读取
     }
 }
-
-
