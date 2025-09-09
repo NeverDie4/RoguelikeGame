@@ -16,13 +16,13 @@ public class Layer {
     // getter和setter
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-    
+
     public int getWidth() { return width; }
     public void setWidth(int width) { this.width = width; }
-    
+
     public int getHeight() { return height; }
     public void setHeight(int height) { this.height = height; }
-    
+
     public List<Integer> getData() { return data; }
     public void setData(List<Integer> data) { this.data = data; }
 }
