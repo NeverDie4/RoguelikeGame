@@ -22,6 +22,7 @@ public class Enemy extends EntityBase {
     // 流场寻路相关
     private static FlowField flowField;
     private static boolean flowFieldInitialized = false;
+    private static double lastGlobalUpdateTime = 0;
     private double lastTargetUpdateTime = 0;
     private static final double TARGET_UPDATE_INTERVAL = 0.5; // 每0.5秒更新一次目标
 
@@ -44,42 +45,48 @@ public class Enemy extends EntityBase {
         this.expReward = expReward;
     }
 
-    public void onUpdate(double tpf) {
-        // 限制首帧 tpf，避免刚进入游戏时速度过快
-        double dt = Math.min(tpf, 1.0 / 60.0);
+    public static void resetNavigation() {
+        flowField = null;
+        flowFieldInitialized = false;
+        lastGlobalUpdateTime = 0;
+    }
 
+    public void onUpdate(double tpf) {
+        // 交由 GameApp 主循环驱动，避免双重更新导致的速度异常
+    }
+
+    // 提供给外部驱动的 AI 更新函数（由 GameApp 调用）
+    public void updateAI(double tpf) {
         // 初始化流场（如果还没有初始化）
         if (!flowFieldInitialized) {
             initializeFlowField();
         }
-
         // 使用流场寻路AI
-        followFlowField(dt);
-    }
-
-    // 提供给外部驱动的 AI 更新函数，避免与 FXGL 内部 onUpdate 冲突
-    public void updateAI(double tpf) {
-        onUpdate(tpf);
+        followFlowField(tpf);
     }
 
     private static void initializeFlowField() {
-        // 创建流场，假设游戏世界大小为2000x2000，每个格子32像素
-        int worldSize = 2000;
+        // 创建流场，使用视口大小的扩展，避免过大网格导致首帧计算量过大
+        int worldWidth = (int) (FXGL.getAppWidth() * 2);
+        int worldHeight = (int) (FXGL.getAppHeight() * 2);
         int cellSize = 32;
-        int gridSize = worldSize / cellSize;
+        int gridSize = Math.max(worldWidth, worldHeight) / cellSize;
 
         flowField = new FlowField(gridSize, cellSize);
         flowFieldInitialized = true;
+        double now = com.roguelike.core.TimeService.getSeconds();
+        lastGlobalUpdateTime = now;
     }
 
     private void followFlowField(double tpf) {
         if (flowField == null) return;
 
         // 定期更新目标（玩家位置）
-        double currentTime = FXGL.getGameTimer().getNow();
-        if (currentTime - lastTargetUpdateTime > TARGET_UPDATE_INTERVAL) {
+        double currentTime = com.roguelike.core.TimeService.getSeconds();
+        // 使用 at-most-once 的节流：每 0.5s 最多一次，避免周期性律动
+        if (currentTime - lastGlobalUpdateTime >= TARGET_UPDATE_INTERVAL) {
             updateTargetToPlayer();
-            lastTargetUpdateTime = currentTime;
+            lastGlobalUpdateTime = currentTime;
         }
 
         // 获取当前位置的流场向量

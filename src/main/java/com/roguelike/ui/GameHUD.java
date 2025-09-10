@@ -87,8 +87,8 @@ public class GameHUD {
         updateLevel();
         updateExp();
 
-        // 计时器：使用 FXGL 的 GameTimer（随暂停自动停止）
-        com.almasb.fxgl.dsl.FXGL.getGameTimer().runAtInterval(this::refreshTimer, javafx.util.Duration.seconds(0.2));
+        // 计时器：使用受控时间服务 + FXGL 定时刷新显示（UI刷新不改变时间累积）
+        com.almasb.fxgl.dsl.FXGL.getGameTimer().runAtInterval(this::refreshTimer, javafx.util.Duration.seconds(0.05));
         refreshTimer();
     }
 
@@ -112,7 +112,7 @@ public class GameHUD {
     }
 
     private void refreshTimer() {
-        double now = com.almasb.fxgl.dsl.FXGL.getGameTimer().getNow();
+        double now = com.roguelike.core.TimeService.getSeconds();
         int total = (int) Math.floor(now);
         int minutes = total / 60;
         int seconds = total % 60;
