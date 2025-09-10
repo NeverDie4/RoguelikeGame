@@ -16,7 +16,11 @@ public class GameEvent {
         PLAYER_HURT,
         ENEMY_DEATH,
         SCORE_CHANGED,
-        MAP_LOADED
+        MAP_LOADED,
+        COINS_CHANGED,
+        TIME_CHANGED,
+        EXPERIENCE_CHANGED,
+        LEVEL_UP
     }
 
     private static final Map<Type, List<Consumer<GameEvent>>> LISTENERS = new EnumMap<>(Type.class);

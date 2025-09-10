@@ -19,6 +19,13 @@ public class Enemy extends EntityBase {
         getViewComponent().addChild(new Rectangle(28, 28, Color.CRIMSON));
         addComponent(new CollidableComponent(true));
         setSize(28, 28);
+      initenemyhpbar();
+
+    }
+
+    private void initenemyhpbar(){
+
+
     }
 
     public void onUpdate(double tpf) {
