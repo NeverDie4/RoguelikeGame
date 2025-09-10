@@ -14,8 +14,13 @@ public class GameEvent {
     public enum Type {
         PLAYER_MOVE,
         PLAYER_HURT,
+        PLAYER_DEATH,
+        PLAYER_HP_CHANGED,
         ENEMY_DEATH,
+        ENEMY_HP_CHANGED,
         SCORE_CHANGED,
+        EXP_CHANGED,
+        LEVEL_UP,
         MAP_LOADED
     }
 

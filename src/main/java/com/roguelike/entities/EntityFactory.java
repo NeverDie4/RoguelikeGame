@@ -13,19 +13,44 @@ import static com.almasb.fxgl.dsl.FXGL.*;
 
 public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
 
-    private final GameState gameState = new GameState();
+    private static GameState gameState;
+
+    public static void setGameState(GameState state) {
+        gameState = state;
+    }
 
     @Spawns("player")
     public Entity newPlayer(SpawnData data) {
         Player player = new Player();
         player.setX(data.getX());
         player.setY(data.getY());
+        if (gameState != null) {
+            player.setGameState(gameState);
+        }
         return player;
     }
 
     @Spawns("enemy")
     public Entity newEnemy(SpawnData data) {
-        Enemy enemy = new Enemy();
+        // 根据游戏时间计算敌人血量（3,5,7,9分钟时血量增加）
+        int baseHP = 50;
+        int expReward = 5;
+
+        // 获取游戏时间（秒）
+        double gameTime = getGameTimer().getNow();
+        int minutes = (int) (gameTime / 60);
+
+        // 在3,5,7,9分钟时血量增加
+        if (minutes >= 3) baseHP += 20;
+        if (minutes >= 5) baseHP += 30;
+        if (minutes >= 7) baseHP += 40;
+        if (minutes >= 9) baseHP += 50;
+
+        // 经验值也相应增加
+        expReward += minutes / 2;
+
+        Enemy enemy = new Enemy(baseHP, expReward);
+
         // 在玩家附近随机一圈生成
         Entity player = getGameWorld().getEntitiesByType().stream().filter(e -> e instanceof Player).findFirst().orElse(null);
         Point2D base = player != null ? player.getCenter() : new Point2D(getAppWidth() / 2.0, getAppHeight() / 2.0);

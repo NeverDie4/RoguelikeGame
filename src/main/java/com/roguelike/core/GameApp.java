@@ -46,10 +46,20 @@ public class GameApp extends GameApplication {
         mapRenderer.init();
 
         // 注册实体工厂
-        FXGL.getGameWorld().addEntityFactory(new com.roguelike.entities.GameEntityFactory());
+        com.roguelike.entities.EntityFactory.setGameState(gameState);
+        FXGL.getGameWorld().addEntityFactory(new com.roguelike.entities.EntityFactory());
 
-        // 玩家
-        Player player = (Player) getGameWorld().spawn("player", new SpawnData(640, 360));
+        // 地图渲染器 - 加载Tiled地图
+        mapRenderer = new MapRenderer("grass.tmx");
+        mapRenderer.init();
+
+        // 玩家 - 根据地图尺寸调整初始位置
+        double playerX = mapRenderer.getMapWidth() > 0 ?
+            (mapRenderer.getMapWidth() * mapRenderer.getTileWidth()) / 2.0 : 640;
+        double playerY = mapRenderer.getMapHeight() > 0 ?
+            (mapRenderer.getMapHeight() * mapRenderer.getTileHeight()) / 2.0 : 360;
+
+        Player player = (Player) getGameWorld().spawn("player", new SpawnData(playerX, playerY));
         FXGL.getGameScene().getViewport().bindToEntity(player, getAppWidth() / 2.0, getAppHeight() / 2.0);
 
         // 输入
@@ -65,73 +75,68 @@ public class GameApp extends GameApplication {
         // 事件示例
         GameEvent.listen(GameEvent.Type.MAP_LOADED, e -> {
             // 地图加载完成事件
+            System.out.println("地图加载完成事件触发");
         });
         GameEvent.post(new GameEvent(GameEvent.Type.MAP_LOADED));
     }
 
     private void initInput(Player player) {
+        // 使用固定移动距离，避免 tpf() 异常值导致的移动问题
+        final double moveDistance = 2.0; // 固定移动距离，降低移动速度
 
         getInput().addAction(new UserAction("MOVE_LEFT_A") {
             @Override
             protected void onAction() {
-                player.move(-200 * tpf(), 0);
-                GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
+                player.move(-moveDistance, 0);
             }
         }, KeyCode.A);
 
         getInput().addAction(new UserAction("MOVE_LEFT_ARROW") {
             @Override
             protected void onAction() {
-                player.move(-200 * tpf(), 0);
-                GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
+                player.move(-moveDistance, 0);
             }
         }, KeyCode.LEFT);
 
         getInput().addAction(new UserAction("MOVE_RIGHT_D") {
             @Override
             protected void onAction() {
-                player.move(200 * tpf(), 0);
-                GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
+                player.move(moveDistance, 0);
             }
         }, KeyCode.D);
 
         getInput().addAction(new UserAction("MOVE_RIGHT_ARROW") {
             @Override
             protected void onAction() {
-                player.move(200 * tpf(), 0);
-                GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
+                player.move(moveDistance, 0);
             }
         }, KeyCode.RIGHT);
 
         getInput().addAction(new UserAction("MOVE_UP_W") {
             @Override
             protected void onAction() {
-                player.move(0, -200 * tpf());
-                GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
+                player.move(0, -moveDistance);
             }
         }, KeyCode.W);
 
         getInput().addAction(new UserAction("MOVE_UP_ARROW") {
             @Override
             protected void onAction() {
-                player.move(0, -200 * tpf());
-                GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
+                player.move(0, -moveDistance);
             }
         }, KeyCode.UP);
 
         getInput().addAction(new UserAction("MOVE_DOWN_S") {
             @Override
             protected void onAction() {
-                player.move(0, 200 * tpf());
-                GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
+                player.move(0, moveDistance);
             }
         }, KeyCode.S);
 
         getInput().addAction(new UserAction("MOVE_DOWN_ARROW") {
             @Override
             protected void onAction() {
-                player.move(0, 200 * tpf());
-                GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
+                player.move(0, moveDistance);
             }
         }, KeyCode.DOWN);
 
@@ -155,6 +160,10 @@ public class GameApp extends GameApplication {
         if (mapRenderer != null) {
             mapRenderer.onUpdate(tpf);
         }
+        // 更新所有敌人的AI（包括流场寻路）
+        getGameWorld().getEntitiesByType().stream()
+                .filter(e -> e instanceof com.roguelike.entities.Enemy)
+                .forEach(e -> ((com.roguelike.entities.Enemy) e).onUpdate(tpf));
     }
 
     public static void main(String[] args) {

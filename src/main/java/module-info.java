@@ -1,6 +1,8 @@
 module com.roguelike.main {
     requires javafx.controls;
     requires javafx.fxml;
+    requires java.xml;
+    requires java.logging;
 
     requires com.almasb.fxgl.all;
 
