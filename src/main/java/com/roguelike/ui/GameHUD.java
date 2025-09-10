@@ -332,12 +332,12 @@ public class GameHUD {
     // 预留事件监听接口（后续可启用动态更新）
     private void setupEventListeners() {
         // 注释掉的事件监听器，后续需要动态更新时可取消注释
-        /*
-        GameEvent.listen(GameEvent.Type.KILLS_CHANGED, e -> updateKills());
+
+        GameEvent.listen(GameEvent.Type.ENEMY_DEATH, e -> updateKills());
         GameEvent.listen(GameEvent.Type.COINS_CHANGED, e -> updateCoins());
         GameEvent.listen(GameEvent.Type.EXPERIENCE_CHANGED, e -> updateExperienceBar());
         GameEvent.listen(GameEvent.Type.LEVEL_UP, e -> updateExperienceBar());
-        */
+
     }
 
     // 更新屏幕尺寸

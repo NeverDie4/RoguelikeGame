@@ -59,8 +59,8 @@ public class GameState {
     public void nextLevel() {
         level++;
         // 每级最大经验值略微增加（参考吸血鬼幸存者）
-        maxExp = (int) (100 * Math.pow(1.1, level - 1));
-        currentExp = 0;
+        experienceToNextLevel = (int) (100 * Math.pow(1.1, level - 1));
+        experience = 0;
         // 升级时恢复满血
         playerHP = playerMaxHP;
         GameEvent.post(new GameEvent(GameEvent.Type.LEVEL_UP));
@@ -68,20 +68,20 @@ public class GameState {
 
     // 经验值相关方法
     public int getCurrentExp() {
-        return currentExp;
+        return experience;
     }
 
     public int getMaxExp() {
-        return maxExp;
+        return experienceToNextLevel;
     }
 
     public void addExp(int exp) {
         if (exp <= 0) return;
-        currentExp += exp;
-        GameEvent.post(new GameEvent(GameEvent.Type.EXP_CHANGED));
+        experience += exp;
+        GameEvent.post(new GameEvent(GameEvent.Type.EXPERIENCE_CHANGED));
 
         // 检查是否升级
-        while (currentExp >= maxExp) {
+        while (experience >= experienceToNextLevel) {
             nextLevel();
         }
     }

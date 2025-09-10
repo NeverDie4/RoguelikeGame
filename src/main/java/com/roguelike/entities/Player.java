@@ -91,12 +91,6 @@ public class Player extends EntityBase {
         }
     }
 
-    public void takeDamage(int damage) {
-        currentHP = Math.max(0, currentHP - damage);
-        updateHealthBar();
-        GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_HURT));
-    }
-
     public void heal(int amount) {
         currentHP = Math.min(maxHP, currentHP + amount);
         updateHealthBar();
