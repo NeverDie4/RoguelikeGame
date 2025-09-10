@@ -14,9 +14,11 @@ import static com.almasb.fxgl.dsl.FXGL.*;
 public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
 
     private static GameState gameState;
+    private static boolean initialized;
 
     public static void setGameState(GameState state) {
         gameState = state;
+        initialized = true;
     }
 
     @Spawns("player")
@@ -36,8 +38,8 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
         int baseHP = 50;
         int expReward = 5;
 
-        // 获取游戏时间（秒）
-        double gameTime = getGameTimer().getNow();
+        // 获取游戏时间（秒）（改用受控时间服务，避免首帧时间暴增）
+        double gameTime = com.roguelike.core.TimeService.getSeconds();
         int minutes = (int) (gameTime / 60);
 
         // 在3,5,7,9分钟时血量增加
