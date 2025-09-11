@@ -3,14 +3,10 @@ package com.roguelike.entities;
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.dsl.components.ProjectileComponent;
 import com.almasb.fxgl.entity.Entity;
-import com.almasb.fxgl.entity.SpawnData;
-import com.almasb.fxgl.entity.Spawns;
-import com.almasb.fxgl.entity.component.Component;
 import com.almasb.fxgl.entity.components.CollidableComponent;
-import com.almasb.fxgl.entity.components.TypeComponent;
-import com.almasb.fxgl.texture.Texture;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
+import com.roguelike.entities.components.CharacterAnimationComponent;
 import com.roguelike.physics.MovementValidator;
 import com.roguelike.physics.MovementValidator.MovementResult;
 import com.roguelike.physics.MovementValidator.MovementType;
@@ -18,6 +14,7 @@ import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.layout.StackPane;
+import javafx.util.Duration;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
 
@@ -31,15 +28,26 @@ public class Player extends EntityBase {
     private int currentHP = 100;
     private GameState gameState;
     private MovementValidator movementValidator;
+    
+    // 动画相关
+    private CharacterAnimationComponent animationComponent;
+    private CharacterAnimationComponent.Direction currentDirection = CharacterAnimationComponent.Direction.RIGHT;
 
     public Player() {
-        Rectangle view = new Rectangle(32, 32, Color.DODGERBLUE);
-        getViewComponent().addChild(view);
+        // 添加碰撞组件
         addComponent(new CollidableComponent(true));
+        
+        // 设置实体大小（根据GIF动画帧大小调整）
         setSize(32, 32);
-
+        
+        // 初始化动画
+        initializeAnimation();
+        
         // 初始化血条
         initHealthBar();
+        
+        // 设置实体锚点为中心
+        getTransformComponent().setAnchoredPosition(new Point2D(0.5, 0.5));
     }
 
     private void initHealthBar() {
@@ -77,6 +85,39 @@ public class Player extends EntityBase {
 
         // 监听血量变化事件
         GameEvent.listen(GameEvent.Type.PLAYER_HURT, e -> updateHealthBar());
+    }
+    
+    private void initializeAnimation() {
+        try {
+            // 初始化动画组件
+            animationComponent = new CharacterAnimationComponent();
+            addComponent(animationComponent);
+            
+            // 加载向右方向的GIF动画帧（6帧，每帧128x128像素）
+            animationComponent.loadGifAnimationFrames("assets/textures/player", 6);
+            
+            // 加载向左方向的GIF动画帧（6帧，每帧128x128像素）
+            animationComponent.loadLeftGifAnimationFrames("assets/textures/player", 6);
+            
+            // 设置动画参数
+            animationComponent.setFrameDuration(0.2); // 每帧200毫秒
+            animationComponent.setLooping(true);
+            
+            System.out.println("玩家动画初始化完成（支持左右转向）");
+            
+            // 测试：3秒后强制显示第0帧
+            FXGL.runOnce(() -> {
+                //System.out.println("🧪 3秒后测试显示第0帧");
+                animationComponent.testShowFrame(0);
+            }, Duration.seconds(3));
+        } catch (Exception e) {
+            System.err.println("玩家动画初始化失败: " + e.getMessage());
+            e.printStackTrace();
+            
+            // 如果动画加载失败，使用备用矩形显示
+            Rectangle view = new Rectangle(32, 32, Color.DODGERBLUE);
+            getViewComponent().addChild(view);
+        }
     }
 
     public void updateHealthBar() {
@@ -149,6 +190,21 @@ public class Player extends EntityBase {
             translate(dx, dy);
             GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
         }
+        
+        // 检测水平移动方向并切换动画
+        if (dx > 0 && currentDirection != CharacterAnimationComponent.Direction.RIGHT) {
+            // 向右移动
+            currentDirection = CharacterAnimationComponent.Direction.RIGHT;
+            if (animationComponent != null) {
+                animationComponent.setDirection(currentDirection);
+            }
+        } else if (dx < 0 && currentDirection != CharacterAnimationComponent.Direction.LEFT) {
+            // 向左移动
+            currentDirection = CharacterAnimationComponent.Direction.LEFT;
+            if (animationComponent != null) {
+                animationComponent.setDirection(currentDirection);
+            }
+        }
     }
     
     /**
@@ -175,7 +231,7 @@ public class Player extends EntityBase {
 
     public void attack() { //这个函数有问题，后面新建一个子弹类用于区分友方子弹和敌方子弹，再传入entityBuilder()里
         // 简单攻击：发射一个向右的投射体
-        Entity bullet = entityBuilder()
+        entityBuilder()
                 // 从玩家位置出发（基于玩家中心调整）
                 .at(getCenter().subtract(0, 2))
                 .viewWithBBox(new Rectangle(8, 4, Color.ORANGE))

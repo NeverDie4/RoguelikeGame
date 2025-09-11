@@ -5,6 +5,7 @@ import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.components.CollidableComponent;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
+import com.roguelike.entities.components.CharacterAnimationComponent;
 import com.roguelike.physics.MovementValidator;
 import com.roguelike.physics.MovementValidator.MovementResult;
 import com.roguelike.physics.MovementValidator.MovementType;
@@ -39,18 +40,58 @@ public class Enemy extends EntityBase {
     private AdaptivePathfinder adaptivePathfinder;
     private java.util.List<javafx.geometry.Point2D> currentPath;
     private int currentPathIndex = 0;
+    
+    // 动画组件
+    private CharacterAnimationComponent animationComponent;
+    private CharacterAnimationComponent.Direction currentDirection = CharacterAnimationComponent.Direction.RIGHT;
+    
+    // 死亡状态标记
+    private boolean isDead = false;
 
     public Enemy() {
-        getViewComponent().addChild(new Rectangle(28, 28, Color.CRIMSON));
+        // 添加碰撞组件
         addComponent(new CollidableComponent(true));
-        setSize(28, 28);
-      initenemyhpbar();
-
+        
+        // 设置实体大小（根据敌人动画帧大小调整）
+        setSize(64, 64);
+        
+        // 初始化动画
+        initializeAnimation();
+        
+        // 设置实体锚点为中心
+        getTransformComponent().setAnchoredPosition(new Point2D(0.5, 0.5));
+        
+        initenemyhpbar();
     }
 
     private void initenemyhpbar(){
 
 
+    }
+    
+    private void initializeAnimation() {
+        try {
+            // 初始化动画组件
+            animationComponent = new CharacterAnimationComponent();
+            addComponent(animationComponent);
+            
+            // 加载敌人行走动画帧（10帧PNG图片）
+            animationComponent.loadPngAnimationFrames("assets/textures/enemy", 10, "enemy_walk_%02d.png");
+            
+            // 加载敌人死亡动画帧（11帧PNG图片）
+            animationComponent.loadDeathAnimationFrames("assets/textures/enemy", 11, "die_%04d.png");
+            
+            // 设置动画参数
+            animationComponent.setFrameDuration(0.15); // 每帧150毫秒，比玩家稍快
+            animationComponent.setLooping(true);
+
+        } catch (Exception e) {
+            System.err.println("敌人动画初始化失败: " + e.getMessage());
+            e.printStackTrace();
+            
+            // 如果动画加载失败，使用备用矩形显示
+            getViewComponent().addChild(new Rectangle(64, 64, Color.CRIMSON));
+        }
     }
 
     public Enemy(int hp, int expReward) {
@@ -70,6 +111,11 @@ public class Enemy extends EntityBase {
 
     // 提供给外部驱动的 AI 更新函数（由 GameApp 调用）
     public void updateAI(double tpf) {
+        // 如果敌人已死亡，不再执行移动逻辑
+        if (isDead) {
+            return;
+        }
+        
         if (!isAlive()) {
             return;
         }
@@ -168,6 +214,21 @@ public class Enemy extends EntityBase {
             // 没有碰撞检测时直接移动
             translate(moveX, moveY);
         }
+        
+        // 检测水平移动方向并切换动画
+        if (moveX > 0 && currentDirection != CharacterAnimationComponent.Direction.RIGHT) {
+            // 向右移动
+            currentDirection = CharacterAnimationComponent.Direction.RIGHT;
+            if (animationComponent != null) {
+                animationComponent.setDirection(currentDirection);
+            }
+        } else if (moveX < 0 && currentDirection != CharacterAnimationComponent.Direction.LEFT) {
+            // 向左移动
+            currentDirection = CharacterAnimationComponent.Direction.LEFT;
+            if (animationComponent != null) {
+                animationComponent.setDirection(currentDirection);
+            }
+        }
     }
     
     /**
@@ -222,6 +283,9 @@ public class Enemy extends EntityBase {
     }
 
     public void onDeath() {
+        // 设置死亡状态，停止移动
+        isDead = true;
+        
         // 给予玩家经验值
         GameState gameState = FXGL.getGameWorld().getEntitiesByType().stream()
                 .filter(e -> e instanceof Player)
@@ -235,16 +299,39 @@ public class Enemy extends EntityBase {
         }
 
         GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_DEATH));
-        removeFromWorld();
+        
+        // 播放死亡动画，动画完成后移除实体
+        if (animationComponent != null) {
+            animationComponent.playDeathAnimation(() -> {
+                // 死亡动画播放完成后移除实体
+                removeFromWorld();
+            });
+        } else {
+            // 如果没有动画组件，直接移除
+            removeFromWorld();
+        }
     }
 
     public void onDeath(GameState gameState) {
+        // 设置死亡状态，停止移动
+        isDead = true;
+        
         if (gameState != null) {
             gameState.addScore(10);
             gameState.addExp(expReward);
         }
         GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_DEATH));
-        removeFromWorld();
+        
+        // 播放死亡动画，动画完成后移除实体
+        if (animationComponent != null) {
+            animationComponent.playDeathAnimation(() -> {
+                // 死亡动画播放完成后移除实体
+                removeFromWorld();
+            });
+        } else {
+            // 如果没有动画组件，直接移除
+            removeFromWorld();
+        }
     }
 
     public int getCurrentHP() {
@@ -256,7 +343,14 @@ public class Enemy extends EntityBase {
     }
 
     public boolean isAlive() {
-        return currentHP > 0;
+        return currentHP > 0 && !isDead;
+    }
+    
+    /**
+     * 检查敌人是否已死亡（包括正在播放死亡动画的状态）
+     */
+    public boolean isDead() {
+        return isDead;
     }
     
     /**
