@@ -23,7 +23,12 @@ public class GameEvent {
         COINS_CHANGED,
         TIME_CHANGED,
         EXPERIENCE_CHANGED,
-        LEVEL_UP
+        LEVEL_UP,
+        // 碰撞相关事件
+        PLAYER_HIT_WALL,
+        ENEMY_HIT_WALL,
+        ENTITY_COLLISION_BLOCKED,
+        MOVEMENT_SLIDING
     }
 
     private static final Map<Type, List<Consumer<GameEvent>>> LISTENERS = new EnumMap<>(Type.class);

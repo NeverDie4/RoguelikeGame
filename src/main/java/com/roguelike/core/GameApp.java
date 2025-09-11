@@ -3,16 +3,17 @@ package com.roguelike.core;
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import com.almasb.fxgl.dsl.FXGL;
+import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.SpawnData;
 import com.almasb.fxgl.input.UserAction;
-import com.almasb.fxgl.time.TimerAction;
 import com.roguelike.entities.Player;
 import com.roguelike.map.MapRenderer;
+import com.roguelike.physics.MapCollisionDetector;
+import com.roguelike.physics.MovementValidator;
 import com.roguelike.ui.GameHUD;
 import com.roguelike.ui.Menus;
 import com.roguelike.ui.LoadingOverlay;
 import javafx.scene.input.KeyCode;
-import javafx.util.Duration;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
 
@@ -24,13 +25,17 @@ public class GameApp extends GameApplication {
     private GameState gameState;
     private MapRenderer mapRenderer;
     private GameHUD gameHUD;
-    private TimerAction enemySpawnTask;
+    private MapCollisionDetector collisionDetector;
+    private MovementValidator movementValidator;
     private double enemySpawnAccumulator = 0.0;
-    private static final double ENEMY_SPAWN_INTERVAL = 2.5;
+    private static final double ENEMY_SPAWN_INTERVAL = 0.5;
     private static boolean INPUT_BOUND = false;
     private static final double TARGET_DT = 1.0 / 60.0; // 目标帧时长
     private int frameCount = 0; // 帧计数器，用于跳过不稳定的初始帧
     private boolean gameReady = false; // 覆盖层完成后才开始计时与更新
+    
+    // 地图配置
+    private static final String MAP_NAME = "mapgrass"; // 当前使用的地图名称
 
     @Override
     protected void initSettings(GameSettings settings) {
@@ -56,8 +61,15 @@ public class GameApp extends GameApplication {
         FXGL.getGameWorld().addEntityFactory(new com.roguelike.entities.EntityFactory());
 
         // 地图渲染器 - 加载Tiled地图
-        mapRenderer = new MapRenderer("grass.tmx");
+        mapRenderer = new MapRenderer(MAP_NAME);
         mapRenderer.init();
+        
+        // 初始化碰撞检测系统
+        collisionDetector = new MapCollisionDetector(mapRenderer);
+        movementValidator = new MovementValidator(collisionDetector);
+        
+        // 调试：打印碰撞地图信息
+        mapRenderer.printCollisionInfo();
 
         // 玩家 - 根据地图尺寸调整初始位置
         double playerX = mapRenderer.getMapWidth() > 0 ?
@@ -66,6 +78,10 @@ public class GameApp extends GameApplication {
             (mapRenderer.getMapHeight() * mapRenderer.getTileHeight()) / 2.0 : 360;
 
         Player player = (Player) getGameWorld().spawn("player", new SpawnData(playerX, playerY));
+        
+        // 为玩家设置移动验证器
+        player.setMovementValidator(movementValidator);
+        
         FXGL.getGameScene().getViewport().bindToEntity(player, getAppWidth() / 2.0, getAppHeight() / 2.0);
 
         // 输入
@@ -216,9 +232,34 @@ public class GameApp extends GameApplication {
         // 基于受控时间的刷怪逻辑
         enemySpawnAccumulator += realDt;
         while (enemySpawnAccumulator >= ENEMY_SPAWN_INTERVAL) {
-            getGameWorld().spawn("enemy");
+            Entity newEnemy = getGameWorld().spawn("enemy");
+            // 为新创建的敌人设置移动验证器
+            if (newEnemy instanceof com.roguelike.entities.Enemy) {
+                ((com.roguelike.entities.Enemy) newEnemy).setMovementValidator(movementValidator);
+            }
             enemySpawnAccumulator -= ENEMY_SPAWN_INTERVAL;
         }
+    }
+
+    /**
+     * 获取碰撞检测器实例
+     */
+    public MapCollisionDetector getCollisionDetector() {
+        return collisionDetector;
+    }
+    
+    /**
+     * 获取移动验证器实例
+     */
+    public MovementValidator getMovementValidator() {
+        return movementValidator;
+    }
+    
+    /**
+     * 获取地图渲染器实例
+     */
+    public MapRenderer getMapRenderer() {
+        return mapRenderer;
     }
 
     public static void main(String[] args) {

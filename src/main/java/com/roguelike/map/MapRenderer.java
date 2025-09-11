@@ -1,14 +1,11 @@
 package com.roguelike.map;
 
-import com.almasb.fxgl.entity.level.Level;
 import com.almasb.fxgl.app.scene.GameView;
-import com.almasb.fxgl.dsl.FXGL;
 import javafx.scene.Group;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import com.almasb.fxgl.app.scene.GameView;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -32,34 +29,36 @@ public class MapRenderer {
 
     private static final Logger logger = Logger.getLogger(MapRenderer.class.getName());
 
-    private Level currentLevel;
-    private String mapPath;
+    private String mapName; // 地图名称，不包含.tmx扩展名
     private GameView mapView;
-    private boolean useFallbackBackground = false;
 
     // TMX文件解析相关
     private TiledMap tiledMap;
     private Map<String, Image> tilesetImages = new HashMap<>();
+    private CollisionMap collisionMap;
 
     public MapRenderer() {
-        this.mapPath = "grass.tmx";
+        this.mapName = "grass";
         this.tiledMap = new TiledMap();
     }
 
-    public MapRenderer(String mapPath) {
-        this.mapPath = mapPath;
+    public MapRenderer(String mapName) {
+        this.mapName = mapName;
         this.tiledMap = new TiledMap();
     }
 
     public void init() {
         System.out.println("🎮 初始化地图渲染器");
-        System.out.println("📁 尝试解析TMX文件: " + mapPath);
+        System.out.println("📁 尝试解析地图: " + mapName);
 
         try {
             // 尝试解析TMX文件
             if (parseTMXFile()) {
                 System.out.println("✅ TMX文件解析成功");
                 createMapFromTMX();
+                
+                // 构建碰撞地图
+                buildCollisionMap();
             } else {
                 throw new Exception("TMX文件解析失败");
             }
@@ -79,8 +78,8 @@ public class MapRenderer {
      */
     private boolean parseTMXFile() {
         try {
-            // 从固定的assets/maps目录加载TMX文件
-            String resourcePath = "assets/maps/" + mapPath;
+            // 从assets/maps/{mapName}/目录加载TMX文件
+            String resourcePath = "assets/maps/" + mapName + "/" + mapName + ".tmx";
             InputStream inputStream = getClass().getResourceAsStream("/" + resourcePath);
 
             if (inputStream == null) {
@@ -148,6 +147,9 @@ public class MapRenderer {
                 loadTilesetImage(tileset);
             }
 
+            // 解析瓦片属性
+            parseTileProperties(tilesetElement, tileset);
+
             tiledMap.getTilesets().add(tileset);
 
             System.out.println("🎨 瓦片集: " + tileset.getName() + " (GID: " + tileset.getFirstgid() +
@@ -158,33 +160,23 @@ public class MapRenderer {
 
     /**
      * 加载瓦片集图像
-     * 根据tmx文件名构建图片路径：如果tmx为a.tmx，则图片为a1.png, a2.png等
+     * 根据瓦片集名称映射到对应的hyptosis_tile-art-batch-$.png文件
      */
     private void loadTilesetImage(Tileset tileset) {
         try {
-            // 从tmx文件名中提取基础名称（去掉.tmx扩展名）
-            String baseName = mapPath;
-            if (baseName.endsWith(".tmx")) {
-                baseName = baseName.substring(0, baseName.length() - 4);
-            }
-
-            // 根据瓦片集名称构建图片文件名
-            // 如果瓦片集名称为"2dmap"，则图片为baseName + "1.png"
-            // 如果瓦片集名称为"2dmap2"，则图片为baseName + "2.png"
-            String imageFileName = buildImageFileName(baseName, tileset.getName());
-
-            // 从固定的assets/maps目录加载图片文件
-            String imagePath = "assets/maps/" + imageFileName;
+            // 根据瓦片集名称确定对应的图像文件
+            String imageFileName = getImageFileNameForTileset(tileset.getName());
+            String imagePath = "assets/maps/" + mapName + "/" + imageFileName;
             InputStream imageStream = getClass().getResourceAsStream("/" + imagePath);
-
+            
             if (imageStream != null) {
                 Image image = new Image(imageStream);
                 tilesetImages.put(tileset.getName(), image);
-                logger.info("🖼️ 成功加载瓦片集图像: /" + imagePath + " (原始路径: " + tileset.getImage() + ")");
-                System.out.println("🖼️ 成功加载瓦片集图像: /" + imagePath + " (原始路径: " + tileset.getImage() + ")");
+                logger.info("🖼️ 成功加载瓦片集图像: /" + imagePath + " (瓦片集: " + tileset.getName() + ")");
+                System.out.println("🖼️ 成功加载瓦片集图像: /" + imagePath + " (瓦片集: " + tileset.getName() + ")");
             } else {
-                logger.warning("❌ 无法加载瓦片集图像: /" + imagePath + " (原始路径: " + tileset.getImage() + ")");
-                System.err.println("❌ 无法加载瓦片集图像: /" + imagePath + " (原始路径: " + tileset.getImage() + ")");
+                logger.warning("❌ 无法加载瓦片集图像: /" + imagePath + " (瓦片集: " + tileset.getName() + ")");
+                System.err.println("❌ 无法加载瓦片集图像: /" + imagePath + " (瓦片集: " + tileset.getName() + ")");
             }
         } catch (Exception e) {
             System.err.println("❌ 加载瓦片集图像失败: " + e.getMessage());
@@ -192,38 +184,99 @@ public class MapRenderer {
     }
 
     /**
-     * 根据tmx基础名称和瓦片集名称构建图片文件名
-     * 例如：baseName="grass", tilesetName="2dmap" -> "grass1.png"
-     *      baseName="grass", tilesetName="2dmap2" -> "grass2.png"
+     * 解析瓦片属性
      */
-    private String buildImageFileName(String baseName, String tilesetName) {
-        // 从瓦片集名称中提取数字后缀
-        String suffix = "1"; // 默认后缀
-
-        if (tilesetName.endsWith("2")) {
-            suffix = "2";
-        } else if (tilesetName.endsWith("3")) {
-            suffix = "3";
-        } else if (tilesetName.endsWith("4")) {
-            suffix = "4";
-        } else if (tilesetName.endsWith("5")) {
-            suffix = "5";
-        } else if (tilesetName.endsWith("6")) {
-            suffix = "6";
-        } else if (tilesetName.endsWith("7")) {
-            suffix = "7";
-        } else if (tilesetName.endsWith("8")) {
-            suffix = "8";
-        } else if (tilesetName.endsWith("9")) {
-            suffix = "9";
+    private void parseTileProperties(Element tilesetElement, Tileset tileset) {
+        NodeList tileNodes = tilesetElement.getElementsByTagName("tile");
+        int unaccessibleCount = 0;
+        
+        for (int i = 0; i < tileNodes.getLength(); i++) {
+            Element tileElement = (Element) tileNodes.item(i);
+            int tileId = Integer.parseInt(tileElement.getAttribute("id"));
+            
+            // 解析瓦片属性
+            TileProperty tileProperty = new TileProperty();
+            NodeList propertyNodes = tileElement.getElementsByTagName("property");
+            
+            for (int j = 0; j < propertyNodes.getLength(); j++) {
+                Element propertyElement = (Element) propertyNodes.item(j);
+                String propertyName = propertyElement.getAttribute("name");
+                String propertyType = propertyElement.getAttribute("type");
+                String propertyValue = propertyElement.getAttribute("value");
+                
+                // 根据属性类型转换值
+                Object value = convertPropertyValue(propertyType, propertyValue);
+                tileProperty.addProperty(propertyName, value);
+                
+                // 统计unaccessible属性
+                if ("unaccessible".equals(propertyName) && Boolean.TRUE.equals(value)) {
+                    unaccessibleCount++;
+                }
+            }
+            
+            // 将瓦片属性添加到瓦片集
+            if (!tileProperty.getAllProperties().isEmpty()) {
+                tileset.addTileProperty(tileId, tileProperty);
+            }
         }
-
-        String imageFileName = baseName + suffix + ".png";
-        logger.info("🔧 构建图片文件名: baseName=" + baseName + ", tilesetName=" + tilesetName + " -> " + imageFileName);
-        System.out.println("🔧 构建图片文件名: baseName=" + baseName + ", tilesetName=" + tilesetName + " -> " + imageFileName);
-
-        return imageFileName;
+        
+        if (unaccessibleCount > 0) {
+            System.out.println("🚧 瓦片集 " + tileset.getName() + " 中有 " + unaccessibleCount + " 个不可通行的瓦片");
+        }
     }
+    
+    /**
+     * 转换属性值类型
+     */
+    private Object convertPropertyValue(String type, String value) {
+        if (type == null || type.isEmpty()) {
+            return value; // 默认为字符串
+        }
+        
+        switch (type.toLowerCase()) {
+            case "bool":
+            case "boolean":
+                return Boolean.parseBoolean(value);
+            case "int":
+            case "integer":
+                try {
+                    return Integer.parseInt(value);
+                } catch (NumberFormatException e) {
+                    return 0;
+                }
+            case "float":
+                try {
+                    return Float.parseFloat(value);
+                } catch (NumberFormatException e) {
+                    return 0.0f;
+                }
+            case "string":
+            default:
+                return value;
+        }
+    }
+
+    /**
+     * 根据瓦片集名称获取对应的图像文件名
+     * 映射规则：1对应1，2对应2，3对应3
+     * - 2dmap1 -> hyptosis_tile-art-batch-1.png
+     * - 2dmap2 -> hyptosis_tile-art-batch-2.png  
+     * - 2dmap3 -> hyptosis_tile-art-batch-3.png
+     */
+    private String getImageFileNameForTileset(String tilesetName) {
+        // 从瓦片集名称中提取数字后缀
+        if (tilesetName.endsWith("1")) {
+            return "hyptosis_tile-art-batch-1.png";
+        } else if (tilesetName.endsWith("2")) {
+            return "hyptosis_tile-art-batch-2.png";
+        } else if (tilesetName.endsWith("3")) {
+            return "hyptosis_tile-art-batch-3.png";
+        } else {
+            // 默认情况，尝试从名称中提取数字
+            return "hyptosis_tile-art-batch-1.png";
+        }
+    }
+
 
     /**
      * 解析瓦片层
@@ -260,7 +313,6 @@ public class MapRenderer {
      * 根据TMX数据创建地图
      */
     private void createMapFromTMX() {
-        useFallbackBackground = false;
         System.out.println("🎨 根据TMX数据创建地图");
 
         Group layer = new Group();
@@ -279,7 +331,7 @@ public class MapRenderer {
                         Tileset tileset = findTilesetForGid(gid);
                         if (tileset != null) {
                             // 尝试使用PNG瓦片集，如果失败则使用颜色
-                            if (tilesetImages.containsKey(tileset.getName())) {
+                            if (hasTilesetImage(tileset)) {
                                 createTileFromImage(layer, x, y, gid, tileset);
                             } else {
                                 createTileFromColor(layer, x, y, gid, tileset);
@@ -296,11 +348,24 @@ public class MapRenderer {
     }
 
     /**
+     * 检查是否有瓦片集图像
+     */
+    private boolean hasTilesetImage(Tileset tileset) {
+        return tilesetImages.containsKey(tileset.getName());
+    }
+
+    /**
      * 从图像创建瓦片
      */
     private void createTileFromImage(Group layer, int x, int y, int gid, Tileset tileset) {
         try {
+            // 直接通过瓦片集名称获取图像
             Image tilesetImage = tilesetImages.get(tileset.getName());
+            
+            if (tilesetImage == null) {
+                throw new Exception("未找到瓦片集图像: " + tileset.getName());
+            }
+            
             int localId = gid - tileset.getFirstgid();
 
             // 计算瓦片在瓦片集中的位置
@@ -429,7 +494,6 @@ public class MapRenderer {
      * 回退方案：如果Tiled地图加载失败，使用简单的网格背景
      */
     private void initFallbackBackground() {
-        useFallbackBackground = true;
         System.out.println("🎨 创建优化的草地背景");
 
         Group layer = new Group();
@@ -476,12 +540,89 @@ public class MapRenderer {
     }
 
     /**
+     * 构建碰撞地图
+     */
+    private void buildCollisionMap() {
+        if (tiledMap != null) {
+            collisionMap = CollisionMap.fromTiledMap(tiledMap);
+            System.out.println("🗺️ 碰撞地图构建完成: " + collisionMap.getWidth() + "x" + collisionMap.getHeight());
+            
+            // 可选：打印碰撞地图用于调试
+            if (logger.isLoggable(java.util.logging.Level.FINE)) {
+                collisionMap.printCollisionMap();
+            }
+        } else {
+            System.err.println("❌ 无法构建碰撞地图：TiledMap为空");
+        }
+    }
+
+    /**
      * 检查指定位置是否可通行
      */
     public boolean isPassable(int x, int y) {
-        // 这里可以根据瓦片属性判断是否可通行
-        // 目前简单返回true，您可以根据需要扩展
+        if (collisionMap != null) {
+            return collisionMap.isPassable(x, y);
+        }
+        // 如果没有碰撞地图，默认返回true（可通行）
         return true;
+    }
+    
+    /**
+     * 检查指定位置是否不可通行
+     */
+    public boolean isUnaccessible(int x, int y) {
+        if (collisionMap != null) {
+            return collisionMap.isUnaccessible(x, y);
+        }
+        // 如果没有碰撞地图，默认返回false（可通行）
+        return false;
+    }
+    
+    /**
+     * 获取碰撞地图
+     */
+    public CollisionMap getCollisionMap() {
+        return collisionMap;
+    }
+    
+    /**
+     * 调试方法：打印碰撞地图信息
+     */
+    public void printCollisionInfo() {
+        if (collisionMap != null) {
+            System.out.println("🗺️ 碰撞地图信息:");
+            System.out.println("   尺寸: " + collisionMap.getWidth() + "x" + collisionMap.getHeight());
+            
+            // 统计不可通行的瓦片数量
+            int unaccessibleCount = 0;
+            for (int y = 0; y < collisionMap.getHeight(); y++) {
+                for (int x = 0; x < collisionMap.getWidth(); x++) {
+                    if (collisionMap.isUnaccessible(x, y)) {
+                        unaccessibleCount++;
+                    }
+                }
+            }
+            System.out.println("   不可通行瓦片数量: " + unaccessibleCount);
+            System.out.println("   可通行瓦片数量: " + (collisionMap.getWidth() * collisionMap.getHeight() - unaccessibleCount));
+        } else {
+            System.out.println("❌ 碰撞地图未初始化");
+        }
+    }
+    
+    /**
+     * 调试方法：检查指定区域的通行性
+     */
+    public void checkAreaPassability(int startX, int startY, int width, int height) {
+        System.out.println("🔍 检查区域通行性 (" + startX + "," + startY + ") 到 (" + 
+                         (startX + width - 1) + "," + (startY + height - 1) + "):");
+        
+        for (int y = startY; y < startY + height && y < getMapHeight(); y++) {
+            StringBuilder line = new StringBuilder();
+            for (int x = startX; x < startX + width && x < getMapWidth(); x++) {
+                line.append(isPassable(x, y) ? "." : "X");
+            }
+            System.out.println("   " + line.toString());
+        }
     }
 
     /**

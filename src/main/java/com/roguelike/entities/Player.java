@@ -11,6 +11,9 @@ import com.almasb.fxgl.entity.components.TypeComponent;
 import com.almasb.fxgl.texture.Texture;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
+import com.roguelike.physics.MovementValidator;
+import com.roguelike.physics.MovementValidator.MovementResult;
+import com.roguelike.physics.MovementValidator.MovementType;
 import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -27,6 +30,7 @@ public class Player extends EntityBase {
     private int maxHP = 100;
     private int currentHP = 100;
     private GameState gameState;
+    private MovementValidator movementValidator;
 
     public Player() {
         Rectangle view = new Rectangle(32, 32, Color.DODGERBLUE);
@@ -123,8 +127,50 @@ public class Player extends EntityBase {
     }
 
     public void move(double dx, double dy) {
-        translate(dx, dy);
-        GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
+        if (movementValidator != null) {
+            // 使用移动验证器进行碰撞检测
+            MovementResult result = movementValidator.validateAndMove(this, dx, dy);
+            
+            if (result.isSuccess()) {
+                // 移动成功
+                translate(result.getDeltaX(), result.getDeltaY());
+                GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
+                
+                // 根据移动类型触发相应事件
+                if (result.getType() == MovementType.SLIDING) {
+                    GameEvent.post(new GameEvent(GameEvent.Type.MOVEMENT_SLIDING));
+                }
+            } else {
+                // 移动被阻挡
+                handleMovementBlocked();
+            }
+        } else {
+            // 没有移动验证器时允许自由移动
+            translate(dx, dy);
+            GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
+        }
+    }
+    
+    /**
+     * 处理移动被阻挡的情况
+     */
+    private void handleMovementBlocked() {
+        GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_HIT_WALL));
+        // 可以在这里添加音效、震动等效果
+    }
+    
+    /**
+     * 设置移动验证器
+     */
+    public void setMovementValidator(MovementValidator validator) {
+        this.movementValidator = validator;
+    }
+    
+    /**
+     * 获取移动验证器
+     */
+    public MovementValidator getMovementValidator() {
+        return movementValidator;
     }
 
     public void attack() { //这个函数有问题，后面新建一个子弹类用于区分友方子弹和敌方子弹，再传入entityBuilder()里

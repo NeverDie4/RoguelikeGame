@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.11" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="30" tilewidth="32" tileheight="32" infinite="0" nextlayerid="4" nextobjectid="1">
- <tileset firstgid="1" name="2dmap" tilewidth="32" tileheight="32" tilecount="900" columns="30">
-  <image source="grass1.png" width="960" height="960"/>
+ <tileset firstgid="1" name="2dmap1" tilewidth="32" tileheight="32" tilecount="900" columns="30">
+  <image source="hyptosis_tile-art-batch-1.png" width="960" height="960"/>
   <tile id="105">
    <properties>
     <property name="false" type="bool" value="true"/>
@@ -899,7 +899,7 @@
   </tile>
  </tileset>
  <tileset firstgid="901" name="2dmap2" tilewidth="32" tileheight="32" tilecount="900" columns="30">
-  <image source="grass2.png" width="960" height="960"/>
+  <image source="hyptosis_tile-art-batch-2.png" width="960" height="960"/>
   <tile id="0">
    <properties>
     <property name="false" type="bool" value="true"/>
@@ -1463,7 +1463,7 @@
   </tile>
  </tileset>
  <tileset firstgid="1801" name="2dmap3" tilewidth="32" tileheight="32" tilecount="900" columns="30">
-  <image source="grass3.png" width="960" height="960"/>
+  <image source="hyptosis_tile-art-batch-3.png" width="960" height="960"/>
   <tile id="802">
    <properties>
     <property name="false" type="bool" value="true"/>
@@ -1536,8 +1536,8 @@
    </properties>
   </tile>
  </tileset>
- <tileset firstgid="2701" name="2dmap" tilewidth="32" tileheight="32" tilecount="900" columns="30">
-  <image source="grass1.png" width="960" height="960"/>
+ <tileset firstgid="2701" name="2dmap1" tilewidth="32" tileheight="32" tilecount="900" columns="30">
+  <image source="hyptosis_tile-art-batch-1.png" width="960" height="960"/>
   <tile id="105">
    <properties>
     <property name="false" type="bool" value="true"/>
@@ -2435,7 +2435,7 @@
   </tile>
  </tileset>
  <tileset firstgid="3601" name="2dmap3" tilewidth="32" tileheight="32" tilecount="900" columns="30">
-  <image source="grass3.png" width="960" height="960"/>
+  <image source="hyptosis_tile-art-batch-3.png" width="960" height="960"/>
   <tile id="802">
    <properties>
     <property name="false" type="bool" value="true"/>

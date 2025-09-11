@@ -7,6 +7,9 @@ import com.almasb.fxgl.entity.components.CollidableComponent;
 import com.almasb.fxgl.physics.PhysicsComponent;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
+import com.roguelike.physics.MovementValidator;
+import com.roguelike.physics.MovementValidator.MovementResult;
+import com.roguelike.physics.MovementValidator.MovementType;
 import com.roguelike.utils.FlowField;
 import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
@@ -29,8 +32,11 @@ public class Enemy extends EntityBase {
     // 平滑转向相关
     private double currentDirectionX = 0;
     private double currentDirectionY = 0;
-    private double turnSpeed = 5.0; // 转向速度（弧度/秒）
-    private double maxTurnRate = Math.PI / 2; // 最大转向速率
+    private double turnSpeed = 20.0; // 转向速度（弧度/秒）
+    private double maxTurnRate = Math.PI * 2; // 最大转向速率
+    
+    // 碰撞检测相关
+    private MovementValidator movementValidator;
 
     public Enemy() {
         getViewComponent().addChild(new Rectangle(28, 28, Color.CRIMSON));
@@ -161,7 +167,52 @@ public class Enemy extends EntityBase {
         double moveX = currentDirectionX * moveDistance;
         double moveY = currentDirectionY * moveDistance;
 
-        translate(moveX, moveY);
+        // 使用碰撞检测进行移动
+        if (movementValidator != null) {
+            MovementResult result = movementValidator.validateAndMove(this, moveX, moveY);
+            
+            if (result.isSuccess()) {
+                translate(result.getDeltaX(), result.getDeltaY());
+                
+                // 如果发生滑动，可能需要调整移动方向
+                if (result.getType() == MovementType.SLIDING) {
+                    adjustDirectionAfterSliding(result);
+                }
+            } else {
+                // 移动被阻挡，尝试改变方向
+                handleMovementBlocked();
+            }
+        } else {
+            // 没有碰撞检测时直接移动
+            translate(moveX, moveY);
+        }
+    }
+    
+    /**
+     * 滑动后调整移动方向
+     */
+    private void adjustDirectionAfterSliding(MovementResult result) {
+        // 根据滑动结果调整方向
+        double newDirectionX = result.getDeltaX();
+        double newDirectionY = result.getDeltaY();
+        
+        double length = Math.sqrt(newDirectionX * newDirectionX + newDirectionY * newDirectionY);
+        if (length > 0) {
+            currentDirectionX = newDirectionX / length;
+            currentDirectionY = newDirectionY / length;
+        }
+    }
+    
+    /**
+     * 处理移动被阻挡的情况
+     */
+    private void handleMovementBlocked() {
+        // 随机改变方向
+        double angle = Math.random() * Math.PI * 2;
+        currentDirectionX = Math.cos(angle);
+        currentDirectionY = Math.sin(angle);
+        
+        GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_HIT_WALL));
     }
 
     private void updateTargetToPlayer() {
@@ -249,6 +300,20 @@ public class Enemy extends EntityBase {
 
     public boolean isAlive() {
         return currentHP > 0;
+    }
+    
+    /**
+     * 设置移动验证器
+     */
+    public void setMovementValidator(MovementValidator validator) {
+        this.movementValidator = validator;
+    }
+    
+    /**
+     * 获取移动验证器
+     */
+    public MovementValidator getMovementValidator() {
+        return movementValidator;
     }
 }
 
