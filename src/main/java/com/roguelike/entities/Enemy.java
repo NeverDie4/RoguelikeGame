@@ -2,41 +2,43 @@ package com.roguelike.entities;
 
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.Entity;
-import com.almasb.fxgl.entity.component.Component;
 import com.almasb.fxgl.entity.components.CollidableComponent;
-import com.almasb.fxgl.physics.PhysicsComponent;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
 import com.roguelike.physics.MovementValidator;
 import com.roguelike.physics.MovementValidator.MovementResult;
 import com.roguelike.physics.MovementValidator.MovementType;
-import com.roguelike.utils.FlowField;
+import com.roguelike.utils.AdaptivePathfinder;
+import com.roguelike.utils.AdaptivePathfinder.PathfindingType;
 import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 
 public class Enemy extends EntityBase {
 
-    private double speed = 80;
+    private double speed = 200;
     private int maxHP = 50;
     private int currentHP = 50;
     private int expReward = 5; // 击败敌人获得的经验值
 
-    // 流场寻路相关
-    private static FlowField flowField;
-    private static boolean flowFieldInitialized = false;
-    private static double lastGlobalUpdateTime = 0;
+    // 目标位置相关
+    private double targetX = 0;
+    private double targetY = 0;
     private double lastTargetUpdateTime = 0;
     private static final double TARGET_UPDATE_INTERVAL = 0.5; // 每0.5秒更新一次目标
 
     // 平滑转向相关
     private double currentDirectionX = 0;
     private double currentDirectionY = 0;
-    private double turnSpeed = 20.0; // 转向速度（弧度/秒）
     private double maxTurnRate = Math.PI * 2; // 最大转向速率
     
     // 碰撞检测相关
     private MovementValidator movementValidator;
+    
+    // 路径寻找相关
+    private AdaptivePathfinder adaptivePathfinder;
+    private java.util.List<javafx.geometry.Point2D> currentPath;
+    private int currentPathIndex = 0;
 
     public Enemy() {
         getViewComponent().addChild(new Rectangle(28, 28, Color.CRIMSON));
@@ -59,9 +61,7 @@ public class Enemy extends EntityBase {
     }
 
     public static void resetNavigation() {
-        flowField = null;
-        flowFieldInitialized = false;
-        lastGlobalUpdateTime = 0;
+        // 重置导航系统（现在由AdaptivePathfinder管理）
     }
 
     public void onUpdate(double tpf) {
@@ -70,51 +70,33 @@ public class Enemy extends EntityBase {
 
     // 提供给外部驱动的 AI 更新函数（由 GameApp 调用）
     public void updateAI(double tpf) {
-        // 初始化流场（如果还没有初始化）
-        if (!flowFieldInitialized) {
-            initializeFlowField();
+        if (!isAlive()) {
+            return;
         }
-        // 使用流场寻路AI
-        followFlowField(tpf);
-    }
 
-    private static void initializeFlowField() {
-        // 创建流场，使用视口大小的扩展，避免过大网格导致首帧计算量过大
-        int worldWidth = (int) (FXGL.getAppWidth() * 2);
-        int worldHeight = (int) (FXGL.getAppHeight() * 2);
-        int cellSize = 32;
-        int gridSize = Math.max(worldWidth, worldHeight) / cellSize;
+        // 更新路径寻找系统
+        if (adaptivePathfinder != null) {
+            adaptivePathfinder.update(tpf);
+        }
 
-        flowField = new FlowField(gridSize, cellSize);
-        flowFieldInitialized = true;
-        double now = com.roguelike.core.TimeService.getSeconds();
-        lastGlobalUpdateTime = now;
-    }
-
-    private void followFlowField(double tpf) {
-        if (flowField == null) return;
-
-        // 定期更新目标（玩家位置）
+        // 更新目标位置和路径（每0.5秒更新一次）
         double currentTime = com.roguelike.core.TimeService.getSeconds();
-        // 使用 at-most-once 的节流：每 0.5s 最多一次，避免周期性律动
-        if (currentTime - lastGlobalUpdateTime >= TARGET_UPDATE_INTERVAL) {
+        if (currentTime - lastTargetUpdateTime >= TARGET_UPDATE_INTERVAL) {
             updateTargetToPlayer();
-            lastGlobalUpdateTime = currentTime;
+            updatePathToTarget();
+            lastTargetUpdateTime = currentTime;
         }
 
-        // 获取当前位置的流场向量
-        Point2D currentPos = getCenter();
-        FlowField.Vector2D flowVector = flowField.getVectorAtWorldPos(currentPos.getX(), currentPos.getY());
-
-        // 如果流场向量有效，使用平滑转向
-        if (flowVector.length() > 0) {
-            smoothTurnToDirection(flowVector.x, flowVector.y, tpf);
-            moveInCurrentDirection(tpf);
+        // 根据当前算法选择移动方式
+        if (adaptivePathfinder != null && adaptivePathfinder.getCurrentAlgorithm() == PathfindingType.FLOW_FIELD) {
+            // 使用流体算法移动
+            moveWithFlowField(tpf);
         } else {
-            // 如果流场无效，回退到简单的朝向玩家移动
-            fallbackToDirectMovement(tpf);
+            // 使用A*路径移动
+            moveWithAStarPath(tpf);
         }
     }
+
 
     private void smoothTurnToDirection(double targetX, double targetY, double tpf) {
         // 计算目标方向
@@ -222,37 +204,12 @@ public class Enemy extends EntityBase {
 
         if (player != null) {
             Point2D playerPos = player.getCenter();
-            flowField.setTargetFromWorldPos(playerPos.getX(), playerPos.getY());
-            flowField.updateFlowField();
+            targetX = playerPos.getX();
+            targetY = playerPos.getY();
         }
     }
 
-    private void fallbackToDirectMovement(double tpf) {
-        // 回退到简单的朝向玩家移动
-        Entity player = FXGL.getGameWorld().getEntitiesByType().stream()
-                .filter(e -> e instanceof Player)
-                .findFirst().orElse(null);
-        if (player != null) {
-            Point2D dir = player.getCenter().subtract(getCenter());
-            if (dir.magnitude() > 1e-3) {
-                dir = dir.normalize().multiply(speed * tpf);
-                translate(dir);
-            }
-        }
-    }
 
-    // 静态方法，用于设置流场障碍物（比如地图中的墙壁）
-    public static void setObstacle(double worldX, double worldY, boolean isObstacle) {
-        if (flowField != null) {
-            flowField.setObstacleFromWorldPos(worldX, worldY, isObstacle);
-            flowField.updateFlowField();
-        }
-    }
-
-    // 静态方法，用于获取流场实例（用于调试或可视化）
-    public static FlowField getFlowField() {
-        return flowField;
-    }
 
     public void takeDamage(int damage) {
         if (damage <= 0) return;
@@ -315,6 +272,132 @@ public class Enemy extends EntityBase {
     public MovementValidator getMovementValidator() {
         return movementValidator;
     }
+    
+    /**
+     * 设置自适应路径寻找器
+     */
+    public void setAdaptivePathfinder(AdaptivePathfinder pathfinder) {
+        this.adaptivePathfinder = pathfinder;
+    }
+    
+    /**
+     * 获取自适应路径寻找器
+     */
+    public AdaptivePathfinder getAdaptivePathfinder() {
+        return adaptivePathfinder;
+    }
+    
+    /**
+     * 更新路径到目标（优化版本，减少不必要的重新计算）
+     */
+    private void updatePathToTarget() {
+        if (adaptivePathfinder == null || targetX == 0 || targetY == 0) {
+            return;
+        }
+        
+        Point2D currentPos = getCenter();
+        
+        // 检查是否需要更新路径（距离目标太远或路径为空）
+        double distanceToTarget = currentPos.distance(targetX, targetY);
+        if (currentPath == null || currentPath.isEmpty() || distanceToTarget > 100.0) {
+            currentPath = adaptivePathfinder.findPath(
+                currentPos.getX(), currentPos.getY(), 
+                targetX, targetY
+            );
+            currentPathIndex = 0;
+        }
+    }
+    
+    /**
+     * 使用A*路径移动（修复转圈问题）
+     */
+    private void moveWithAStarPath(double tpf) {
+        if (currentPath == null || currentPath.isEmpty()) {
+            // 没有路径时回退到直接移动
+            fallbackToDirectMovement(tpf);
+            return;
+        }
+        
+        Point2D currentPos = getCenter();
+        
+        // 跳过已经到达的路径点，避免在路径点附近震荡
+        while (currentPathIndex < currentPath.size()) {
+            Point2D targetPoint = currentPath.get(currentPathIndex);
+            double distanceToTarget = currentPos.distance(targetPoint);
+            
+            // 增加到达判断距离，从10.0改为25.0，避免转圈
+            if (distanceToTarget < 25.0) {
+                currentPathIndex++;
+            } else {
+                break;
+            }
+        }
+        
+        // 如果还有路径点要到达
+        if (currentPathIndex < currentPath.size()) {
+            Point2D targetPoint = currentPath.get(currentPathIndex);
+            double dx = targetPoint.getX() - currentPos.getX();
+            double dy = targetPoint.getY() - currentPos.getY();
+            double length = Math.sqrt(dx * dx + dy * dy);
+            
+            if (length > 0) {
+                dx /= length;
+                dy /= length;
+                
+                // 直接设置方向，避免平滑转向导致的震荡
+                currentDirectionX = dx;
+                currentDirectionY = dy;
+                moveInCurrentDirection(tpf);
+            }
+        } else {
+            // 路径完成，回退到直接移动
+            fallbackToDirectMovement(tpf);
+        }
+    }
+    
+    /**
+     * 使用流体算法移动
+     */
+    private void moveWithFlowField(double tpf) {
+        if (adaptivePathfinder == null) {
+            fallbackToDirectMovement(tpf);
+            return;
+        }
+        
+        Point2D currentPos = getCenter();
+        Point2D direction = adaptivePathfinder.getMovementDirection(
+            currentPos.getX(), currentPos.getY()
+        );
+        
+        if (direction.getX() != 0 || direction.getY() != 0) {
+            smoothTurnToDirection(direction.getX(), direction.getY(), tpf);
+            moveInCurrentDirection(tpf);
+        } else {
+            fallbackToDirectMovement(tpf);
+        }
+    }
+    
+    /**
+     * 回退到直接移动（朝向玩家）
+     */
+    private void fallbackToDirectMovement(double tpf) {
+        if (targetX == 0 || targetY == 0) {
+            return;
+        }
+        
+        Point2D currentPos = getCenter();
+        double dx = targetX - currentPos.getX();
+        double dy = targetY - currentPos.getY();
+        double length = Math.sqrt(dx * dx + dy * dy);
+        
+        if (length > 0) {
+            dx /= length;
+            dy /= length;
+            smoothTurnToDirection(dx, dy, tpf);
+            moveInCurrentDirection(tpf);
+        }
+    }
 }
+
 
 

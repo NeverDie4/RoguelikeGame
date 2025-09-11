@@ -10,6 +10,7 @@ import com.roguelike.entities.Player;
 import com.roguelike.map.MapRenderer;
 import com.roguelike.physics.MapCollisionDetector;
 import com.roguelike.physics.MovementValidator;
+import com.roguelike.utils.AdaptivePathfinder;
 import com.roguelike.ui.GameHUD;
 import com.roguelike.ui.Menus;
 import com.roguelike.ui.LoadingOverlay;
@@ -27,6 +28,7 @@ public class GameApp extends GameApplication {
     private GameHUD gameHUD;
     private MapCollisionDetector collisionDetector;
     private MovementValidator movementValidator;
+    private AdaptivePathfinder adaptivePathfinder;
     private double enemySpawnAccumulator = 0.0;
     private static final double ENEMY_SPAWN_INTERVAL = 0.5;
     private static boolean INPUT_BOUND = false;
@@ -36,6 +38,13 @@ public class GameApp extends GameApplication {
     
     // 地图配置
     private static final String MAP_NAME = "mapgrass"; // 当前使用的地图名称
+    
+    // 路径寻找配置
+    private static final int ENEMY_COUNT_THRESHOLD = 20; // 敌人数量阈值，超过此数量使用流体算法
+    private static final boolean ALLOW_DIAGONAL_MOVEMENT = true; // 是否允许对角线移动
+    private static final double PATHFINDING_UPDATE_INTERVAL = 0.05; // 路径寻找更新间隔（秒）
+    private static final boolean ENABLE_PATH_OPTIMIZATION = true; // 是否启用路径优化
+    private static final boolean ENABLE_PATH_SMOOTHING = true; // 是否启用路径平滑
 
     @Override
     protected void initSettings(GameSettings settings) {
@@ -68,8 +77,26 @@ public class GameApp extends GameApplication {
         collisionDetector = new MapCollisionDetector(mapRenderer);
         movementValidator = new MovementValidator(collisionDetector);
         
+        // 初始化自适应路径寻找系统
+        AdaptivePathfinder.PathfindingConfig config = new AdaptivePathfinder.PathfindingConfig();
+        config.setEnemyCountThreshold(ENEMY_COUNT_THRESHOLD);
+        config.setAllowDiagonal(ALLOW_DIAGONAL_MOVEMENT);
+        config.setPathfindingUpdateInterval(PATHFINDING_UPDATE_INTERVAL);
+        config.setEnablePathOptimization(ENABLE_PATH_OPTIMIZATION);
+        config.setEnableSmoothing(ENABLE_PATH_SMOOTHING);
+        
+        adaptivePathfinder = new AdaptivePathfinder(mapRenderer, config);
+        
         // 调试：打印碰撞地图信息
         mapRenderer.printCollisionInfo();
+        
+        // 调试：打印路径寻找配置
+        System.out.println("🎯 路径寻找系统配置:");
+        System.out.println("   - 敌人数量阈值: " + ENEMY_COUNT_THRESHOLD);
+        System.out.println("   - 允许对角线移动: " + ALLOW_DIAGONAL_MOVEMENT);
+        System.out.println("   - 路径更新间隔: " + PATHFINDING_UPDATE_INTERVAL + "秒");
+        System.out.println("   - 路径优化: " + ENABLE_PATH_OPTIMIZATION);
+        System.out.println("   - 路径平滑: " + ENABLE_PATH_SMOOTHING);
 
         // 玩家 - 根据地图尺寸调整初始位置
         double playerX = mapRenderer.getMapWidth() > 0 ?
@@ -223,6 +250,12 @@ public class GameApp extends GameApplication {
         // 推进受控时间（与现实时间同步）
         TimeService.update(realDt);
 
+        // 更新敌人数量并选择路径寻找算法
+        int enemyCount = (int) getGameWorld().getEntitiesByType().stream()
+                .filter(e -> e instanceof com.roguelike.entities.Enemy)
+                .count();
+        adaptivePathfinder.updateEnemyCount(enemyCount);
+        
         // 敌人 AI 更新（使用相同的时间步长保持一致性）
         final double step = realDt;
         getGameWorld().getEntitiesByType().stream()
@@ -233,9 +266,10 @@ public class GameApp extends GameApplication {
         enemySpawnAccumulator += realDt;
         while (enemySpawnAccumulator >= ENEMY_SPAWN_INTERVAL) {
             Entity newEnemy = getGameWorld().spawn("enemy");
-            // 为新创建的敌人设置移动验证器
+            // 为新创建的敌人设置移动验证器和路径寻找器
             if (newEnemy instanceof com.roguelike.entities.Enemy) {
                 ((com.roguelike.entities.Enemy) newEnemy).setMovementValidator(movementValidator);
+                ((com.roguelike.entities.Enemy) newEnemy).setAdaptivePathfinder(adaptivePathfinder);
             }
             enemySpawnAccumulator -= ENEMY_SPAWN_INTERVAL;
         }
@@ -260,6 +294,13 @@ public class GameApp extends GameApplication {
      */
     public MapRenderer getMapRenderer() {
         return mapRenderer;
+    }
+    
+    /**
+     * 获取自适应路径寻找器实例
+     */
+    public AdaptivePathfinder getAdaptivePathfinder() {
+        return adaptivePathfinder;
     }
 
     public static void main(String[] args) {
