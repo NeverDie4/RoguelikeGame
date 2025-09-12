@@ -10,6 +10,8 @@ import com.roguelike.entities.Player;
 import com.roguelike.map.MapRenderer;
 import com.roguelike.ui.GameHUD;
 import com.roguelike.ui.Menus;
+import com.roguelike.ui.CustomSceneFactory;
+import com.roguelike.ui.LoadingOverlay;
 import javafx.scene.input.KeyCode;
 import javafx.util.Duration;
 
@@ -33,11 +35,28 @@ public class GameApp extends GameApplication {
         settings.setHeight(720);
         settings.setMainMenuEnabled(true);
         settings.setGameMenuEnabled(true);
+        
+        // 启用窗口大小调整
+        settings.setManualResizeEnabled(true);
+        
+        // 使用自定义场景工厂来应用美化后的菜单系统
+        settings.setSceneFactory(new CustomSceneFactory());
+        System.out.println("已设置自定义场景工厂，使用美化后的菜单系统");
     }
 
     // 对应用户需求中的 init()
     @Override
     protected void initGame() {
+        // 显示加载过程
+        LoadingOverlay.show(2000, () -> {
+            System.out.println("游戏加载完成");
+            // 加载完成后开始游戏时间计算
+            TimeService.startGame();
+        });
+        
+        // 重置时间服务
+        TimeService.reset();
+        
         gameState = new GameState();
         getWorldProperties().setValue("score", 0);
 
@@ -78,85 +97,152 @@ public class GameApp extends GameApplication {
             System.out.println("地图加载完成事件触发");
         });
         GameEvent.post(new GameEvent(GameEvent.Type.MAP_LOADED));
+        
+        // 自定义菜单系统已通过CustomSceneFactory设置
     }
 
     private void initInput(Player player) {
+        // 清除现有的输入动作，避免重复注册
+        try {
+            getInput().clearAll();
+        } catch (Exception e) {
+            // 忽略清除时的异常
+        }
+        
         // 使用固定移动距离，避免 tpf() 异常值导致的移动问题
         final double moveDistance = 2.0; // 固定移动距离，降低移动速度
 
-        getInput().addAction(new UserAction("MOVE_LEFT_A") {
-            @Override
-            protected void onAction() {
-                player.move(-moveDistance, 0);
-            }
-        }, KeyCode.A);
+        try {
+            getInput().addAction(new UserAction("MOVE_LEFT_A") {
+                @Override
+                protected void onAction() {
+                    player.move(-moveDistance, 0);
+                }
+            }, KeyCode.A);
+        } catch (Exception e) {
+            // 如果动作已存在，忽略异常
+        }
 
-        getInput().addAction(new UserAction("MOVE_LEFT_ARROW") {
-            @Override
-            protected void onAction() {
-                player.move(-moveDistance, 0);
-            }
-        }, KeyCode.LEFT);
+        try {
+            getInput().addAction(new UserAction("MOVE_LEFT_ARROW") {
+                @Override
+                protected void onAction() {
+                    player.move(-moveDistance, 0);
+                }
+            }, KeyCode.LEFT);
+        } catch (Exception e) {
+            // 如果动作已存在，忽略异常
+        }
 
-        getInput().addAction(new UserAction("MOVE_RIGHT_D") {
-            @Override
-            protected void onAction() {
-                player.move(moveDistance, 0);
-            }
-        }, KeyCode.D);
+        try {
+            getInput().addAction(new UserAction("MOVE_RIGHT_D") {
+                @Override
+                protected void onAction() {
+                    player.move(moveDistance, 0);
+                }
+            }, KeyCode.D);
+        } catch (Exception e) {
+            // 如果动作已存在，忽略异常
+        }
 
-        getInput().addAction(new UserAction("MOVE_RIGHT_ARROW") {
-            @Override
-            protected void onAction() {
-                player.move(moveDistance, 0);
-            }
-        }, KeyCode.RIGHT);
+        try {
+            getInput().addAction(new UserAction("MOVE_RIGHT_ARROW") {
+                @Override
+                protected void onAction() {
+                    player.move(moveDistance, 0);
+                }
+            }, KeyCode.RIGHT);
+        } catch (Exception e) {
+            // 如果动作已存在，忽略异常
+        }
 
-        getInput().addAction(new UserAction("MOVE_UP_W") {
-            @Override
-            protected void onAction() {
-                player.move(0, -moveDistance);
-            }
-        }, KeyCode.W);
+        try {
+            getInput().addAction(new UserAction("MOVE_UP_W") {
+                @Override
+                protected void onAction() {
+                    player.move(0, -moveDistance);
+                }
+            }, KeyCode.W);
+        } catch (Exception e) {
+            // 如果动作已存在，忽略异常
+        }
 
-        getInput().addAction(new UserAction("MOVE_UP_ARROW") {
-            @Override
-            protected void onAction() {
-                player.move(0, -moveDistance);
-            }
-        }, KeyCode.UP);
+        try {
+            getInput().addAction(new UserAction("MOVE_UP_ARROW") {
+                @Override
+                protected void onAction() {
+                    player.move(0, -moveDistance);
+                }
+            }, KeyCode.UP);
+        } catch (Exception e) {
+            // 如果动作已存在，忽略异常
+        }
 
-        getInput().addAction(new UserAction("MOVE_DOWN_S") {
-            @Override
-            protected void onAction() {
-                player.move(0, moveDistance);
-            }
-        }, KeyCode.S);
+        try {
+            getInput().addAction(new UserAction("MOVE_DOWN_S") {
+                @Override
+                protected void onAction() {
+                    player.move(0, moveDistance);
+                }
+            }, KeyCode.S);
+        } catch (Exception e) {
+            // 如果动作已存在，忽略异常
+        }
 
-        getInput().addAction(new UserAction("MOVE_DOWN_ARROW") {
-            @Override
-            protected void onAction() {
-                player.move(0, moveDistance);
-            }
-        }, KeyCode.DOWN);
+        try {
+            getInput().addAction(new UserAction("MOVE_DOWN_ARROW") {
+                @Override
+                protected void onAction() {
+                    player.move(0, moveDistance);
+                }
+            }, KeyCode.DOWN);
+        } catch (Exception e) {
+            // 如果动作已存在，忽略异常
+        }
 
-        getInput().addAction(new UserAction("ATTACK") {
-            @Override
-            protected void onActionBegin() {
-                player.attack();
-            }
-        }, KeyCode.SPACE);
+        try {
+            getInput().addAction(new UserAction("ATTACK") {
+                @Override
+                protected void onActionBegin() {
+                    player.attack();
+                }
+            }, KeyCode.SPACE);
+        } catch (Exception e) {
+            // 如果动作已存在，忽略异常
+        }
+
+        try {
+            getInput().addAction(new UserAction("PAUSE") {
+                @Override
+                protected void onActionBegin() {
+                    // 暂停游戏时间
+                    TimeService.pause();
+                }
+            }, KeyCode.ESCAPE);
+        } catch (Exception e) {
+            // 如果动作已存在，忽略异常
+        }
     }
 
     // 对应用户需求中的 start()
     @Override
     protected void initUI() {
+        // 自定义菜单系统已经通过CustomSceneFactory应用，这里只需要隐藏自定义菜单
         Menus.hideAll();
+        System.out.println("自定义菜单系统已激活");
     }
 
     // 对应用户需求中的 update()
     @Override
     protected void onUpdate(double tpf) {
+        // 更新TimeService
+        TimeService.update(tpf);
+        
+        // 如果游戏暂停，不更新游戏逻辑
+        if (TimeService.isPaused()) {
+            return;
+        }
+        
         if (mapRenderer != null) {
             mapRenderer.onUpdate(tpf);
         }
