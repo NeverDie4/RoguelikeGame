@@ -28,7 +28,12 @@ public class GameEvent {
         PLAYER_HIT_WALL,
         ENEMY_HIT_WALL,
         ENTITY_COLLISION_BLOCKED,
-        MOVEMENT_SLIDING
+        MOVEMENT_SLIDING,
+        // 实体碰撞事件
+        PLAYER_ENEMY_COLLISION,
+        BULLET_ENEMY_COLLISION,
+        BULLET_PLAYER_COLLISION,
+        ENEMY_ENEMY_COLLISION
     }
 
     private static final Map<Type, List<Consumer<GameEvent>>> LISTENERS = new EnumMap<>(Type.class);

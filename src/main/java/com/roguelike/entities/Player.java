@@ -30,8 +30,8 @@ public class Player extends EntityBase {
     private Rectangle hpBar;
     private Rectangle hpBarBackground;
     private StackPane hpBarContainer;
-    private int maxHP = 100;
-    private int currentHP = 100;
+    private int maxHP = 200;
+    private int currentHP = 200;
     private GameState gameState;
     private MovementValidator movementValidator;
 
@@ -191,8 +191,9 @@ public class Player extends EntityBase {
                     GameEvent.post(new GameEvent(GameEvent.Type.MOVEMENT_SLIDING));
                 }
             } else {
-                // 移动被阻挡
-                handleMovementBlocked();
+                // 移动被阻挡，直接移动（挤开敌人）
+                translate(dx, dy);
+                GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
             }
         } else {
             // 没有移动验证器时允许自由移动
@@ -215,6 +216,7 @@ public class Player extends EntityBase {
             }
         }
     }
+
 
     /**
      * 处理移动被阻挡的情况
@@ -258,6 +260,13 @@ public class Player extends EntityBase {
 
     public Point2D getPositionVec() {
         return getPosition();
+    }
+    
+    /**
+     * 获取血条容器（供动画组件使用）
+     */
+    public javafx.scene.Node getHealthBarContainer() {
+        return hpBarContainer;
     }
 
     public static class Types {

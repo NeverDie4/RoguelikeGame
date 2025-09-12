@@ -4,7 +4,6 @@ import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.dsl.components.ProjectileComponent;
 import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.components.CollidableComponent;
-import com.almasb.fxgl.entity.components.ViewComponent;
 import com.almasb.fxgl.physics.BoundingShape;
 import com.almasb.fxgl.physics.HitBox;
 import com.roguelike.core.GameEvent;
@@ -73,17 +72,19 @@ public abstract class Bullet extends EntityBase {
         }
     }
 
+
     private void handlePlayerBulletHitEnemy(Enemy enemy) {
         // 使用Enemy现有的onDeath方法
-        enemy.onDeath(getGameState());
+        //enemy.onDeath(getGameState());
 
         // 使用现有的GameEvent系统
-        GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_DEATH));
+        //GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_DEATH));
 
         if (!piercing) {
             removeFromWorld();
         }
     }
+
 
     private void handleEnemyBulletHitPlayer(Player player) {
         // 使用Player现有的damage方法
@@ -166,6 +167,15 @@ public abstract class Bullet extends EntityBase {
      */
     public void destroy() {
         if (isActive()) {
+            removeFromWorld();
+        }
+    }
+    
+    /**
+     * 设置子弹的激活状态
+     */
+    public void setActive(boolean active) {
+        if (!active && isActive()) {
             removeFromWorld();
         }
     }

@@ -19,7 +19,7 @@ import javafx.scene.shape.Rectangle;
 
 public class Enemy extends EntityBase {
 
-    private double speed = 200;
+    private double speed = 100;
     private int maxHP = 50;
     private int currentHP = 50;
     private int expReward = 5; // 击败敌人获得的经验值

@@ -10,6 +10,7 @@ import com.roguelike.entities.Player;
 import com.roguelike.map.MapRenderer;
 import com.roguelike.physics.MapCollisionDetector;
 import com.roguelike.physics.MovementValidator;
+import com.roguelike.physics.CollisionManager;
 import com.roguelike.utils.AdaptivePathfinder;
 import com.roguelike.ui.GameHUD;
 import com.roguelike.ui.Menus;
@@ -28,6 +29,7 @@ public class GameApp extends GameApplication {
     private GameHUD gameHUD;
     private MapCollisionDetector collisionDetector;
     private MovementValidator movementValidator;
+    private CollisionManager collisionManager;
     private AdaptivePathfinder adaptivePathfinder;
     private double enemySpawnAccumulator = 0.0;
     private static final double ENEMY_SPAWN_INTERVAL = 0.5;
@@ -35,6 +37,10 @@ public class GameApp extends GameApplication {
     private static final double TARGET_DT = 1.0 / 60.0; // 目标帧时长
     private int frameCount = 0; // 帧计数器，用于跳过不稳定的初始帧
     private boolean gameReady = false; // 覆盖层完成后才开始计时与更新
+    
+    // 调试配置
+    public static boolean DEBUG_MODE = false; // 调试模式开关
+    public static boolean BULLET_DAMAGE_ENABLED = false; // 子弹伤害开关（当前禁用）
     
     // 地图配置
     private static final String MAP_NAME = "mapgrass"; // 当前使用的地图名称
@@ -76,6 +82,8 @@ public class GameApp extends GameApplication {
         // 初始化碰撞检测系统
         collisionDetector = new MapCollisionDetector(mapRenderer);
         movementValidator = new MovementValidator(collisionDetector);
+        collisionManager = new CollisionManager();
+        collisionManager.setMapCollisionDetector(collisionDetector);
         
         // 初始化自适应路径寻找系统
         AdaptivePathfinder.PathfindingConfig config = new AdaptivePathfinder.PathfindingConfig();
@@ -107,7 +115,7 @@ public class GameApp extends GameApplication {
         Player player = (Player) getGameWorld().spawn("player", new SpawnData(playerX, playerY));
         
         // 为玩家设置移动验证器
-        player.setMovementValidator(movementValidator);
+        player.setMovementValidator(collisionManager.getMovementValidator());
         
         FXGL.getGameScene().getViewport().bindToEntity(player, getAppWidth() / 2.0, getAppHeight() / 2.0);
 
@@ -256,6 +264,11 @@ public class GameApp extends GameApplication {
         // 推进受控时间（与现实时间同步）
         TimeService.update(realDt);
 
+        // 更新碰撞管理器
+        if (collisionManager != null) {
+            collisionManager.update(realDt);
+        }
+
         // 更新敌人数量并选择路径寻找算法
         int enemyCount = (int) getGameWorld().getEntitiesByType().stream()
                 .filter(e -> e instanceof com.roguelike.entities.Enemy)
@@ -274,7 +287,7 @@ public class GameApp extends GameApplication {
             Entity newEnemy = getGameWorld().spawn("enemy");
             // 为新创建的敌人设置移动验证器和路径寻找器
             if (newEnemy instanceof com.roguelike.entities.Enemy) {
-                ((com.roguelike.entities.Enemy) newEnemy).setMovementValidator(movementValidator);
+                ((com.roguelike.entities.Enemy) newEnemy).setMovementValidator(collisionManager.getMovementValidator());
                 ((com.roguelike.entities.Enemy) newEnemy).setAdaptivePathfinder(adaptivePathfinder);
             }
             enemySpawnAccumulator -= ENEMY_SPAWN_INTERVAL;
@@ -296,10 +309,42 @@ public class GameApp extends GameApplication {
     }
     
     /**
+     * 获取碰撞管理器实例
+     */
+    public CollisionManager getCollisionManager() {
+        return collisionManager;
+    }
+    
+    /**
      * 获取地图渲染器实例
      */
     public MapRenderer getMapRenderer() {
         return mapRenderer;
+    }
+    
+    /**
+     * 调试方法：切换调试模式
+     */
+    public static void toggleDebugMode() {
+        DEBUG_MODE = !DEBUG_MODE;
+        System.out.println("🔧 调试模式: " + (DEBUG_MODE ? "开启" : "关闭"));
+    }
+    
+    /**
+     * 调试方法：切换子弹伤害
+     */
+    public static void toggleBulletDamage() {
+        BULLET_DAMAGE_ENABLED = !BULLET_DAMAGE_ENABLED;
+        System.out.println("🔫 子弹伤害: " + (BULLET_DAMAGE_ENABLED ? "开启" : "关闭"));
+    }
+    
+    /**
+     * 调试方法：获取当前调试状态
+     */
+    public static void printDebugStatus() {
+        System.out.println("🔧 当前调试状态:");
+        System.out.println("  - 调试模式: " + (DEBUG_MODE ? "开启" : "关闭"));
+        System.out.println("  - 子弹伤害: " + (BULLET_DAMAGE_ENABLED ? "开启" : "关闭"));
     }
     
     /**

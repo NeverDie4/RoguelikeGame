@@ -319,6 +319,13 @@ public class CharacterAnimationComponent extends Component {
             
             if (currentTexture != null && currentTexture.getImage() != null) {
                 if (getEntity() != null && getEntity().getViewComponent() != null) {
+                    // 保存血条等UI元素
+                    javafx.scene.Node healthBar = null;
+                    if (getEntity() instanceof com.roguelike.entities.Player) {
+                        com.roguelike.entities.Player player = (com.roguelike.entities.Player) getEntity();
+                        healthBar = player.getHealthBarContainer();
+                    }
+                    
                     getEntity().getViewComponent().clearChildren();
                     
                     // 对于PNG动画（敌人），根据方向动态设置翻转
@@ -345,6 +352,11 @@ public class CharacterAnimationComponent extends Component {
                     }
                     
                     getEntity().getViewComponent().addChild(currentTexture);
+                    
+                    // 重新添加血条等UI元素
+                    if (healthBar != null) {
+                        getEntity().getViewComponent().addChild(healthBar);
+                    }
                 }
             } else {
                 // 尝试重新加载这一帧
@@ -501,6 +513,13 @@ public class CharacterAnimationComponent extends Component {
                     
                     if (currentTexture != null && currentTexture.getImage() != null) {
                         if (getEntity() != null && getEntity().getViewComponent() != null) {
+                            // 保存血条等UI元素
+                            javafx.scene.Node healthBar = null;
+                            if (getEntity() instanceof com.roguelike.entities.Player) {
+                                com.roguelike.entities.Player player = (com.roguelike.entities.Player) getEntity();
+                                healthBar = player.getHealthBarContainer();
+                            }
+                            
                             getEntity().getViewComponent().clearChildren();
                             
                             // 根据当前方向设置翻转
@@ -526,6 +545,11 @@ public class CharacterAnimationComponent extends Component {
                             }
                             
                             getEntity().getViewComponent().addChild(currentTexture);
+                            
+                            // 重新添加血条等UI元素
+                            if (healthBar != null) {
+                                getEntity().getViewComponent().addChild(healthBar);
+                            }
                         }
                     }
                     
