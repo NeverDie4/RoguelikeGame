@@ -69,12 +69,7 @@ public class CurveBullet extends Bullet {
         return new CurveBullet(Faction.PLAYER, direction, 8, false, 400.0, 30.0);
     }
 
-    /**
-     * 快速创建敌人弧形子弹
-     */
-    public static CurveBullet createEnemyCurveBullet(Point2D direction) {
-        return new CurveBullet(Faction.ENEMY, direction, 6, false, 300.0, 25.0);
-    }
+    
 
     /**
      * 创建螺旋子弹
@@ -228,8 +223,8 @@ public class CurveBullet extends Bullet {
             animationComponent = new BulletAnimationComponent();
             addComponent(animationComponent);
             
-            // 加载动画帧
-            String basePath = "assets/textures/bullets";
+            // 加载动画帧（使用 FXGL 相对路径，指向 assets/textures/bullets）
+            String basePath = "bullets";
             animationComponent.loadAnimationFrames(basePath, 10);
             
             // 设置动画参数

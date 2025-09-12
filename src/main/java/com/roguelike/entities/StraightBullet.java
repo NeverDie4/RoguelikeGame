@@ -1,6 +1,7 @@
 package com.roguelike.entities;
 
 import com.roguelike.entities.components.BulletAnimationComponent;
+import com.roguelike.entities.components.OutOfViewportDestroyComponent;
 import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -47,27 +48,25 @@ public class StraightBullet extends Bullet {
         this.width = width;
         this.height = height;
 
-        // 根据形状创建视图
-        createView();
+        // 初始不创建静态视图，避免与动画纹理叠加
         setSize(width, height);
 
         initMovement(direction);
-        setLifeTime(3);
+        // 改为越界销毁，不使用寿命
+        addComponent(new OutOfViewportDestroyComponent(200));
     }
 
     /**
      * 快速创建玩家子弹的静态方法（动画版本）
      */
     public static StraightBullet createPlayerBullet(Point2D direction) {
-        return new StraightBullet(Faction.PLAYER, direction, 10, false, 500.0);
+        StraightBullet b = new StraightBullet(Faction.PLAYER, direction, 10, false, 200.0);
+        // 保持动画循环，使用 16x16 资源尺寸
+        b.setSize(16, 16);
+        return b;
     }
 
-    /**
-     * 快速创建敌人子弹的静态方法（动画版本）
-     */
-    public static StraightBullet createEnemyBullet(Point2D direction) {
-        return new StraightBullet(Faction.ENEMY, direction, 5, false, 300.0);
-    }
+    
 
     /**
      * 创建穿透子弹
@@ -162,15 +161,25 @@ public class StraightBullet extends Bullet {
             addComponent(animationComponent);
             
             // 加载动画帧
-            String basePath = "assets/textures/bullets";
+            //String basePath = "textures/bullets";
+            String basePath = "bullets";
             animationComponent.loadAnimationFrames(basePath, 10);
             
             // 设置动画参数
             animationComponent.setFrameDuration(0.05); // 每帧50毫秒
             animationComponent.setLooping(true);
             
-            // 重新设置大小以适应动画
-            setSize(32, 32); // 动画图片的尺寸
+            // 若未成功加载任何帧，则回退到静态视图，避免不可见
+            if (animationComponent.getFrameCount() == 0) {
+                removeComponent(BulletAnimationComponent.class);
+                animationComponent = null;
+                useAnimation = false;
+                getViewComponent().clearChildren();
+                createView();
+            } else {
+                // 统一碰撞盒为 16x16
+                setSize(16, 16);
+            }
         }
     }
 

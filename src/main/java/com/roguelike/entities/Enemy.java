@@ -2,7 +2,9 @@ package com.roguelike.entities;
 
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.Entity;
+import com.almasb.fxgl.entity.component.Component;
 import com.almasb.fxgl.entity.components.CollidableComponent;
+import com.almasb.fxgl.physics.PhysicsComponent;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
 import com.roguelike.entities.components.CharacterAnimationComponent;
@@ -32,35 +34,35 @@ public class Enemy extends EntityBase {
     private double currentDirectionX = 0;
     private double currentDirectionY = 0;
     private double maxTurnRate = Math.PI * 2; // 最大转向速率
-    
+
     // 碰撞检测相关
     private MovementValidator movementValidator;
-    
+
     // 路径寻找相关
     private AdaptivePathfinder adaptivePathfinder;
     private java.util.List<javafx.geometry.Point2D> currentPath;
     private int currentPathIndex = 0;
-    
+
     // 动画组件
     private CharacterAnimationComponent animationComponent;
     private CharacterAnimationComponent.Direction currentDirection = CharacterAnimationComponent.Direction.RIGHT;
-    
+
     // 死亡状态标记
     private boolean isDead = false;
 
     public Enemy() {
         // 添加碰撞组件
         addComponent(new CollidableComponent(true));
-        
+
         // 设置实体大小（根据敌人动画帧大小调整）
         setSize(64, 64);
-        
+
         // 初始化动画
         initializeAnimation();
-        
+
         // 设置实体锚点为中心
         getTransformComponent().setAnchoredPosition(new Point2D(0.5, 0.5));
-        
+
         initenemyhpbar();
     }
 
@@ -68,19 +70,19 @@ public class Enemy extends EntityBase {
 
 
     }
-    
+
     private void initializeAnimation() {
         try {
             // 初始化动画组件
             animationComponent = new CharacterAnimationComponent();
             addComponent(animationComponent);
-            
+
             // 加载敌人行走动画帧（10帧PNG图片）
             animationComponent.loadPngAnimationFrames("assets/textures/enemy", 10, "enemy_walk_%02d.png");
-            
+
             // 加载敌人死亡动画帧（11帧PNG图片）
             animationComponent.loadDeathAnimationFrames("assets/textures/enemy", 11, "die_%04d.png");
-            
+
             // 设置动画参数
             animationComponent.setFrameDuration(0.15); // 每帧150毫秒，比玩家稍快
             animationComponent.setLooping(true);
@@ -88,7 +90,7 @@ public class Enemy extends EntityBase {
         } catch (Exception e) {
             System.err.println("敌人动画初始化失败: " + e.getMessage());
             e.printStackTrace();
-            
+
             // 如果动画加载失败，使用备用矩形显示
             getViewComponent().addChild(new Rectangle(64, 64, Color.CRIMSON));
         }
@@ -115,7 +117,7 @@ public class Enemy extends EntityBase {
         if (isDead) {
             return;
         }
-        
+
         if (!isAlive()) {
             return;
         }
@@ -142,7 +144,6 @@ public class Enemy extends EntityBase {
             moveWithAStarPath(tpf);
         }
     }
-
 
     private void smoothTurnToDirection(double targetX, double targetY, double tpf) {
         // 计算目标方向
@@ -198,10 +199,10 @@ public class Enemy extends EntityBase {
         // 使用碰撞检测进行移动
         if (movementValidator != null) {
             MovementResult result = movementValidator.validateAndMove(this, moveX, moveY);
-            
+
             if (result.isSuccess()) {
                 translate(result.getDeltaX(), result.getDeltaY());
-                
+
                 // 如果发生滑动，可能需要调整移动方向
                 if (result.getType() == MovementType.SLIDING) {
                     adjustDirectionAfterSliding(result);
@@ -214,7 +215,7 @@ public class Enemy extends EntityBase {
             // 没有碰撞检测时直接移动
             translate(moveX, moveY);
         }
-        
+
         // 检测水平移动方向并切换动画
         if (moveX > 0 && currentDirection != CharacterAnimationComponent.Direction.RIGHT) {
             // 向右移动
@@ -230,7 +231,7 @@ public class Enemy extends EntityBase {
             }
         }
     }
-    
+
     /**
      * 滑动后调整移动方向
      */
@@ -238,14 +239,14 @@ public class Enemy extends EntityBase {
         // 根据滑动结果调整方向
         double newDirectionX = result.getDeltaX();
         double newDirectionY = result.getDeltaY();
-        
+
         double length = Math.sqrt(newDirectionX * newDirectionX + newDirectionY * newDirectionY);
         if (length > 0) {
             currentDirectionX = newDirectionX / length;
             currentDirectionY = newDirectionY / length;
         }
     }
-    
+
     /**
      * 处理移动被阻挡的情况
      */
@@ -254,7 +255,7 @@ public class Enemy extends EntityBase {
         double angle = Math.random() * Math.PI * 2;
         currentDirectionX = Math.cos(angle);
         currentDirectionY = Math.sin(angle);
-        
+
         GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_HIT_WALL));
     }
 
@@ -285,7 +286,7 @@ public class Enemy extends EntityBase {
     public void onDeath() {
         // 设置死亡状态，停止移动
         isDead = true;
-        
+
         // 给予玩家经验值
         GameState gameState = FXGL.getGameWorld().getEntitiesByType().stream()
                 .filter(e -> e instanceof Player)
@@ -299,7 +300,7 @@ public class Enemy extends EntityBase {
         }
 
         GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_DEATH));
-        
+
         // 播放死亡动画，动画完成后移除实体
         if (animationComponent != null) {
             animationComponent.playDeathAnimation(() -> {
@@ -315,13 +316,13 @@ public class Enemy extends EntityBase {
     public void onDeath(GameState gameState) {
         // 设置死亡状态，停止移动
         isDead = true;
-        
+
         if (gameState != null) {
             gameState.addScore(10);
             gameState.addExp(expReward);
         }
         GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_DEATH));
-        
+
         // 播放死亡动画，动画完成后移除实体
         if (animationComponent != null) {
             animationComponent.playDeathAnimation(() -> {
@@ -345,42 +346,42 @@ public class Enemy extends EntityBase {
     public boolean isAlive() {
         return currentHP > 0 && !isDead;
     }
-    
+
     /**
      * 检查敌人是否已死亡（包括正在播放死亡动画的状态）
      */
     public boolean isDead() {
         return isDead;
     }
-    
+
     /**
      * 设置移动验证器
      */
     public void setMovementValidator(MovementValidator validator) {
         this.movementValidator = validator;
     }
-    
+
     /**
      * 获取移动验证器
      */
     public MovementValidator getMovementValidator() {
         return movementValidator;
     }
-    
+
     /**
      * 设置自适应路径寻找器
      */
     public void setAdaptivePathfinder(AdaptivePathfinder pathfinder) {
         this.adaptivePathfinder = pathfinder;
     }
-    
+
     /**
      * 获取自适应路径寻找器
      */
     public AdaptivePathfinder getAdaptivePathfinder() {
         return adaptivePathfinder;
     }
-    
+
     /**
      * 更新路径到目标（优化版本，减少不必要的重新计算）
      */
@@ -388,20 +389,20 @@ public class Enemy extends EntityBase {
         if (adaptivePathfinder == null || targetX == 0 || targetY == 0) {
             return;
         }
-        
+
         Point2D currentPos = getCenter();
-        
+
         // 检查是否需要更新路径（距离目标太远或路径为空）
         double distanceToTarget = currentPos.distance(targetX, targetY);
         if (currentPath == null || currentPath.isEmpty() || distanceToTarget > 100.0) {
             currentPath = adaptivePathfinder.findPath(
-                currentPos.getX(), currentPos.getY(), 
+                currentPos.getX(), currentPos.getY(),
                 targetX, targetY
             );
             currentPathIndex = 0;
         }
     }
-    
+
     /**
      * 使用A*路径移动（修复转圈问题）
      */
@@ -411,14 +412,14 @@ public class Enemy extends EntityBase {
             fallbackToDirectMovement(tpf);
             return;
         }
-        
+
         Point2D currentPos = getCenter();
-        
+
         // 跳过已经到达的路径点，避免在路径点附近震荡
         while (currentPathIndex < currentPath.size()) {
             Point2D targetPoint = currentPath.get(currentPathIndex);
             double distanceToTarget = currentPos.distance(targetPoint);
-            
+
             // 增加到达判断距离，从10.0改为25.0，避免转圈
             if (distanceToTarget < 25.0) {
                 currentPathIndex++;
@@ -426,18 +427,18 @@ public class Enemy extends EntityBase {
                 break;
             }
         }
-        
+
         // 如果还有路径点要到达
         if (currentPathIndex < currentPath.size()) {
             Point2D targetPoint = currentPath.get(currentPathIndex);
             double dx = targetPoint.getX() - currentPos.getX();
             double dy = targetPoint.getY() - currentPos.getY();
             double length = Math.sqrt(dx * dx + dy * dy);
-            
+
             if (length > 0) {
                 dx /= length;
                 dy /= length;
-                
+
                 // 直接设置方向，避免平滑转向导致的震荡
                 currentDirectionX = dx;
                 currentDirectionY = dy;
@@ -448,7 +449,7 @@ public class Enemy extends EntityBase {
             fallbackToDirectMovement(tpf);
         }
     }
-    
+
     /**
      * 使用流体算法移动
      */
@@ -457,12 +458,12 @@ public class Enemy extends EntityBase {
             fallbackToDirectMovement(tpf);
             return;
         }
-        
+
         Point2D currentPos = getCenter();
         Point2D direction = adaptivePathfinder.getMovementDirection(
             currentPos.getX(), currentPos.getY()
         );
-        
+
         if (direction.getX() != 0 || direction.getY() != 0) {
             smoothTurnToDirection(direction.getX(), direction.getY(), tpf);
             moveInCurrentDirection(tpf);
@@ -470,7 +471,7 @@ public class Enemy extends EntityBase {
             fallbackToDirectMovement(tpf);
         }
     }
-    
+
     /**
      * 回退到直接移动（朝向玩家）
      */
@@ -478,12 +479,12 @@ public class Enemy extends EntityBase {
         if (targetX == 0 || targetY == 0) {
             return;
         }
-        
+
         Point2D currentPos = getCenter();
         double dx = targetX - currentPos.getX();
         double dy = targetY - currentPos.getY();
         double length = Math.sqrt(dx * dx + dy * dy);
-        
+
         if (length > 0) {
             dx /= length;
             dy /= length;

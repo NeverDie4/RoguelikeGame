@@ -3,13 +3,19 @@ package com.roguelike.entities;
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.dsl.components.ProjectileComponent;
 import com.almasb.fxgl.entity.Entity;
+import com.almasb.fxgl.entity.SpawnData;
+import com.almasb.fxgl.entity.Spawns;
+import com.almasb.fxgl.entity.component.Component;
 import com.almasb.fxgl.entity.components.CollidableComponent;
+import com.almasb.fxgl.entity.components.TypeComponent;
+import com.almasb.fxgl.texture.Texture;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
 import com.roguelike.entities.components.CharacterAnimationComponent;
 import com.roguelike.physics.MovementValidator;
 import com.roguelike.physics.MovementValidator.MovementResult;
 import com.roguelike.physics.MovementValidator.MovementType;
+import com.roguelike.entities.components.AutoFireComponent;
 import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -28,7 +34,7 @@ public class Player extends EntityBase {
     private int currentHP = 100;
     private GameState gameState;
     private MovementValidator movementValidator;
-    
+
     // 动画相关
     private CharacterAnimationComponent animationComponent;
     private CharacterAnimationComponent.Direction currentDirection = CharacterAnimationComponent.Direction.RIGHT;
@@ -36,18 +42,21 @@ public class Player extends EntityBase {
     public Player() {
         // 添加碰撞组件
         addComponent(new CollidableComponent(true));
-        
+
         // 设置实体大小（根据GIF动画帧大小调整）
         setSize(32, 32);
-        
+
         // 初始化动画
         initializeAnimation();
-        
+
         // 初始化血条
         initHealthBar();
-        
+
         // 设置实体锚点为中心
         getTransformComponent().setAnchoredPosition(new Point2D(0.5, 0.5));
+
+        // 自动发射组件（默认 0.5s）
+        addComponent(new AutoFireComponent(0.5));
     }
 
     private void initHealthBar() {
@@ -86,25 +95,25 @@ public class Player extends EntityBase {
         // 监听血量变化事件
         GameEvent.listen(GameEvent.Type.PLAYER_HURT, e -> updateHealthBar());
     }
-    
+
     private void initializeAnimation() {
         try {
             // 初始化动画组件
             animationComponent = new CharacterAnimationComponent();
             addComponent(animationComponent);
-            
+
             // 加载向右方向的GIF动画帧（6帧，每帧128x128像素）
             animationComponent.loadGifAnimationFrames("assets/textures/player", 6);
-            
+
             // 加载向左方向的GIF动画帧（6帧，每帧128x128像素）
             animationComponent.loadLeftGifAnimationFrames("assets/textures/player", 6);
-            
+
             // 设置动画参数
             animationComponent.setFrameDuration(0.2); // 每帧200毫秒
             animationComponent.setLooping(true);
-            
+
             System.out.println("玩家动画初始化完成（支持左右转向）");
-            
+
             // 测试：3秒后强制显示第0帧
             FXGL.runOnce(() -> {
                 //System.out.println("🧪 3秒后测试显示第0帧");
@@ -113,7 +122,7 @@ public class Player extends EntityBase {
         } catch (Exception e) {
             System.err.println("玩家动画初始化失败: " + e.getMessage());
             e.printStackTrace();
-            
+
             // 如果动画加载失败，使用备用矩形显示
             Rectangle view = new Rectangle(32, 32, Color.DODGERBLUE);
             getViewComponent().addChild(view);
@@ -171,12 +180,12 @@ public class Player extends EntityBase {
         if (movementValidator != null) {
             // 使用移动验证器进行碰撞检测
             MovementResult result = movementValidator.validateAndMove(this, dx, dy);
-            
+
             if (result.isSuccess()) {
                 // 移动成功
                 translate(result.getDeltaX(), result.getDeltaY());
                 GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
-                
+
                 // 根据移动类型触发相应事件
                 if (result.getType() == MovementType.SLIDING) {
                     GameEvent.post(new GameEvent(GameEvent.Type.MOVEMENT_SLIDING));
@@ -190,7 +199,7 @@ public class Player extends EntityBase {
             translate(dx, dy);
             GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
         }
-        
+
         // 检测水平移动方向并切换动画
         if (dx > 0 && currentDirection != CharacterAnimationComponent.Direction.RIGHT) {
             // 向右移动
@@ -206,7 +215,7 @@ public class Player extends EntityBase {
             }
         }
     }
-    
+
     /**
      * 处理移动被阻挡的情况
      */
@@ -214,14 +223,14 @@ public class Player extends EntityBase {
         GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_HIT_WALL));
         // 可以在这里添加音效、震动等效果
     }
-    
+
     /**
      * 设置移动验证器
      */
     public void setMovementValidator(MovementValidator validator) {
         this.movementValidator = validator;
     }
-    
+
     /**
      * 获取移动验证器
      */
@@ -229,17 +238,7 @@ public class Player extends EntityBase {
         return movementValidator;
     }
 
-    public void attack() { //这个函数有问题，后面新建一个子弹类用于区分友方子弹和敌方子弹，再传入entityBuilder()里
-        // 简单攻击：发射一个向右的投射体
-        entityBuilder()
-                // 从玩家位置出发（基于玩家中心调整）
-                .at(getCenter().subtract(0, 2))
-                .viewWithBBox(new Rectangle(8, 4, Color.ORANGE))
-                .at(getCenter().subtract(0, 2))
-                .with(new CollidableComponent(true))
-                .with(new ProjectileComponent(new Point2D(1, 0), 500))
-                .buildAndAttach();
-    }
+    // 旧的按键攻击已移除，发射逻辑由 AutoFireComponent 负责
 
     public void takeDamage(int damage) {
         if (gameState != null) {

@@ -200,13 +200,7 @@ public class GameApp extends GameApplication {
             }
         }, KeyCode.DOWN);
 
-        getInput().addAction(new UserAction("ATTACK") {
-            @Override
-            protected void onActionBegin() {
-                com.almasb.fxgl.entity.Entity p = FXGL.getGameWorld().getEntitiesByType().stream().filter(e -> e instanceof com.roguelike.entities.Player).findFirst().orElse(null);
-                if (p != null) ((com.roguelike.entities.Player) p).attack();
-            }
-        }, KeyCode.SPACE);
+        // 旧的空格攻击移除，采用自动发射
         INPUT_BOUND = true;
     }
 
@@ -217,12 +211,24 @@ public class GameApp extends GameApplication {
         gameReady = false;
         // 加载阶段禁用输入，避免主角可被移动
         getInput().setProcessInput(false);
+        // 暂停 HUD 计时展示，避免在加载阶段累加
+        if (gameHUD != null) {
+            gameHUD.pauseTime();
+        }
         // 显示自定义加载覆盖层：最短 3 秒，完成后淡出并开始计时
         LoadingOverlay.show(3000, () -> {
+            // 加载完成后重置游戏计时起点
+            if (gameState != null) {
+                gameState.resetGameTime();
+            }
             TimeService.reset();
             frameCount = 0;
             // 恢复输入
             getInput().setProcessInput(true);
+            // 恢复 HUD 计时
+            if (gameHUD != null) {
+                gameHUD.resumeTime();
+            }
             gameReady = true;
         });
     }
