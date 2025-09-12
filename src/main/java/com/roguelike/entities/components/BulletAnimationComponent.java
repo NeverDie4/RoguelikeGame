@@ -78,7 +78,7 @@ public class BulletAnimationComponent extends Component {
                     Texture t = new Texture(img);
                     animationFrames.add(t);
                     loaded = true;
-                    System.out.println("[BulletAnimation] 使用classpath优先加载成功: /" + cpPath);
+                    //System.out.println("[BulletAnimation] 使用classpath优先加载成功: /" + cpPath);
                 }
             } catch (Exception ignored) { }
 
