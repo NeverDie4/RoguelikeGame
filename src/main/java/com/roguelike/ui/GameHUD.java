@@ -186,7 +186,7 @@ public class GameHUD {
     private void initTimeDisplay() {
         timeLabel = new Label("00:00");
         timeLabel.setTextFill(Color.WHITE);
-        timeLabel.setFont(Font.font("Arial", Math.max(12, currentScreenHeight * 0.02))); // 字体大小根据屏幕高度调整
+        timeLabel.setFont(Font.font("Arial", Math.max(12, currentScreenHeight * 0.05))); // 字体大小根据屏幕高度调整
         timeLabel.setStyle("-fx-padding: 4 8 4 8;");
 
         timeContainer = new StackPane();
@@ -318,14 +318,16 @@ public class GameHUD {
     }
 
 
-    // 启动时间自动更新器
-    private void startTimeUpdater() {
-        timeUpdater = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                updateTime();
-            }
-        };
+    // 启动或恢复时间自动更新器（幂等）
+    public void startTimeUpdater() {
+        if (timeUpdater == null) {
+            timeUpdater = new AnimationTimer() {
+                @Override
+                public void handle(long now) {
+                    updateTime();
+                }
+            };
+        }
         timeUpdater.start();
     }
 
@@ -438,6 +440,16 @@ public class GameHUD {
         if (timeUpdater != null) {
             timeUpdater.stop();
         }
+    }
+
+    // 暂停计时（语义化包装）
+    public void pauseTime() {
+        stopTimeUpdater();
+    }
+
+    // 恢复计时（语义化包装）
+    public void resumeTime() {
+        startTimeUpdater();
     }
 
     // 公共方法：获取当前显示的信息

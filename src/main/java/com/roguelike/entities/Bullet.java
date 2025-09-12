@@ -40,8 +40,8 @@ public abstract class Bullet extends EntityBase {
         // 使用EntityBase的现有方法设置碰撞
         getBoundingBoxComponent().addHitBox(new HitBox(BoundingShape.box(8, 8)));
         addComponent(new CollidableComponent(true));
-        // 在构造方法中添加
-        addAndGetComponent(new ViewComponent());
+        // 在构造方法中添加 ViewComponent（恢复与原逻辑一致）
+        //addAndGetComponent(new ViewComponent());
         // 默认大小
         setSize(8, 8);
     }
@@ -58,8 +58,8 @@ public abstract class Bullet extends EntityBase {
      * 初始化运动 (使用FXGL现有ProjectileComponent)
      */
     protected void initMovement(Point2D direction) {
-        Point2D velocity = direction.normalize().multiply(speed);
-        addComponent(new ProjectileComponent(velocity, 0));
+        // 正确地使用方向 + 速度 构造投射体，确保对角方向生效
+        addComponent(new ProjectileComponent(direction.normalize(), speed));
     }
 
     /**

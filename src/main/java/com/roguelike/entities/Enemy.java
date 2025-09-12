@@ -30,7 +30,7 @@ public class Enemy extends EntityBase {
     private double currentDirectionX = 0;
     private double currentDirectionY = 0;
     private double turnSpeed = 5.0; // 转向速度（弧度/秒）
-    private double maxTurnRate = Math.PI / 2; // 最大转向速率
+    private double maxTurnRate = Math.PI * 2; // 最大转向速率
 
     public Enemy() {
         getViewComponent().addChild(new Rectangle(28, 28, Color.CRIMSON));

@@ -11,6 +11,7 @@ import com.almasb.fxgl.entity.components.TypeComponent;
 import com.almasb.fxgl.texture.Texture;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
+import com.roguelike.entities.components.AutoFireComponent;
 import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -36,6 +37,9 @@ public class Player extends EntityBase {
 
         // 初始化血条
         initHealthBar();
+
+        // 自动发射组件（默认 0.5s）
+        addComponent(new AutoFireComponent(0.5));
     }
 
     private void initHealthBar() {
@@ -127,17 +131,7 @@ public class Player extends EntityBase {
         GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
     }
 
-    public void attack() { //这个函数有问题，后面新建一个子弹类用于区分友方子弹和敌方子弹，再传入entityBuilder()里
-        // 简单攻击：发射一个向右的投射体
-        Entity bullet = entityBuilder()
-                // 从玩家位置出发（基于玩家中心调整）
-                .at(getCenter().subtract(0, 2))
-                .viewWithBBox(new Rectangle(8, 4, Color.ORANGE))
-                .at(getCenter().subtract(0, 2))
-                .with(new CollidableComponent(true))
-                .with(new ProjectileComponent(new Point2D(1, 0), 500))
-                .buildAndAttach();
-    }
+    // 旧的按键攻击已移除，发射逻辑由 AutoFireComponent 负责
 
     public void takeDamage(int damage) {
         if (gameState != null) {
