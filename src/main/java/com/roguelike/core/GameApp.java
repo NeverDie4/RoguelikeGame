@@ -7,6 +7,7 @@ import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.SpawnData;
 import com.almasb.fxgl.input.UserAction;
 import com.roguelike.entities.Player;
+import com.roguelike.entities.InfiniteMapEnemySpawnManager;
 import com.roguelike.map.MapRenderer;
 import com.roguelike.map.InfiniteMapManager;
 import com.roguelike.physics.MapCollisionDetector;
@@ -50,6 +51,7 @@ public class GameApp extends GameApplication {
     private CollisionManager collisionManager;
     private AdaptivePathfinder adaptivePathfinder;
     private EventBatchingManager eventBatchingManager;
+    private InfiniteMapEnemySpawnManager infiniteMapEnemySpawnManager;
     private double enemySpawnAccumulator = 0.0;
     private static final double ENEMY_SPAWN_INTERVAL = 0.5;
     private static boolean INPUT_BOUND = false;
@@ -123,6 +125,11 @@ public class GameApp extends GameApplication {
         System.out.println("   预加载半径: " + infiniteMapManager.getPreloadRadius() + " 个区块");
         System.out.println("   异步加载: " + (infiniteMapManager.isUseAsyncLoading() ? "启用" : "禁用"));
         System.out.println("   玩家初始位置: 区块0中心");
+        
+            // 初始化无限地图敌人生成管理器
+            infiniteMapEnemySpawnManager = new InfiniteMapEnemySpawnManager(infiniteMapManager);
+            com.roguelike.entities.EntityFactory.setInfiniteMapSpawnManager(infiniteMapEnemySpawnManager);
+            System.out.println("🎯 无限地图敌人生成器已启用");
         } else {
             // 使用传统地图系统
             mapRenderer = new MapRenderer(MAP_NAME);
@@ -754,8 +761,23 @@ public class GameApp extends GameApplication {
             fpsDisplay.cleanup();
         }
         
+        // 清理敌人生成管理器资源
+        if (infiniteMapEnemySpawnManager != null) {
+            infiniteMapEnemySpawnManager.shutdown();
+        }
+        
         // 使用FXGL的内置方法来清理游戏世界
         getGameController().startNewGame();
+    }
+    
+    /**
+     * 清理游戏资源
+     */
+    public void cleanup() {
+        if (infiniteMapEnemySpawnManager != null) {
+            infiniteMapEnemySpawnManager.shutdown();
+            infiniteMapEnemySpawnManager = null;
+        }
     }
 
     public static void main(String[] args) {

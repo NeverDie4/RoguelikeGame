@@ -6,8 +6,6 @@ import com.almasb.fxgl.entity.Spawns;
 import com.roguelike.core.GameState;
 import com.roguelike.utils.RandomUtils;
 import javafx.geometry.Point2D;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
 
@@ -15,10 +13,15 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
 
     private static GameState gameState;
     private static boolean initialized;
+    private static InfiniteMapEnemySpawnManager infiniteMapSpawnManager;
 
     public static void setGameState(GameState state) {
         gameState = state;
         initialized = true;
+    }
+
+    public static void setInfiniteMapSpawnManager(InfiniteMapEnemySpawnManager spawnManager) {
+        infiniteMapSpawnManager = spawnManager;
     }
 
     @Spawns("player")
@@ -53,7 +56,35 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
 
         Enemy enemy = new Enemy(baseHP, expReward);
 
-        // 在玩家附近随机一圈生成
+        // 使用新的无限地图生成系统
+        if (infiniteMapSpawnManager != null) {
+            Entity player = getGameWorld().getEntitiesByType().stream()
+                .filter(e -> e instanceof Player).findFirst().orElse(null);
+            
+            if (player != null) {
+                Point2D playerPos = player.getCenter();
+                
+                // 使用预定的敌人尺寸 48x64
+                double enemyWidth = 48.0;
+                double enemyHeight = 64.0;
+                
+                Point2D spawnPos = infiniteMapSpawnManager.generateEnemySpawnPosition(
+                    playerPos, 
+                    enemyWidth, 
+                    enemyHeight,
+                    200.0, // 最小距离
+                    400.0  // 最大距离
+                );
+                
+                if (spawnPos != null) {
+                    enemy.setX(spawnPos.getX());
+                    enemy.setY(spawnPos.getY());
+                    return enemy;
+                }
+            }
+        }
+        
+        // 回退到原有逻辑（如果新系统失败或未启用）
         Entity player = getGameWorld().getEntitiesByType().stream().filter(e -> e instanceof Player).findFirst().orElse(null);
         Point2D base = player != null ? player.getCenter() : new Point2D(getAppWidth() / 2.0, getAppHeight() / 2.0);
         double angle = Math.toRadians(RandomUtils.nextInt(0, 359));
