@@ -211,6 +211,29 @@ public class CollisionManager {
         return null;
     }
     
+    
+    /**
+     * 设置推挤力度系数
+     * @param multiplier 力度系数
+     */
+    public void setPushForceMultiplier(double multiplier) {
+        if (entityCollisionDetector != null) {
+            entityCollisionDetector.setPushForceMultiplier(multiplier);
+        }
+    }
+    
+    
+    /**
+     * 获取当前推挤力度系数
+     * @return 力度系数
+     */
+    public double getPushForceMultiplier() {
+        if (entityCollisionDetector != null) {
+            return entityCollisionDetector.getPushForceMultiplier();
+        }
+        return 1.0;
+    }
+    
     /**
      * 获取调试网格
      */

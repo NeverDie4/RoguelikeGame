@@ -35,7 +35,7 @@ public class EntityCollisionDetector {
     
     // 更新间隔控制
     private double lastUpdateTime = 0;
-    private static final double UPDATE_INTERVAL = 0.05; // 50ms更新间隔
+    private static final double DEFAULT_UPDATE_INTERVAL = 0.016; // 默认16ms更新间隔（约60FPS）
     
     // 调试模式
     private boolean debugMode = false;
@@ -51,8 +51,9 @@ public class EntityCollisionDetector {
     public void update(double tpf) {
         double currentTime = com.roguelike.core.TimeService.getSeconds();
         
-        // 控制更新频率
-        if (currentTime - lastUpdateTime < UPDATE_INTERVAL) {
+        // 控制更新频率（使用调试参数）
+        double updateInterval = com.roguelike.core.GameApp.COLLISION_UPDATE_INTERVAL;
+        if (currentTime - lastUpdateTime < updateInterval) {
             return;
         }
         
@@ -521,7 +522,10 @@ public class EntityCollisionDetector {
         StringBuilder info = new StringBuilder();
         info.append("碰撞检测系统调试信息:\n");
         info.append("  - 调试模式: ").append(debugMode ? "开启" : "关闭").append("\n");
-        info.append("  - 更新间隔: ").append(UPDATE_INTERVAL).append("秒\n");
+        info.append("  - 更新间隔: ").append(com.roguelike.core.GameApp.COLLISION_UPDATE_INTERVAL).append("秒\n");
+        info.append("  - 推挤力度倍数: ").append(com.roguelike.core.GameApp.COLLISION_PUSH_FORCE_MULTIPLIER).append("\n");
+        info.append("  - 速度推挤: ").append(com.roguelike.core.GameApp.COLLISION_VELOCITY_PUSH_ENABLED ? "开启" : "关闭").append("\n");
+        info.append("  - 位置推挤: ").append(com.roguelike.core.GameApp.COLLISION_POSITION_PUSH_ENABLED ? "开启" : "关闭").append("\n");
         info.append("  - 碰撞冷却记录数: ").append(collisionCooldowns.size()).append("\n");
         info.append("  - 攻击冷却记录数: ").append(attackCooldowns.size()).append("\n");
         info.append(spatialSystem.getDebugInfo()).append("\n");
@@ -541,6 +545,29 @@ public class EntityCollisionDetector {
      */
     public RigidCollisionSystem getRigidCollisionSystem() {
         return rigidCollisionSystem;
+    }
+    
+    
+    /**
+     * 设置推挤力度系数
+     * @param multiplier 力度系数
+     */
+    public void setPushForceMultiplier(double multiplier) {
+        if (rigidCollisionSystem != null) {
+            rigidCollisionSystem.setPushForceMultiplier(multiplier);
+        }
+    }
+    
+    
+    /**
+     * 获取当前推挤力度系数
+     * @return 力度系数
+     */
+    public double getPushForceMultiplier() {
+        if (rigidCollisionSystem != null) {
+            return rigidCollisionSystem.getPushForceMultiplier();
+        }
+        return 1.0;
     }
     
     /**

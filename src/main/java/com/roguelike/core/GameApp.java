@@ -11,6 +11,7 @@ import com.roguelike.map.MapRenderer;
 import com.roguelike.physics.MapCollisionDetector;
 import com.roguelike.physics.MovementValidator;
 import com.roguelike.physics.CollisionManager;
+import com.roguelike.physics.RigidCollisionSystem;
 import com.roguelike.utils.AdaptivePathfinder;
 import com.roguelike.ui.GameHUD;
 import com.roguelike.ui.Menus;
@@ -40,7 +41,14 @@ public class GameApp extends GameApplication {
     
     // 调试配置
     public static boolean DEBUG_MODE = false; // 调试模式开关
-    public static boolean BULLET_DAMAGE_ENABLED = true; // 子弹伤害开关（当前禁用）
+    public static boolean BULLET_DAMAGE_ENABLED = true; // 子弹伤害开关
+    
+    // 碰撞系统调试配置
+    public static boolean COLLISION_DEBUG_MODE = false; // 碰撞调试模式
+    public static double COLLISION_PUSH_FORCE_MULTIPLIER = 1.0; // 碰撞推挤力度倍数
+    public static double COLLISION_UPDATE_INTERVAL = 0.016; // 碰撞更新间隔（秒）
+    public static boolean COLLISION_VELOCITY_PUSH_ENABLED = true; // 是否启用速度推挤
+    public static boolean COLLISION_POSITION_PUSH_ENABLED = true; // 是否启用位置推挤
     
     // 地图配置
     private static final String MAP_NAME = "mapgrass"; // 当前使用的地图名称
@@ -207,6 +215,83 @@ public class GameApp extends GameApplication {
                 if (p != null) ((com.roguelike.entities.Player) p).move(0, moveDistance);
             }
         }, KeyCode.DOWN);
+        
+
+        if (COLLISION_DEBUG_MODE) {
+            getInput().addAction(new UserAction("INCREASE_PUSH_FORCE") {
+                @Override
+                protected void onAction() {
+                    adjustPushForce(0.05);
+                }
+            }, KeyCode.EQUALS);
+
+            getInput().addAction(new UserAction("DECREASE_PUSH_FORCE") {
+                @Override
+                protected void onAction() {
+                    adjustPushForce(-0.05);
+                }
+            }, KeyCode.MINUS);
+
+            getInput().addAction(new UserAction("RESET_PUSH_FORCE") {
+                @Override
+                protected void onAction() {
+                    if (collisionManager != null) {
+                        collisionManager.setPushForceMultiplier(1.0);
+                        System.out.println("⚡ 推挤力度重置为: 1.0");
+                    }
+                }
+            }, KeyCode.R);
+
+            getInput().addAction(new UserAction("PRINT_DEBUG_INFO") {
+                @Override
+                protected void onAction() {
+                    printCollisionDebugInfo();
+                }
+            }, KeyCode.I);
+
+            // 碰撞调试控制
+            getInput().addAction(new UserAction("TOGGLE_COLLISION_DEBUG") {
+                @Override
+                protected void onAction() {
+                    toggleCollisionDebugMode();
+                }
+            }, KeyCode.F1);
+
+            getInput().addAction(new UserAction("INCREASE_UPDATE_INTERVAL") {
+                @Override
+                protected void onAction() {
+                    adjustCollisionUpdateInterval(0.005);
+                }
+            }, KeyCode.F2);
+
+            getInput().addAction(new UserAction("DECREASE_UPDATE_INTERVAL") {
+                @Override
+                protected void onAction() {
+                    adjustCollisionUpdateInterval(-0.005);
+                }
+            }, KeyCode.F3);
+
+            getInput().addAction(new UserAction("TOGGLE_VELOCITY_PUSH") {
+                @Override
+                protected void onAction() {
+                    toggleVelocityPushMode();
+                }
+            }, KeyCode.F4);
+
+            getInput().addAction(new UserAction("TOGGLE_POSITION_PUSH") {
+                @Override
+                protected void onAction() {
+                    togglePositionPushMode();
+                }
+            }, KeyCode.F5);
+
+            getInput().addAction(new UserAction("RESET_COLLISION_DEBUG") {
+                @Override
+                protected void onAction() {
+                    resetCollisionDebugSettings();
+                }
+            }, KeyCode.F6);
+        }
 
         // 旧的空格攻击移除，采用自动发射
         INPUT_BOUND = true;
@@ -347,14 +432,6 @@ public class GameApp extends GameApplication {
         System.out.println("  - 子弹伤害: " + (BULLET_DAMAGE_ENABLED ? "开启" : "关闭"));
     }
     
-    /**
-     * 调试方法：切换碰撞系统调试模式
-     */
-    public void toggleCollisionDebugMode() {
-        if (collisionManager != null) {
-            collisionManager.toggleDebugMode();
-        }
-    }
     
     /**
      * 调试方法：获取碰撞系统调试信息
@@ -365,6 +442,76 @@ public class GameApp extends GameApplication {
         } else {
             System.out.println("碰撞管理器未初始化");
         }
+    }
+    
+    
+    /**
+     * 调整推挤力度
+     * @param delta 力度变化量
+     */
+    public void adjustPushForce(double delta) {
+        if (collisionManager != null) {
+            double currentForce = collisionManager.getPushForceMultiplier();
+            double newForce = Math.max(0.1, Math.min(2.0, currentForce + delta));
+            collisionManager.setPushForceMultiplier(newForce);
+            COLLISION_PUSH_FORCE_MULTIPLIER = newForce;
+            System.out.println("⚡ 推挤力度调整为: " + newForce);
+        }
+    }
+    
+    /**
+     * 切换碰撞调试模式
+     */
+    public void toggleCollisionDebugMode() {
+        COLLISION_DEBUG_MODE = !COLLISION_DEBUG_MODE;
+        if (collisionManager != null) {
+            collisionManager.setDebugMode(COLLISION_DEBUG_MODE);
+        }
+        System.out.println("🔧 碰撞调试模式: " + (COLLISION_DEBUG_MODE ? "开启" : "关闭"));
+    }
+    
+    /**
+     * 调整碰撞更新间隔
+     * @param delta 间隔变化量（秒）
+     */
+    public void adjustCollisionUpdateInterval(double delta) {
+        double newInterval = Math.max(0.005, Math.min(0.1, COLLISION_UPDATE_INTERVAL + delta));
+        COLLISION_UPDATE_INTERVAL = newInterval;
+        System.out.println("⏱️ 碰撞更新间隔调整为: " + (newInterval * 1000) + "ms");
+    }
+    
+    /**
+     * 切换速度推挤模式
+     */
+    public void toggleVelocityPushMode() {
+        COLLISION_VELOCITY_PUSH_ENABLED = !COLLISION_VELOCITY_PUSH_ENABLED;
+        System.out.println("🚀 速度推挤模式: " + (COLLISION_VELOCITY_PUSH_ENABLED ? "开启" : "关闭"));
+    }
+    
+    /**
+     * 切换位置推挤模式
+     */
+    public void togglePositionPushMode() {
+        COLLISION_POSITION_PUSH_ENABLED = !COLLISION_POSITION_PUSH_ENABLED;
+        System.out.println("📍 位置推挤模式: " + (COLLISION_POSITION_PUSH_ENABLED ? "开启" : "关闭"));
+    }
+    
+    /**
+     * 重置所有碰撞调试参数
+     */
+    public void resetCollisionDebugSettings() {
+        COLLISION_DEBUG_MODE = false;
+        COLLISION_PUSH_FORCE_MULTIPLIER = 1.0;
+        COLLISION_UPDATE_INTERVAL = 0.016;
+        COLLISION_VELOCITY_PUSH_ENABLED = true;
+        COLLISION_POSITION_PUSH_ENABLED = true;
+        
+        if (collisionManager != null) {
+            collisionManager.setDebugMode(false);
+            collisionManager.setPushForceMultiplier(1.0);
+        }
+        
+        System.out.println("🔄 碰撞调试参数已重置");
     }
     
     /**
