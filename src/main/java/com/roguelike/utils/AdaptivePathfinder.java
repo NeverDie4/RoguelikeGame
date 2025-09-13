@@ -32,6 +32,7 @@ public class AdaptivePathfinder {
         private double pathfindingUpdateInterval = 0.1; // 路径寻找更新间隔（秒）
         private boolean enablePathOptimization = true; // 是否启用路径优化
         private boolean enableSmoothing = true; // 是否启用路径平滑
+        private boolean ignorePlayerAsObstacle = true; // 吸血鬼幸存者风格：不把玩家当作障碍物
         
         // Getters and Setters
         public int getEnemyCountThreshold() { return enemyCountThreshold; }
@@ -48,6 +49,9 @@ public class AdaptivePathfinder {
         
         public boolean isEnableSmoothing() { return enableSmoothing; }
         public void setEnableSmoothing(boolean enable) { this.enableSmoothing = enable; }
+        
+        public boolean isIgnorePlayerAsObstacle() { return ignorePlayerAsObstacle; }
+        public void setIgnorePlayerAsObstacle(boolean ignore) { this.ignorePlayerAsObstacle = ignore; }
     }
     
     private final MapRenderer mapRenderer;
@@ -328,8 +332,9 @@ public class AdaptivePathfinder {
     
     /**
      * 地图接口适配器，将MapRenderer适配到A*算法的MapInterface
+     * 吸血鬼幸存者风格：不把玩家当作障碍物
      */
-    private static class MapInterfaceAdapter implements AStarPathfinder.MapInterface {
+    private class MapInterfaceAdapter implements AStarPathfinder.MapInterface {
         private final MapRenderer mapRenderer;
         
         public MapInterfaceAdapter(MapRenderer mapRenderer) {
@@ -338,6 +343,8 @@ public class AdaptivePathfinder {
         
         @Override
         public boolean isWalkable(int x, int y) {
+            // 吸血鬼幸存者风格：只检查地图瓦片障碍物，不检查玩家位置
+            // 敌人可以直接朝向玩家移动，不会被玩家阻挡
             return mapRenderer.isPassable(x, y);
         }
         

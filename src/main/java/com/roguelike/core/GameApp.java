@@ -40,7 +40,7 @@ public class GameApp extends GameApplication {
     
     // 调试配置
     public static boolean DEBUG_MODE = false; // 调试模式开关
-    public static boolean BULLET_DAMAGE_ENABLED = false; // 子弹伤害开关（当前禁用）
+    public static boolean BULLET_DAMAGE_ENABLED = true; // 子弹伤害开关（当前禁用）
     
     // 地图配置
     private static final String MAP_NAME = "mapgrass"; // 当前使用的地图名称
@@ -114,7 +114,7 @@ public class GameApp extends GameApplication {
 
         Player player = (Player) getGameWorld().spawn("player", new SpawnData(playerX, playerY));
         
-        // 为玩家设置移动验证器
+        // 为玩家设置移动验证器（防止与敌人重叠）
         player.setMovementValidator(collisionManager.getMovementValidator());
         
         FXGL.getGameScene().getViewport().bindToEntity(player, getAppWidth() / 2.0, getAppHeight() / 2.0);
@@ -345,6 +345,26 @@ public class GameApp extends GameApplication {
         System.out.println("🔧 当前调试状态:");
         System.out.println("  - 调试模式: " + (DEBUG_MODE ? "开启" : "关闭"));
         System.out.println("  - 子弹伤害: " + (BULLET_DAMAGE_ENABLED ? "开启" : "关闭"));
+    }
+    
+    /**
+     * 调试方法：切换碰撞系统调试模式
+     */
+    public void toggleCollisionDebugMode() {
+        if (collisionManager != null) {
+            collisionManager.toggleDebugMode();
+        }
+    }
+    
+    /**
+     * 调试方法：获取碰撞系统调试信息
+     */
+    public void printCollisionDebugInfo() {
+        if (collisionManager != null) {
+            System.out.println(collisionManager.getDebugInfo());
+        } else {
+            System.out.println("碰撞管理器未初始化");
+        }
     }
     
     /**

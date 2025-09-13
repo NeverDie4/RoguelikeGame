@@ -204,6 +204,8 @@ public abstract class Bullet extends EntityBase {
         }
     }
 
+    
+    
     private GameState getGameState() {
         return FXGL.geto("gameState");
     }

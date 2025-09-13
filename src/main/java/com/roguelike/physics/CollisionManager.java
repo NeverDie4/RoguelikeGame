@@ -1,12 +1,8 @@
 package com.roguelike.physics;
 
-import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.Entity;
-import com.roguelike.entities.Player;
-import com.roguelike.entities.Enemy;
-import com.roguelike.entities.Bullet;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 /**
  * 碰撞管理器
@@ -26,7 +22,10 @@ public class CollisionManager {
     
     // 碰撞检测频率控制
     private double lastCollisionCheckTime = 0;
-    private static final double COLLISION_CHECK_INTERVAL = 1.0 / 60.0; // 60 FPS
+    private static final double COLLISION_CHECK_INTERVAL = 1.0 / 30.0; // 30 FPS
+    
+    // 调试模式
+    private boolean debugMode = false;
     
     public CollisionManager() {
         this.entityCollisionDetector = new EntityCollisionDetector();
@@ -44,10 +43,8 @@ public class CollisionManager {
             this.movementValidator = new MovementValidator(detector);
         }
         
-        // 为实体碰撞检测器设置地图碰撞检测器
-        if (entityCollisionDetector != null) {
-            entityCollisionDetector.setMapCollisionDetector(detector);
-        }
+        // 吸血鬼幸存者风格：不再需要为实体碰撞检测器设置地图碰撞检测器
+        // 移除了复杂的推离逻辑
     }
     
     /**
@@ -70,132 +67,21 @@ public class CollisionManager {
         
         lastCollisionCheckTime = currentTime;
         
-        // 执行所有碰撞检测
-        performAllCollisionChecks();
-    }
-    
-    /**
-     * 执行所有碰撞检测
-     */
-    private void performAllCollisionChecks() {
-        // 分类实体
-        Player player = getPlayer();
-        List<Enemy> enemies = getEnemies();
-        List<Bullet> bullets = getBullets();
-        
-        // 执行各种碰撞检测
-        if (enablePlayerEnemyCollision && player != null && !enemies.isEmpty()) {
-            checkPlayerEnemyCollisions(player, enemies);
-        }
-        
-        if (enableBulletEnemyCollision && !bullets.isEmpty() && !enemies.isEmpty()) {
-            checkBulletEnemyCollisions(bullets, enemies);
-        }
-        
-        if (enableBulletPlayerCollision && !bullets.isEmpty() && player != null) {
-            checkBulletPlayerCollisions(bullets, player);
-        }
-        
-        if (enableEnemyEnemyCollision && enemies.size() > 1) {
-            checkEnemyEnemyCollisions(enemies);
+        // 使用新的碰撞检测系统
+        if (entityCollisionDetector != null) {
+            entityCollisionDetector.update(tpf);
         }
     }
     
-    /**
-     * 检测玩家与敌人的碰撞
-     */
-    private void checkPlayerEnemyCollisions(Player player, List<Enemy> enemies) {
-        List<EntityCollisionDetector.CollisionResult> results = 
-            entityCollisionDetector.checkPlayerEnemyCollisions(player, enemies);
-        
-        for (EntityCollisionDetector.CollisionResult result : results) {
-            entityCollisionDetector.handleCollision(result);
-        }
-    }
     
-    /**
-     * 检测子弹与敌人的碰撞
-     */
-    private void checkBulletEnemyCollisions(List<Bullet> bullets, List<Enemy> enemies) {
-        List<EntityCollisionDetector.CollisionResult> results = 
-            entityCollisionDetector.checkBulletEnemyCollisions(bullets, enemies);
-        
-        for (EntityCollisionDetector.CollisionResult result : results) {
-            entityCollisionDetector.handleCollision(result);
-        }
-    }
-    
-    /**
-     * 检测子弹与玩家的碰撞
-     */
-    private void checkBulletPlayerCollisions(List<Bullet> bullets, Player player) {
-        List<EntityCollisionDetector.CollisionResult> results = 
-            entityCollisionDetector.checkBulletPlayerCollisions(bullets, player);
-        
-        for (EntityCollisionDetector.CollisionResult result : results) {
-            entityCollisionDetector.handleCollision(result);
-        }
-    }
-    
-    /**
-     * 检测敌人与敌人的碰撞
-     */
-    private void checkEnemyEnemyCollisions(List<Enemy> enemies) {
-        for (int i = 0; i < enemies.size(); i++) {
-            for (int j = i + 1; j < enemies.size(); j++) {
-                Enemy enemy1 = enemies.get(i);
-                Enemy enemy2 = enemies.get(j);
-                
-                if (enemy1.isAlive() && enemy2.isAlive()) {
-                    EntityCollisionDetector.CollisionResult result = 
-                        entityCollisionDetector.checkCollision(enemy1, enemy2);
-                    
-                    if (result.hasCollision()) {
-                        entityCollisionDetector.handleCollision(result);
-                    }
-                }
-            }
-        }
-    }
-    
-    /**
-     * 获取玩家实体
-     */
-    private Player getPlayer() {
-        return FXGL.getGameWorld().getEntitiesByType().stream()
-                .filter(e -> e instanceof Player)
-                .map(e -> (Player) e)
-                .findFirst()
-                .orElse(null);
-    }
-    
-    /**
-     * 获取所有敌人实体
-     */
-    private List<Enemy> getEnemies() {
-        return FXGL.getGameWorld().getEntitiesByType().stream()
-                .filter(e -> e instanceof Enemy)
-                .map(e -> (Enemy) e)
-                .filter(Enemy::isAlive)
-                .collect(Collectors.toList());
-    }
-    
-    /**
-     * 获取所有子弹实体
-     */
-    private List<Bullet> getBullets() {
-        return FXGL.getGameWorld().getEntitiesByType().stream()
-                .filter(e -> e instanceof Bullet)
-                .map(e -> (Bullet) e)
-                .filter(Bullet::isActive)
-                .collect(Collectors.toList());
-    }
     
     /**
      * 手动触发碰撞检测（用于测试或特殊情况）
      */
     public void forceCollisionCheck() {
-        performAllCollisionChecks();
+        if (entityCollisionDetector != null) {
+            entityCollisionDetector.update(0.016); // 模拟一帧的时间
+        }
     }
     
     /**
@@ -278,6 +164,61 @@ public class CollisionManager {
      */
     public MapCollisionDetector getMapCollisionDetector() {
         return mapCollisionDetector;
+    }
+    
+    /**
+     * 设置调试模式
+     */
+    public void setDebugMode(boolean debugMode) {
+        this.debugMode = debugMode;
+        if (entityCollisionDetector != null) {
+            entityCollisionDetector.setDebugMode(debugMode);
+        }
+    }
+    
+    /**
+     * 获取调试模式状态
+     */
+    public boolean isDebugMode() {
+        return debugMode;
+    }
+    
+    /**
+     * 切换调试模式
+     */
+    public void toggleDebugMode() {
+        setDebugMode(!debugMode);
+        System.out.println("🔧 碰撞系统调试模式: " + (debugMode ? "开启" : "关闭"));
+    }
+    
+    /**
+     * 获取调试信息
+     */
+    public String getDebugInfo() {
+        if (entityCollisionDetector != null) {
+            return entityCollisionDetector.getDebugInfo();
+        }
+        return "碰撞检测器未初始化";
+    }
+    
+    /**
+     * 获取刚性碰撞系统
+     */
+    public RigidCollisionSystem getRigidCollisionSystem() {
+        if (entityCollisionDetector != null) {
+            return entityCollisionDetector.getRigidCollisionSystem();
+        }
+        return null;
+    }
+    
+    /**
+     * 获取调试网格
+     */
+    public List<javafx.scene.shape.Rectangle> getDebugGrid() {
+        if (entityCollisionDetector != null) {
+            return entityCollisionDetector.getDebugGrid();
+        }
+        return new ArrayList<>();
     }
     
     /**

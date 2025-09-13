@@ -5,94 +5,191 @@ import com.roguelike.entities.Player;
 import com.roguelike.entities.Enemy;
 import com.roguelike.entities.Bullet;
 import com.roguelike.core.GameEvent;
-import com.roguelike.core.GameApp;
-import com.roguelike.map.MapRenderer;
 import javafx.geometry.Rectangle2D;
 
 import java.util.List;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * 实体碰撞检测器
+ * 实体碰撞检测器 - 重新设计
  * 负责检测实体之间的碰撞，包括玩家与敌人、子弹与敌人等
+ * 实现碰撞箱级别系统和空间分割优化
  */
 public class EntityCollisionDetector {
     
+    // 空间分割系统
+    private SpatialPartitionSystem spatialSystem;
+    
+    // 刚性碰撞系统
+    private RigidCollisionSystem rigidCollisionSystem;
+    
     // 碰撞冷却时间记录
     private Map<String, Double> collisionCooldowns = new HashMap<>();
-    private static final double COLLISION_COOLDOWN = 0.5; // 0.5秒冷却时间
+    private static final double COLLISION_COOLDOWN = 0.1; // 0.1秒冷却时间
     
     // 攻击间隔记录
     private Map<String, Double> attackCooldowns = new HashMap<>();
-    private static final double ATTACK_COOLDOWN = 1.0; // 1秒攻击间隔
+    private static final double ATTACK_COOLDOWN = 0.2; // 0.2秒攻击间隔
     
-    // 地图碰撞检测器
-    private MapCollisionDetector mapCollisionDetector;
+    // 更新间隔控制
+    private double lastUpdateTime = 0;
+    private static final double UPDATE_INTERVAL = 0.05; // 50ms更新间隔
+    
+    // 调试模式
+    private boolean debugMode = false;
+    
+    public EntityCollisionDetector() {
+        this.spatialSystem = new SpatialPartitionSystem();
+        this.rigidCollisionSystem = new RigidCollisionSystem();
+    }
     
     /**
-     * 碰撞结果类
+     * 更新碰撞检测系统
      */
-    public static class CollisionResult {
-        private final boolean hasCollision;
-        private final Entity entity1;
-        private final Entity entity2;
-        private final CollisionType type;
-        private final double overlapX;
-        private final double overlapY;
+    public void update(double tpf) {
+        double currentTime = com.roguelike.core.TimeService.getSeconds();
         
-        public CollisionResult(boolean hasCollision, Entity entity1, Entity entity2, 
-                             CollisionType type, double overlapX, double overlapY) {
-            this.hasCollision = hasCollision;
-            this.entity1 = entity1;
-            this.entity2 = entity2;
-            this.type = type;
-            this.overlapX = overlapX;
-            this.overlapY = overlapY;
+        // 控制更新频率
+        if (currentTime - lastUpdateTime < UPDATE_INTERVAL) {
+            return;
         }
         
-        public boolean hasCollision() {
-            return hasCollision;
+        lastUpdateTime = currentTime;
+        
+        // 更新空间分割系统
+        updateSpatialPartitions();
+        
+        // 执行碰撞检测
+        performCollisionChecks();
+        
+        // 清理过期的冷却记录
+        cleanupExpiredCooldowns();
+    }
+    
+    /**
+     * 更新空间分割
+     */
+    private void updateSpatialPartitions() {
+        spatialSystem.clear();
+        
+        // 更新玩家位置
+        Player player = getPlayer();
+        if (player != null) {
+            spatialSystem.updateEntity(player);
         }
         
-        public Entity getEntity1() {
-            return entity1;
+        // 更新敌人位置
+        List<Enemy> enemies = getEnemies();
+        for (Enemy enemy : enemies) {
+            spatialSystem.updateEntity(enemy);
         }
         
-        public Entity getEntity2() {
-            return entity2;
-        }
-        
-        public CollisionType getType() {
-            return type;
-        }
-        
-        public double getOverlapX() {
-            return overlapX;
-        }
-        
-        public double getOverlapY() {
-            return overlapY;
+        // 更新子弹位置
+        List<Bullet> bullets = getBullets();
+        for (Bullet bullet : bullets) {
+            spatialSystem.updateEntity(bullet);
         }
     }
     
     /**
-     * 碰撞类型枚举
+     * 执行碰撞检测
      */
-    public enum CollisionType {
-        PLAYER_ENEMY,    // 玩家与敌人
-        BULLET_ENEMY,    // 子弹与敌人
-        BULLET_PLAYER,   // 子弹与玩家
-        ENEMY_ENEMY,     // 敌人与敌人
-        PLAYER_PLAYER    // 玩家与玩家（通常不会发生）
+    private void performCollisionChecks() {
+        // 获取所有实体
+        Player player = getPlayer();
+        List<Enemy> enemies = getEnemies();
+        List<Bullet> bullets = getBullets();
+        
+        // 检测玩家与敌人碰撞
+        if (player != null && !enemies.isEmpty()) {
+            checkPlayerEnemyCollisions(player, enemies);
+        }
+        
+        // 检测子弹与敌人碰撞
+        if (!bullets.isEmpty() && !enemies.isEmpty()) {
+            checkBulletEnemyCollisions(bullets, enemies);
+        }
+        
+        // 检测子弹与玩家碰撞
+        if (!bullets.isEmpty() && player != null) {
+            checkBulletPlayerCollisions(bullets, player);
+        }
+        
+        // 检测敌人与敌人碰撞
+        if (enemies.size() > 1) {
+            checkEnemyEnemyCollisions(enemies);
+        }
     }
     
     /**
-     * 设置地图碰撞检测器
+     * 检测玩家与敌人的碰撞
      */
-    public void setMapCollisionDetector(MapCollisionDetector detector) {
-        this.mapCollisionDetector = detector;
+    private void checkPlayerEnemyCollisions(Player player, List<Enemy> enemies) {
+        for (Enemy enemy : enemies) {
+            if (enemy != null && enemy.isAlive()) {
+                CollisionResult result = checkCollision(player, enemy);
+                if (result.hasCollision()) {
+                    handleCollisionWithLevels(result);
+                }
+            }
+        }
+    }
+    
+    /**
+     * 检测子弹与敌人的碰撞
+     */
+    private void checkBulletEnemyCollisions(List<Bullet> bullets, List<Enemy> enemies) {
+        for (Bullet bullet : bullets) {
+            if (bullet == null || !bullet.isActive()) {
+                continue;
+            }
+            
+            for (Enemy enemy : enemies) {
+                if (enemy != null && enemy.isAlive()) {
+                    CollisionResult result = checkCollision(bullet, enemy);
+                    if (result.hasCollision()) {
+                        handleBulletCollision(result);
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * 检测子弹与玩家的碰撞
+     */
+    private void checkBulletPlayerCollisions(List<Bullet> bullets, Player player) {
+        for (Bullet bullet : bullets) {
+            if (bullet == null || !bullet.isActive()) {
+                continue;
+            }
+            
+            CollisionResult result = checkCollision(bullet, player);
+            if (result.hasCollision()) {
+                handleBulletCollision(result);
+            }
+        }
+    }
+    
+    /**
+     * 检测敌人与敌人的碰撞
+     */
+    private void checkEnemyEnemyCollisions(List<Enemy> enemies) {
+        for (int i = 0; i < enemies.size(); i++) {
+            for (int j = i + 1; j < enemies.size(); j++) {
+                Enemy enemy1 = enemies.get(i);
+                Enemy enemy2 = enemies.get(j);
+                
+                if (enemy1.isAlive() && enemy2.isAlive()) {
+                    CollisionResult result = checkCollision(enemy1, enemy2);
+                    if (result.hasCollision()) {
+                        handleCollisionWithLevels(result);
+                    }
+                }
+            }
+        }
     }
     
     /**
@@ -125,87 +222,59 @@ public class EntityCollisionDetector {
     }
     
     /**
-     * 检测玩家与所有敌人的碰撞
+     * 处理带级别的碰撞
      */
-    public List<CollisionResult> checkPlayerEnemyCollisions(Player player, List<Enemy> enemies) {
-        List<CollisionResult> results = new ArrayList<>();
+    private void handleCollisionWithLevels(CollisionResult result) {
+        Entity entity1 = result.getEntity1();
+        Entity entity2 = result.getEntity2();
         
-        if (player == null || enemies == null) {
-            return results;
+        CollisionBoxLevel level1 = getCollisionLevel(entity1);
+        CollisionBoxLevel level2 = getCollisionLevel(entity2);
+        
+        // 只有当两个实体都有有效的碰撞箱级别时才进行刚性碰撞
+        if (level1 != null && level2 != null) {
+            // 使用刚性碰撞系统
+            rigidCollisionSystem.handleRigidCollision(entity1, entity2, level1, level2);
         }
         
-        for (Enemy enemy : enemies) {
-            if (enemy != null && enemy.isAlive()) {
-                CollisionResult result = checkCollision(player, enemy);
-                if (result.hasCollision()) {
-                    results.add(result);
-                }
-            }
-        }
-        
-        return results;
+        // 处理其他碰撞逻辑（伤害等）
+        handleCollisionEffects(result);
     }
     
     /**
-     * 检测子弹与所有敌人的碰撞
+     * 处理子弹碰撞（子弹击中后消失）
      */
-    public List<CollisionResult> checkBulletEnemyCollisions(List<Bullet> bullets, List<Enemy> enemies) {
-        List<CollisionResult> results = new ArrayList<>();
+    private void handleBulletCollision(CollisionResult result) {
+        Bullet bullet = null;
+        Entity target = null;
         
-        if (bullets == null || enemies == null) {
-            return results;
+        if (result.getEntity1() instanceof Bullet) {
+            bullet = (Bullet) result.getEntity1();
+            target = result.getEntity2();
+        } else if (result.getEntity2() instanceof Bullet) {
+            bullet = (Bullet) result.getEntity2();
+            target = result.getEntity1();
         }
         
-        for (Bullet bullet : bullets) {
-            if (bullet == null || !bullet.isActive()) {
-                continue;
-            }
+        if (bullet != null && target != null) {
+            // 子弹击中后消失
+            bullet.setActive(false);
             
-            for (Enemy enemy : enemies) {
-                if (enemy != null && enemy.isAlive()) {
-                    CollisionResult result = checkCollision(bullet, enemy);
-                    if (result.hasCollision()) {
-                        results.add(result);
-                    }
-                }
+            // 触发后续效果（伤害等）
+            if (bullet.getFaction() == Bullet.Faction.PLAYER && target instanceof Enemy) {
+                ((Enemy) target).takeDamage(bullet.getDamage());
+                GameEvent.post(new GameEvent(GameEvent.Type.BULLET_ENEMY_COLLISION));
+            } else if (bullet.getFaction() == Bullet.Faction.ENEMY && target instanceof Player) {
+                ((Player) target).takeDamage(bullet.getDamage());
+                GameEvent.post(new GameEvent(GameEvent.Type.BULLET_PLAYER_COLLISION));
             }
         }
-        
-        return results;
     }
     
     /**
-     * 检测子弹与玩家的碰撞
+     * 处理碰撞效果（伤害等）
      */
-    public List<CollisionResult> checkBulletPlayerCollisions(List<Bullet> bullets, Player player) {
-        List<CollisionResult> results = new ArrayList<>();
-        
-        if (bullets == null || player == null) {
-            return results;
-        }
-        
-        for (Bullet bullet : bullets) {
-            if (bullet == null || !bullet.isActive()) {
-                continue;
-            }
-            
-            CollisionResult result = checkCollision(bullet, player);
-            if (result.hasCollision()) {
-                results.add(result);
-            }
-        }
-        
-        return results;
-    }
-    
-    /**
-     * 处理碰撞结果
-     */
-    public void handleCollision(CollisionResult result) {
-        if (!result.hasCollision()) {
-            return;
-        }
-        
+    private void handleCollisionEffects(CollisionResult result) {
         // 检查碰撞冷却
         if (isCollisionOnCooldown(result.getEntity1(), result.getEntity2())) {
             return;
@@ -215,17 +284,10 @@ public class EntityCollisionDetector {
             case PLAYER_ENEMY:
                 handlePlayerEnemyCollision(result);
                 break;
-            case BULLET_ENEMY:
-                handleBulletEnemyCollision(result);
-                break;
-            case BULLET_PLAYER:
-                handleBulletPlayerCollision(result);
-                break;
             case ENEMY_ENEMY:
                 handleEnemyEnemyCollision(result);
                 break;
-            case PLAYER_PLAYER:
-                // 玩家与玩家碰撞通常不会发生，但可以在这里处理
+            default:
                 break;
         }
     }
@@ -259,224 +321,29 @@ public class EntityCollisionDetector {
         
         // 发布碰撞事件
         GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_ENEMY_COLLISION));
-        
-        // 不进行推离，只产生挤压效果
-        // 玩家可以通过移动强制挤开敌人
     }
     
     /**
-     * 处理子弹与敌人的碰撞
-     */
-    private void handleBulletEnemyCollision(CollisionResult result) {
-        Bullet bullet = (Bullet) result.getEntity1();
-        Enemy enemy = (Enemy) result.getEntity2();
-        
-        // 确保子弹是第一个实体
-        if (!(result.getEntity1() instanceof Bullet)) {
-            bullet = (Bullet) result.getEntity2();
-            enemy = (Enemy) result.getEntity1();
-        }
-        
-        // 根据调试开关决定是否造成伤害
-        if (bullet.getFaction() == Bullet.Faction.PLAYER) {
-            if (GameApp.BULLET_DAMAGE_ENABLED) {
-                // 子弹造成伤害
-                int damage = calculateBulletDamage(bullet);
-                enemy.takeDamage(damage);
-            }
-            
-            // 子弹击中后销毁
-            bullet.setActive(false);
-            
-            // 发布碰撞事件
-            GameEvent.post(new GameEvent(GameEvent.Type.BULLET_ENEMY_COLLISION));
-        }
-    }
-    
-    /**
-     * 处理子弹与玩家的碰撞
-     */
-    private void handleBulletPlayerCollision(CollisionResult result) {
-        Bullet bullet = (Bullet) result.getEntity1();
-        Player player = (Player) result.getEntity2();
-        
-        // 确保子弹是第一个实体
-        if (!(result.getEntity1() instanceof Bullet)) {
-            bullet = (Bullet) result.getEntity2();
-            player = (Player) result.getEntity1();
-        }
-        
-        // 根据调试开关决定是否造成伤害
-        if (bullet.getFaction() == Bullet.Faction.ENEMY) {
-            if (GameApp.BULLET_DAMAGE_ENABLED) {
-                // 子弹造成伤害
-                int damage = calculateBulletDamage(bullet);
-                player.takeDamage(damage);
-            }
-            
-            // 子弹击中后销毁
-            bullet.setActive(false);
-            
-            // 发布碰撞事件
-            GameEvent.post(new GameEvent(GameEvent.Type.BULLET_PLAYER_COLLISION));
-        }
-    }
-    
-    /**
-     * 处理敌人与敌人的碰撞（避免重叠）
+     * 处理敌人与敌人的碰撞
      */
     private void handleEnemyEnemyCollision(CollisionResult result) {
-        Enemy enemy1 = (Enemy) result.getEntity1();
-        Enemy enemy2 = (Enemy) result.getEntity2();
-        
-        // 将两个敌人推离
-        pushEntitiesAway(enemy1, enemy2, result);
-        
         // 发布碰撞事件
         GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_ENEMY_COLLISION));
     }
     
     /**
-     * 将敌人推离玩家（玩家不会被推离）
+     * 获取实体的碰撞箱级别
      */
-    private void pushEnemyAwayFromPlayer(Player player, Enemy enemy, CollisionResult result) {
-        // 计算推离方向（从玩家指向敌人）
-        double playerCenterX = player.getCenter().getX();
-        double playerCenterY = player.getCenter().getY();
-        double enemyCenterX = enemy.getCenter().getX();
-        double enemyCenterY = enemy.getCenter().getY();
-        
-        double dx = enemyCenterX - playerCenterX; // 敌人远离玩家的方向
-        double dy = enemyCenterY - playerCenterY;
-        double distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > 0) {
-            // 归一化方向
-            dx /= distance;
-            dy /= distance;
-            
-            // 推离距离 - 使用较小的固定距离避免瞬移
-            double pushDistance = Math.min(Math.max(result.getOverlapX(), result.getOverlapY()) + 2.0, 8.0);
-            
-            // 检查推离后的位置是否与地图碰撞
-            double newX = enemy.getX() + dx * pushDistance;
-            double newY = enemy.getY() + dy * pushDistance;
-            
-            if (mapCollisionDetector != null && !mapCollisionDetector.canMoveTo(enemy, newX, newY)) {
-                // 如果推离后会撞到障碍物，尝试找到安全的推离位置
-                pushDistance = findSafePushDistance(enemy, dx, dy, pushDistance);
-            }
-            
-            // 应用推离（只推离敌人）
-            if (pushDistance > 0) {
-                enemy.translate(dx * pushDistance, dy * pushDistance);
-            }
+    private CollisionBoxLevel getCollisionLevel(Entity entity) {
+        if (entity instanceof Player) {
+            return CollisionBoxLevel.PLAYER;
+        } else if (entity instanceof Enemy) {
+            return CollisionBoxLevel.ENEMY;
+        } else if (entity instanceof Bullet) {
+            // 子弹不参与推挤系统，返回null
+            return null;
         }
-    }
-    
-    /**
-     * 将玩家推离敌人（保留原方法，可能在其他地方使用）
-     */
-    private void pushPlayerAwayFromEnemy(Player player, Enemy enemy, CollisionResult result) {
-        // 计算推离方向
-        double playerCenterX = player.getCenter().getX();
-        double playerCenterY = player.getCenter().getY();
-        double enemyCenterX = enemy.getCenter().getX();
-        double enemyCenterY = enemy.getCenter().getY();
-        
-        double dx = playerCenterX - enemyCenterX;
-        double dy = playerCenterY - enemyCenterY;
-        double distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > 0) {
-            // 归一化方向
-            dx /= distance;
-            dy /= distance;
-            
-            // 推离距离 - 使用较小的固定距离避免瞬移
-            double pushDistance = Math.min(Math.max(result.getOverlapX(), result.getOverlapY()) + 2.0, 10.0);
-            
-            // 检查推离后的位置是否与地图碰撞
-            double newX = player.getX() + dx * pushDistance;
-            double newY = player.getY() + dy * pushDistance;
-            
-            if (mapCollisionDetector != null && !mapCollisionDetector.canMoveTo(player, newX, newY)) {
-                // 如果推离后会撞到障碍物，尝试找到安全的推离位置
-                pushDistance = findSafePushDistance(player, dx, dy, pushDistance);
-            }
-            
-            // 应用推离
-            if (pushDistance > 0) {
-                player.translate(dx * pushDistance, dy * pushDistance);
-            }
-        }
-    }
-    
-    /**
-     * 将两个实体推离
-     */
-    private void pushEntitiesAway(Entity entity1, Entity entity2, CollisionResult result) {
-        // 计算推离方向
-        double center1X = entity1.getCenter().getX();
-        double center1Y = entity1.getCenter().getY();
-        double center2X = entity2.getCenter().getX();
-        double center2Y = entity2.getCenter().getY();
-        
-        double dx = center1X - center2X;
-        double dy = center1Y - center2Y;
-        double distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > 0) {
-            // 归一化方向
-            dx /= distance;
-            dy /= distance;
-            
-            // 推离距离 - 使用较小的固定距离避免瞬移
-            double pushDistance = Math.min(Math.max(result.getOverlapX(), result.getOverlapY()) / 2.0 + 1.0, 5.0);
-            
-            // 检查推离后的位置是否与地图碰撞
-            double newX1 = entity1.getX() + dx * pushDistance;
-            double newY1 = entity1.getY() + dy * pushDistance;
-            double newX2 = entity2.getX() - dx * pushDistance;
-            double newY2 = entity2.getY() - dy * pushDistance;
-            
-            // 计算每个实体的安全推离距离
-            double safePushDistance1 = pushDistance;
-            double safePushDistance2 = pushDistance;
-            
-            if (mapCollisionDetector != null) {
-                if (!mapCollisionDetector.canMoveTo(entity1, newX1, newY1)) {
-                    safePushDistance1 = findSafePushDistance(entity1, dx, dy, pushDistance);
-                }
-                if (!mapCollisionDetector.canMoveTo(entity2, newX2, newY2)) {
-                    safePushDistance2 = findSafePushDistance(entity2, -dx, -dy, pushDistance);
-                }
-            }
-            
-            // 应用推离
-            if (safePushDistance1 > 0) {
-                entity1.translate(dx * safePushDistance1, dy * safePushDistance1);
-            }
-            if (safePushDistance2 > 0) {
-                entity2.translate(-dx * safePushDistance2, -dy * safePushDistance2);
-            }
-        }
-    }
-    
-    /**
-     * 计算敌人对玩家的伤害
-     */
-    private int calculateEnemyDamage(Enemy enemy) {
-        // 基础伤害，可以根据敌人类型调整
-        return 10;
-    }
-    
-    /**
-     * 计算子弹伤害
-     */
-    private int calculateBulletDamage(Bullet bullet) {
-        // 基础伤害，可以根据子弹类型调整
-        return 20;
+        return CollisionBoxLevel.ENEMY; // 默认级别
     }
     
     /**
@@ -581,29 +448,155 @@ public class EntityCollisionDetector {
     }
     
     /**
-     * 找到安全的推离距离，避免撞到障碍物
+     * 清理过期的冷却记录
      */
-    private double findSafePushDistance(Entity entity, double directionX, double directionY, double maxDistance) {
-        if (mapCollisionDetector == null) {
-            return maxDistance;
+    private void cleanupExpiredCooldowns() {
+        double currentTime = com.roguelike.core.TimeService.getSeconds();
+        
+        // 清理碰撞冷却
+        collisionCooldowns.entrySet().removeIf(entry -> 
+            (currentTime - entry.getValue()) > COLLISION_COOLDOWN * 2
+        );
+        
+        // 清理攻击冷却
+        attackCooldowns.entrySet().removeIf(entry -> 
+            (currentTime - entry.getValue()) > ATTACK_COOLDOWN * 2
+        );
+        
+        // 刚性碰撞系统不需要清理冷却记录
+    }
+    
+    /**
+     * 获取玩家实体
+     */
+    private Player getPlayer() {
+        return com.almasb.fxgl.dsl.FXGL.getGameWorld().getEntitiesByType().stream()
+                .filter(e -> e instanceof Player)
+                .map(e -> (Player) e)
+                .findFirst()
+                .orElse(null);
+    }
+    
+    /**
+     * 获取所有敌人实体
+     */
+    private List<Enemy> getEnemies() {
+        return com.almasb.fxgl.dsl.FXGL.getGameWorld().getEntitiesByType().stream()
+                .filter(e -> e instanceof Enemy)
+                .map(e -> (Enemy) e)
+                .filter(Enemy::isAlive)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 获取所有子弹实体
+     */
+    private List<Bullet> getBullets() {
+        return com.almasb.fxgl.dsl.FXGL.getGameWorld().getEntitiesByType().stream()
+                .filter(e -> e instanceof Bullet)
+                .map(e -> (Bullet) e)
+                .filter(Bullet::isActive)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 设置调试模式
+     */
+    public void setDebugMode(boolean debugMode) {
+        this.debugMode = debugMode;
+        spatialSystem.setDebugMode(debugMode);
+    }
+    
+    /**
+     * 获取调试网格
+     */
+    public List<javafx.scene.shape.Rectangle> getDebugGrid() {
+        return spatialSystem.getDebugGrid();
+    }
+    
+    /**
+     * 获取调试信息
+     */
+    public String getDebugInfo() {
+        StringBuilder info = new StringBuilder();
+        info.append("碰撞检测系统调试信息:\n");
+        info.append("  - 调试模式: ").append(debugMode ? "开启" : "关闭").append("\n");
+        info.append("  - 更新间隔: ").append(UPDATE_INTERVAL).append("秒\n");
+        info.append("  - 碰撞冷却记录数: ").append(collisionCooldowns.size()).append("\n");
+        info.append("  - 攻击冷却记录数: ").append(attackCooldowns.size()).append("\n");
+        info.append(spatialSystem.getDebugInfo()).append("\n");
+        info.append(rigidCollisionSystem.getConfigInfo());
+        return info.toString();
+    }
+    
+    /**
+     * 获取空间分割系统
+     */
+    public SpatialPartitionSystem getSpatialSystem() {
+        return spatialSystem;
+    }
+    
+    /**
+     * 获取刚性碰撞系统
+     */
+    public RigidCollisionSystem getRigidCollisionSystem() {
+        return rigidCollisionSystem;
+    }
+    
+    /**
+     * 碰撞结果类
+     */
+    public static class CollisionResult {
+        private final boolean hasCollision;
+        private final Entity entity1;
+        private final Entity entity2;
+        private final CollisionType type;
+        private final double overlapX;
+        private final double overlapY;
+        
+        public CollisionResult(boolean hasCollision, Entity entity1, Entity entity2, 
+                             CollisionType type, double overlapX, double overlapY) {
+            this.hasCollision = hasCollision;
+            this.entity1 = entity1;
+            this.entity2 = entity2;
+            this.type = type;
+            this.overlapX = overlapX;
+            this.overlapY = overlapY;
         }
         
-        // 使用二分查找找到最大安全距离
-        double minDistance = 0;
-        double maxDistanceFound = 0;
-        double step = maxDistance / 10.0; // 分成10步检查
-        
-        for (double distance = 0; distance <= maxDistance; distance += step) {
-            double testX = entity.getX() + directionX * distance;
-            double testY = entity.getY() + directionY * distance;
-            
-            if (mapCollisionDetector.canMoveTo(entity, testX, testY)) {
-                maxDistanceFound = distance;
-            } else {
-                break; // 遇到障碍物，停止
-            }
+        public boolean hasCollision() {
+            return hasCollision;
         }
         
-        return maxDistanceFound;
+        public Entity getEntity1() {
+            return entity1;
+        }
+        
+        public Entity getEntity2() {
+            return entity2;
+        }
+        
+        public CollisionType getType() {
+            return type;
+        }
+        
+        public double getOverlapX() {
+            return overlapX;
+        }
+        
+        public double getOverlapY() {
+            return overlapY;
+        }
+    }
+    
+    /**
+     * 碰撞类型枚举
+     */
+    public enum CollisionType {
+        PLAYER_ENEMY,    // 玩家与敌人
+        BULLET_ENEMY,    // 子弹与敌人
+        BULLET_PLAYER,   // 子弹与玩家
+        ENEMY_ENEMY,     // 敌人与敌人
+        PLAYER_PLAYER    // 玩家与玩家（通常不会发生）
     }
 }

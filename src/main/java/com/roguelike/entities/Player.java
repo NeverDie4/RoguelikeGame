@@ -1,20 +1,9 @@
 package com.roguelike.entities;
 
-import com.almasb.fxgl.dsl.FXGL;
-import com.almasb.fxgl.dsl.components.ProjectileComponent;
-import com.almasb.fxgl.entity.Entity;
-import com.almasb.fxgl.entity.SpawnData;
-import com.almasb.fxgl.entity.Spawns;
-import com.almasb.fxgl.entity.component.Component;
 import com.almasb.fxgl.entity.components.CollidableComponent;
-import com.almasb.fxgl.entity.components.TypeComponent;
-import com.almasb.fxgl.texture.Texture;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
 import com.roguelike.entities.components.CharacterAnimationComponent;
-import com.roguelike.physics.MovementValidator;
-import com.roguelike.physics.MovementValidator.MovementResult;
-import com.roguelike.physics.MovementValidator.MovementType;
 import com.roguelike.entities.components.AutoFireComponent;
 import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
@@ -26,14 +15,13 @@ import static com.almasb.fxgl.dsl.FXGL.*;
 
 public class Player extends EntityBase {
 
-    private final double speed = 200;
     private Rectangle hpBar;
     private Rectangle hpBarBackground;
     private StackPane hpBarContainer;
     private int maxHP = 200;
     private int currentHP = 200;
     private GameState gameState;
-    private MovementValidator movementValidator;
+    private com.roguelike.physics.MovementValidator movementValidator;
 
     // 动画相关
     private CharacterAnimationComponent animationComponent;
@@ -44,7 +32,14 @@ public class Player extends EntityBase {
         addComponent(new CollidableComponent(true));
 
         // 设置实体大小（根据GIF动画帧大小调整）
-        setSize(32, 32);
+        setSize(128, 128);
+        
+        // 吸血鬼幸存者风格：设置更小的碰撞箱
+        // 视觉大小32x32，但碰撞箱只有16x16，让玩家感觉更灵活
+        getBoundingBoxComponent().clearHitBoxes();
+        getBoundingBoxComponent().addHitBox(new com.almasb.fxgl.physics.HitBox(
+            com.almasb.fxgl.physics.BoundingShape.box(128, 128)
+        ));
 
         // 初始化动画
         initializeAnimation();
@@ -115,7 +110,7 @@ public class Player extends EntityBase {
             System.out.println("玩家动画初始化完成（支持左右转向）");
 
             // 测试：3秒后强制显示第0帧
-            FXGL.runOnce(() -> {
+            runOnce(() -> {
                 //System.out.println("🧪 3秒后测试显示第0帧");
                 animationComponent.testShowFrame(0);
             }, Duration.seconds(3));
@@ -178,20 +173,16 @@ public class Player extends EntityBase {
 
     public void move(double dx, double dy) {
         if (movementValidator != null) {
-            // 使用移动验证器进行碰撞检测
-            MovementResult result = movementValidator.validateAndMove(this, dx, dy);
+            // 使用移动验证器进行碰撞检测，防止与敌人重叠
+            com.roguelike.physics.MovementValidator.MovementResult result = 
+                movementValidator.validateAndMove(this, dx, dy);
 
             if (result.isSuccess()) {
                 // 移动成功
                 translate(result.getDeltaX(), result.getDeltaY());
                 GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
-
-                // 根据移动类型触发相应事件
-                if (result.getType() == MovementType.SLIDING) {
-                    GameEvent.post(new GameEvent(GameEvent.Type.MOVEMENT_SLIDING));
-                }
             } else {
-                // 移动被阻挡，直接移动（挤开敌人）
+                // 移动被阻挡，尝试强制移动（吸血鬼幸存者风格：玩家可以挤开敌人）
                 translate(dx, dy);
                 GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
             }
@@ -221,22 +212,20 @@ public class Player extends EntityBase {
     /**
      * 处理移动被阻挡的情况
      */
-    private void handleMovementBlocked() {
-        GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_HIT_WALL));
-        // 可以在这里添加音效、震动等效果
-    }
+    // 吸血鬼幸存者风格：移除移动阻挡处理方法
+    // 玩家可以自由移动，不会被阻挡
 
     /**
      * 设置移动验证器
      */
-    public void setMovementValidator(MovementValidator validator) {
+    public void setMovementValidator(com.roguelike.physics.MovementValidator validator) {
         this.movementValidator = validator;
     }
 
     /**
      * 获取移动验证器
      */
-    public MovementValidator getMovementValidator() {
+    public com.roguelike.physics.MovementValidator getMovementValidator() {
         return movementValidator;
     }
 

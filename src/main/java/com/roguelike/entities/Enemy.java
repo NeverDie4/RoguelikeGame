@@ -55,7 +55,7 @@ public class Enemy extends EntityBase {
         addComponent(new CollidableComponent(true));
 
         // 设置实体大小（根据敌人动画帧大小调整）
-        setSize(64, 64);
+        setSize(32, 32);
 
         // 初始化动画
         initializeAnimation();
@@ -404,31 +404,51 @@ public class Enemy extends EntityBase {
     }
 
     /**
-     * 使用A*路径移动（修复转圈问题）
+     * 使用A*路径移动（吸血鬼幸存者风格：简化路径寻找）
      */
     private void moveWithAStarPath(double tpf) {
-        if (currentPath == null || currentPath.isEmpty()) {
-            // 没有路径时回退到直接移动
-            fallbackToDirectMovement(tpf);
+        // 吸血鬼幸存者风格：优先使用直接移动，只在必要时使用路径寻找
+        if (targetX == 0 || targetY == 0) {
             return;
         }
 
         Point2D currentPos = getCenter();
+        double distanceToPlayer = currentPos.distance(targetX, targetY);
 
-        // 跳过已经到达的路径点，避免在路径点附近震荡
+        // 如果距离玩家很近（小于50像素），直接移动
+        if (distanceToPlayer < 50.0) {
+            fallbackToDirectMovement(tpf);
+            return;
+        }
+
+        // 如果距离较远，尝试使用路径寻找
+        if (currentPath == null || currentPath.isEmpty() || distanceToPlayer > 100.0) {
+            // 重新计算路径
+            currentPath = adaptivePathfinder.findPath(
+                currentPos.getX(), currentPos.getY(),
+                targetX, targetY
+            );
+            currentPathIndex = 0;
+        }
+
+        // 如果路径寻找失败或路径为空，回退到直接移动
+        if (currentPath == null || currentPath.isEmpty()) {
+            fallbackToDirectMovement(tpf);
+            return;
+        }
+
+        // 使用路径移动
         while (currentPathIndex < currentPath.size()) {
             Point2D targetPoint = currentPath.get(currentPathIndex);
             double distanceToTarget = currentPos.distance(targetPoint);
 
-            // 增加到达判断距离，从10.0改为25.0，避免转圈
-            if (distanceToTarget < 25.0) {
+            if (distanceToTarget < 20.0) {
                 currentPathIndex++;
             } else {
                 break;
             }
         }
 
-        // 如果还有路径点要到达
         if (currentPathIndex < currentPath.size()) {
             Point2D targetPoint = currentPath.get(currentPathIndex);
             double dx = targetPoint.getX() - currentPos.getX();
@@ -438,8 +458,6 @@ public class Enemy extends EntityBase {
             if (length > 0) {
                 dx /= length;
                 dy /= length;
-
-                // 直接设置方向，避免平滑转向导致的震荡
                 currentDirectionX = dx;
                 currentDirectionY = dy;
                 moveInCurrentDirection(tpf);
@@ -451,29 +469,42 @@ public class Enemy extends EntityBase {
     }
 
     /**
-     * 使用流体算法移动
+     * 使用流体算法移动（吸血鬼幸存者风格：简化流体算法）
      */
     private void moveWithFlowField(double tpf) {
-        if (adaptivePathfinder == null) {
-            fallbackToDirectMovement(tpf);
+        // 吸血鬼幸存者风格：优先使用直接移动
+        if (targetX == 0 || targetY == 0) {
             return;
         }
 
         Point2D currentPos = getCenter();
-        Point2D direction = adaptivePathfinder.getMovementDirection(
-            currentPos.getX(), currentPos.getY()
-        );
+        double distanceToPlayer = currentPos.distance(targetX, targetY);
 
-        if (direction.getX() != 0 || direction.getY() != 0) {
-            smoothTurnToDirection(direction.getX(), direction.getY(), tpf);
-            moveInCurrentDirection(tpf);
+        // 如果距离玩家很近（小于80像素），直接移动
+        if (distanceToPlayer < 80.0) {
+            fallbackToDirectMovement(tpf);
+            return;
+        }
+
+        // 距离较远时使用流体算法
+        if (adaptivePathfinder != null) {
+            Point2D direction = adaptivePathfinder.getMovementDirection(
+                currentPos.getX(), currentPos.getY()
+            );
+
+            if (direction.getX() != 0 || direction.getY() != 0) {
+                smoothTurnToDirection(direction.getX(), direction.getY(), tpf);
+                moveInCurrentDirection(tpf);
+            } else {
+                fallbackToDirectMovement(tpf);
+            }
         } else {
             fallbackToDirectMovement(tpf);
         }
     }
 
     /**
-     * 回退到直接移动（朝向玩家）
+     * 回退到直接移动（朝向玩家）- 吸血鬼幸存者风格
      */
     private void fallbackToDirectMovement(double tpf) {
         if (targetX == 0 || targetY == 0) {
@@ -488,7 +519,10 @@ public class Enemy extends EntityBase {
         if (length > 0) {
             dx /= length;
             dy /= length;
-            smoothTurnToDirection(dx, dy, tpf);
+            
+            // 吸血鬼幸存者风格：直接设置方向，不进行平滑转向
+            currentDirectionX = dx;
+            currentDirectionY = dy;
             moveInCurrentDirection(tpf);
         }
     }
