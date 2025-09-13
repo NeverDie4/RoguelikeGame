@@ -9,6 +9,7 @@ import javafx.animation.KeyFrame;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.util.Duration;
+import javafx.scene.transform.Rotate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +31,10 @@ public class BulletAnimationComponent extends Component {
     private ImageView spriteView;
     // 视觉放大倍数（不改变碰撞盒），用于统一放大所有子弹外观
     private double visualScale = 1.5;
+    // 视觉旋转角度（度），发射时定死
+    private double visualRotationDegrees = 0.0;
+    // 播放完是否移除实体（仅在非循环时生效）
+    private boolean removeOnFinish = false;
     
     public BulletAnimationComponent() {
         this.animationFrames = new ArrayList<>();
@@ -161,8 +166,21 @@ public class BulletAnimationComponent extends Component {
         KeyFrame kfStep = new KeyFrame(Duration.seconds(frameDuration), e -> {
             if (animationFrames.isEmpty()) return;
             int next = currentFrame + 1;
+            // 非循环模式：播放到最后一帧后停止在最后一帧
+            if (!isLooping && next >= animationFrames.size()) {
+                currentFrame = animationFrames.size() - 1;
+                updateTexture();
+                if (animation != null) {
+                    animation.stop();
+                    isPlaying = false;
+                }
+                if (removeOnFinish && entity != null && entity.isActive()) {
+                    entity.removeFromWorld();
+                }
+                return;
+            }
             if (next >= animationFrames.size()) {
-                next = isLooping ? 0 : animationFrames.size() - 1;
+                next = 0;
             }
             if (next != currentFrame) {
                 currentFrame = next;
@@ -171,7 +189,8 @@ public class BulletAnimationComponent extends Component {
         });
 
         timeline.getKeyFrames().setAll(kfStart, kfStep);
-        timeline.setCycleCount(isLooping ? Animation.INDEFINITE : 1);
+        // 始终使用无限循环，由 kfStep 内逻辑在非循环模式下自动停止
+        timeline.setCycleCount(Animation.INDEFINITE);
         if (DEBUG) {
             System.out.println("[BulletAnim] createAnimation: frames=" + animationFrames.size() +
                     ", frameDuration=" + frameDuration + ", looping=" + isLooping);
@@ -216,6 +235,8 @@ public class BulletAnimationComponent extends Component {
         // 居中对齐：放大后向四周溢出，保持实体中心不变
         spriteView.setTranslateX((entity.getWidth() - targetW) / 2.0);
         spriteView.setTranslateY((entity.getHeight() - targetH) / 2.0);
+        // 以中心为轴进行旋转
+        spriteView.getTransforms().setAll(new Rotate(visualRotationDegrees, targetW / 2.0, targetH / 2.0));
 
         if (DEBUG) {
             System.out.println("[BulletAnim] show frame=" + currentFrame +
@@ -230,6 +251,14 @@ public class BulletAnimationComponent extends Component {
     public void setVisualScale(double scale) {
         this.visualScale = Math.max(0.1, scale);
         // 立刻应用到当前帧
+        updateTexture();
+    }
+
+    /**
+     * 设置视觉旋转角度（度）。发射时调用一次即可。
+     */
+    public void setVisualRotationDegrees(double degrees) {
+        this.visualRotationDegrees = degrees;
         updateTexture();
     }
     
@@ -293,6 +322,13 @@ public class BulletAnimationComponent extends Component {
             // 同步循环次数；若需要从单次切换为循环或相反，直接应用
             animation.setCycleCount(looping ? Animation.INDEFINITE : 1);
         }
+    }
+
+    /**
+     * 设置在非循环模式下，播放结束是否移除实体。
+     */
+    public void setRemoveOnFinish(boolean remove) {
+        this.removeOnFinish = remove;
     }
     
     /**

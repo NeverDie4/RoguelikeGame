@@ -53,11 +53,32 @@ public class BulletFactory {
                 sb.enableAnimation();
                 if (sb.getAnimationComponent() != null) {
                     // 先设置动画参数，再加载帧，避免重建后不再播放/只播放一轮
-                    sb.setAnimationLooping(true);
+                    // 06 子弹仅播放一遍，其它循环
+                    if ("straight_06".equals(spec.getId())) {
+                        sb.setAnimationLooping(false);
+                        sb.getAnimationComponent().setRemoveOnFinish(true);
+                    } else {
+                        sb.setAnimationLooping(true);
+                    }
                     sb.setAnimationFrameDuration(spec.getFrameDuration());
                     sb.getAnimationComponent().loadAnimationFrames(spec.getAnimationBasePath(), spec.getFrameCount());
                     // 应用视觉缩放
                     sb.getAnimationComponent().setVisualScale(spec.getVisualScale());
+                    // 针对 straight_06：发射时按方向旋转动画
+                    if ("straight_06".equals(spec.getId()) && direction != null) {
+                        double deg = Math.toDegrees(Math.atan2(direction.getY(), direction.getX()));
+                        // 右=0，上=90，左=180，下=270
+                        double visualDeg = 360.0 - deg;
+                        // 对上下方向做 180 度翻转修正
+                        double nx = direction.normalize().getX();
+                        double ny = direction.normalize().getY();
+                        if (Math.abs(ny) > Math.abs(nx)) {
+                            visualDeg = (visualDeg + 180.0) % 360.0;
+                        }
+                        while (visualDeg < 0) visualDeg += 360.0;
+                        while (visualDeg >= 360.0) visualDeg -= 360.0;
+                        sb.getAnimationComponent().setVisualRotationDegrees(visualDeg);
+                    }
                 }
             }
         } else if (bullet instanceof CurveBullet) {
