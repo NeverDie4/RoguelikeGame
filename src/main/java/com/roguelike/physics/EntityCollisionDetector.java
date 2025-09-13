@@ -4,7 +4,7 @@ import com.almasb.fxgl.entity.Entity;
 import com.roguelike.entities.Player;
 import com.roguelike.entities.Enemy;
 import com.roguelike.entities.Bullet;
-import com.roguelike.core.GameEvent;
+import com.roguelike.core.CollisionEventBatcher;
 import javafx.geometry.Rectangle2D;
 
 import java.util.List;
@@ -46,9 +46,13 @@ public class EntityCollisionDetector {
     // 调试模式
     private boolean debugMode = false;
     
+    // 碰撞事件批处理器
+    private CollisionEventBatcher collisionEventBatcher;
+    
     public EntityCollisionDetector() {
         this.spatialSystem = new SpatialPartitionSystem();
         this.rigidCollisionSystem = new RigidCollisionSystem();
+        this.collisionEventBatcher = new CollisionEventBatcher();
     }
     
     /**
@@ -70,6 +74,9 @@ public class EntityCollisionDetector {
         
         // 执行碰撞检测
         performCollisionChecks();
+        
+        // 处理碰撞事件批次
+        collisionEventBatcher.processCollisionBatches();
         
         // 清理过期的冷却记录
         cleanupExpiredCooldowns();
@@ -270,10 +277,18 @@ public class EntityCollisionDetector {
             // 触发后续效果（伤害等）
             if (bullet.getFaction() == Bullet.Faction.PLAYER && target instanceof Enemy) {
                 ((Enemy) target).takeDamage(bullet.getDamage());
-                GameEvent.post(new GameEvent(GameEvent.Type.BULLET_ENEMY_COLLISION));
+                // 使用批处理系统处理碰撞事件
+                collisionEventBatcher.addCollisionEvent(
+                    CollisionEventBatcher.CollisionEventType.BULLET_ENEMY_COLLISION,
+                    bullet, target, result
+                );
             } else if (bullet.getFaction() == Bullet.Faction.ENEMY && target instanceof Player) {
                 ((Player) target).takeDamage(bullet.getDamage());
-                GameEvent.post(new GameEvent(GameEvent.Type.BULLET_PLAYER_COLLISION));
+                // 使用批处理系统处理碰撞事件
+                collisionEventBatcher.addCollisionEvent(
+                    CollisionEventBatcher.CollisionEventType.BULLET_PLAYER_COLLISION,
+                    bullet, target, result
+                );
             }
         }
     }
@@ -325,16 +340,22 @@ public class EntityCollisionDetector {
         // 玩家受到伤害（固定10点伤害）
         player.takeDamage(PLAYER_DAMAGE_AMOUNT);
         
-        // 发布碰撞事件
-        GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_ENEMY_COLLISION));
+        // 使用批处理系统处理碰撞事件
+        collisionEventBatcher.addCollisionEvent(
+            CollisionEventBatcher.CollisionEventType.PLAYER_ENEMY_COLLISION,
+            player, enemy, result
+        );
     }
     
     /**
      * 处理敌人与敌人的碰撞
      */
     private void handleEnemyEnemyCollision(CollisionResult result) {
-        // 发布碰撞事件
-        GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_ENEMY_COLLISION));
+        // 使用批处理系统处理碰撞事件
+        collisionEventBatcher.addCollisionEvent(
+            CollisionEventBatcher.CollisionEventType.ENEMY_ENEMY_COLLISION,
+            result.getEntity1(), result.getEntity2(), result
+        );
     }
     
     /**
@@ -594,6 +615,13 @@ public class EntityCollisionDetector {
      */
     public RigidCollisionSystem getRigidCollisionSystem() {
         return rigidCollisionSystem;
+    }
+    
+    /**
+     * 获取碰撞事件批处理器
+     */
+    public CollisionEventBatcher getCollisionEventBatcher() {
+        return collisionEventBatcher;
     }
     
     

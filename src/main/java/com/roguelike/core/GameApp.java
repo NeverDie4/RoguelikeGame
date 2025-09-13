@@ -13,6 +13,7 @@ import com.roguelike.physics.MapCollisionDetector;
 import com.roguelike.physics.OptimizedMovementValidator;
 import com.roguelike.physics.CollisionManager;
 import com.roguelike.utils.AdaptivePathfinder;
+import com.roguelike.core.EventBatchingManager;
 import com.roguelike.ui.GameHUD;
 import com.roguelike.ui.Menus;
 import com.roguelike.ui.LoadingOverlay;
@@ -48,6 +49,7 @@ public class GameApp extends GameApplication {
     private OptimizedMovementValidator movementValidator;
     private CollisionManager collisionManager;
     private AdaptivePathfinder adaptivePathfinder;
+    private EventBatchingManager eventBatchingManager;
     private double enemySpawnAccumulator = 0.0;
     private static final double ENEMY_SPAWN_INTERVAL = 0.5;
     private static boolean INPUT_BOUND = false;
@@ -133,6 +135,10 @@ public class GameApp extends GameApplication {
         movementValidator = new OptimizedMovementValidator(collisionDetector);
         collisionManager = new CollisionManager();
         collisionManager.setMapCollisionDetector(collisionDetector);
+        
+        // 初始化事件批处理管理器
+        eventBatchingManager = new EventBatchingManager();
+        eventBatchingManager.setDebugMode(DEBUG_MODE);
         
         // 初始化自适应路径寻找系统
         AdaptivePathfinder.PathfindingConfig config = new AdaptivePathfinder.PathfindingConfig();
@@ -472,6 +478,11 @@ public class GameApp extends GameApplication {
             collisionManager.updateEntityCache(cachedPlayer, cachedEnemies, cachedBullets);
             collisionManager.update(realDt);
         }
+        
+        // 处理所有批处理事件
+        if (eventBatchingManager != null) {
+            eventBatchingManager.processAllBatches();
+        }
 
         // 使用缓存的敌人数量，避免每帧遍历所有实体
         int enemyCount = cachedEnemies.size();
@@ -480,11 +491,16 @@ public class GameApp extends GameApplication {
             adaptivePathfinder.updateEnemyCount(enemyCount);
         }
         
-        // 使用缓存的敌人列表进行AI更新，避免每帧遍历所有实体
-        final double step = realDt;
-        for (com.roguelike.entities.Enemy enemy : cachedEnemies) {
-            if (enemy != null && enemy.isActive()) {
-                enemy.updateAI(step);
+        // 使用批处理系统进行AI更新，提高性能
+        if (eventBatchingManager.isAIBatchingEnabled()) {
+            eventBatchingManager.addAIUpdateTasks(cachedEnemies, realDt);
+        } else {
+            // 直接更新AI（非批处理模式）
+            final double step = realDt;
+            for (com.roguelike.entities.Enemy enemy : cachedEnemies) {
+                if (enemy != null && enemy.isActive()) {
+                    enemy.updateAI(step);
+                }
             }
         }
 
@@ -515,6 +531,13 @@ public class GameApp extends GameApplication {
      */
     public OptimizedMovementValidator getMovementValidator() {
         return movementValidator;
+    }
+    
+    /**
+     * 获取事件批处理管理器实例
+     */
+    public EventBatchingManager getEventBatchingManager() {
+        return eventBatchingManager;
     }
     
     /**
