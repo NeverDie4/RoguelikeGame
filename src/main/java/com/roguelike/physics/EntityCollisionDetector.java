@@ -33,6 +33,11 @@ public class EntityCollisionDetector {
     private Map<String, Double> attackCooldowns = new HashMap<>();
     private static final double ATTACK_COOLDOWN = 0.2; // 0.2秒攻击间隔
     
+    // 玩家与敌人碰撞伤害间隔记录（每个敌人独立）
+    private Map<String, Double> playerEnemyDamageCooldowns = new HashMap<>();
+    private static final double PLAYER_DAMAGE_COOLDOWN = 0.4; // 0.4秒伤害间隔
+    private static final int PLAYER_DAMAGE_AMOUNT = 10; // 每次扣血10点
+    
     // 更新间隔控制
     private double lastUpdateTime = 0;
     private static final double DEFAULT_UPDATE_INTERVAL = 0.016; // 默认16ms更新间隔（约60FPS）
@@ -311,14 +316,13 @@ public class EntityCollisionDetector {
             return;
         }
         
-        // 检查攻击间隔
-        if (isAttackOnCooldown(enemy, player)) {
-            return; // 攻击仍在冷却时间内
+        // 检查伤害间隔（每个敌人独立）
+        if (isPlayerDamageOnCooldown(enemy, player)) {
+            return; // 伤害仍在冷却时间内
         }
         
         // 玩家受到伤害（固定10点伤害）
-        int damage = 10;
-        player.takeDamage(damage);
+        player.takeDamage(PLAYER_DAMAGE_AMOUNT);
         
         // 发布碰撞事件
         GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_ENEMY_COLLISION));
@@ -434,6 +438,25 @@ public class EntityCollisionDetector {
     }
     
     /**
+     * 检查玩家伤害是否在冷却时间内（每个敌人独立）
+     */
+    private boolean isPlayerDamageOnCooldown(Entity enemy, Entity player) {
+        String key = generateCollisionKey(enemy, player);
+        double currentTime = com.roguelike.core.TimeService.getSeconds();
+        
+        if (playerEnemyDamageCooldowns.containsKey(key)) {
+            double lastDamageTime = playerEnemyDamageCooldowns.get(key);
+            if (currentTime - lastDamageTime < PLAYER_DAMAGE_COOLDOWN) {
+                return true; // 仍在伤害冷却时间内
+            }
+        }
+        
+        // 记录伤害时间
+        playerEnemyDamageCooldowns.put(key, currentTime);
+        return false;
+    }
+    
+    /**
      * 生成碰撞键值（确保顺序无关）
      */
     private String generateCollisionKey(Entity entity1, Entity entity2) {
@@ -462,6 +485,11 @@ public class EntityCollisionDetector {
         // 清理攻击冷却
         attackCooldowns.entrySet().removeIf(entry -> 
             (currentTime - entry.getValue()) > ATTACK_COOLDOWN * 2
+        );
+        
+        // 清理玩家伤害冷却
+        playerEnemyDamageCooldowns.entrySet().removeIf(entry -> 
+            (currentTime - entry.getValue()) > PLAYER_DAMAGE_COOLDOWN * 2
         );
         
         // 刚性碰撞系统不需要清理冷却记录

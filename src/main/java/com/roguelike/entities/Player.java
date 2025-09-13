@@ -18,8 +18,8 @@ public class Player extends EntityBase {
     private Rectangle hpBar;
     private Rectangle hpBarBackground;
     private StackPane hpBarContainer;
-    private int maxHP = 200;
-    private int currentHP = 200;
+    private int maxHP = 500;
+    private int currentHP = 500;
     private GameState gameState;
     private com.roguelike.physics.MovementValidator movementValidator;
 
@@ -89,6 +89,9 @@ public class Player extends EntityBase {
 
         // 监听血量变化事件
         GameEvent.listen(GameEvent.Type.PLAYER_HURT, e -> updateHealthBar());
+        
+        // 初始化血条显示
+        updateHealthBar();
     }
 
     private void initializeAnimation() {
@@ -125,8 +128,16 @@ public class Player extends EntityBase {
     }
 
     public void updateHealthBar() {
+        // 从GameState获取当前血量，而不是使用Player的独立血量
+        int currentHP = gameState != null ? gameState.getPlayerHP() : this.currentHP;
+        int maxHP = gameState != null ? gameState.getPlayerMaxHP() : this.maxHP;
+        
         double ratio = maxHP <= 0 ? 0 : (double) currentHP / (double) maxHP;
-        hpBar.setWidth(44 * Math.max(0, Math.min(1, ratio)));
+        
+        // 使用动态计算的血条宽度，而不是硬编码的44像素
+        double characterWidth = getWidth();
+        double hpBarWidth = characterWidth * 1.2; // 与initHealthBar中的计算保持一致
+        hpBar.setWidth(hpBarWidth * Math.max(0, Math.min(1, ratio)));
 
         // 根据血量改变颜色，使用更丰富的颜色渐变
         if (ratio > 0.7) {
@@ -141,16 +152,20 @@ public class Player extends EntityBase {
     }
 
     public void heal(int amount) {
-        currentHP = Math.min(maxHP, currentHP + amount);
+        if (gameState != null) {
+            gameState.healPlayer(amount);
+        } else {
+            currentHP = Math.min(maxHP, currentHP + amount);
+        }
         updateHealthBar();
     }
 
     public int getCurrentHP() {
-        return currentHP;
+        return gameState != null ? gameState.getPlayerHP() : currentHP;
     }
 
     public int getMaxHP() {
-        return maxHP;
+        return gameState != null ? gameState.getPlayerMaxHP() : maxHP;
     }
 
     // 测试方法：模拟受到伤害

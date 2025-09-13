@@ -142,6 +142,12 @@ public class GameApp extends GameApplication {
             // 地图加载完成事件
             System.out.println("地图加载完成事件触发");
         });
+        
+        // 游戏结束事件监听
+        GameEvent.listen(GameEvent.Type.PLAYER_DEATH, e -> {
+            showGameOverScreen();
+        });
+        
         GameEvent.post(new GameEvent(GameEvent.Type.MAP_LOADED));
     }
 
@@ -519,6 +525,33 @@ public class GameApp extends GameApplication {
      */
     public AdaptivePathfinder getAdaptivePathfinder() {
         return adaptivePathfinder;
+    }
+
+    private void showGameOverScreen() {
+        // 暂停游戏
+        getGameController().pauseEngine();
+        
+        // 显示游戏结束界面
+        com.roguelike.ui.GameOverScreen.show(gameState, () -> {
+            // 点击继续后的处理
+            com.roguelike.ui.GameOverScreen.hide();
+            
+            // 重置游戏状态而不是重新启动整个游戏
+            resetGameState();
+        });
+    }
+    
+    private void resetGameState() {
+        // 恢复游戏引擎
+        getGameController().resumeEngine();
+        
+        // 重置游戏状态
+        if (gameState != null) {
+            gameState = new GameState();
+        }
+        
+        // 使用FXGL的内置方法来清理游戏世界
+        getGameController().startNewGame();
     }
 
     public static void main(String[] args) {

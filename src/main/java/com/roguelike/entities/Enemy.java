@@ -297,6 +297,7 @@ public class Enemy extends EntityBase {
         if (gameState != null) {
             gameState.addScore(10);
             gameState.addExp(expReward);
+            gameState.addKill(); // 添加杀敌数统计
         }
 
         GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_DEATH));
