@@ -1,18 +1,18 @@
 package com.roguelike.entities;
 
 import com.almasb.fxgl.dsl.FXGL;
-import com.almasb.fxgl.dsl.components.ProjectileComponent;
 import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.components.CollidableComponent;
-import com.almasb.fxgl.entity.components.ViewComponent;
 import com.almasb.fxgl.physics.BoundingShape;
 import com.almasb.fxgl.physics.HitBox;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
+import com.roguelike.entities.components.LinearMovementComponent;
 import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Shape;
 import javafx.util.Duration;
+import com.roguelike.entities.configs.BulletSpec;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
 
@@ -30,6 +30,9 @@ public abstract class Bullet extends EntityBase {
     protected int damage;
     protected boolean piercing;
     protected double speed;
+    // 元数据
+    protected String id = "unknown";
+    protected String displayName = "Unknown Bullet";
 
     public Bullet(Faction faction, int damage, boolean piercing, double speed) {
         this.faction = faction;
@@ -47,6 +50,28 @@ public abstract class Bullet extends EntityBase {
     }
 
     /**
+     * 应用配置模板到当前子弹实例（不处理动画，动画交由具体子类或组件）。
+     */
+    public void applySpec(BulletSpec spec) {
+        if (spec == null) return;
+        this.id = spec.getId() != null ? spec.getId() : this.id;
+        this.displayName = spec.getDisplayName() != null ? spec.getDisplayName() : this.displayName;
+        this.damage = Math.max(0, spec.getBaseDamage());
+        this.piercing = spec.isPiercing();
+        this.speed = Math.max(0, spec.getBaseSpeed());
+
+        if (spec.getRadius() > 0) {
+            setSize(spec.getRadius() * 2, spec.getRadius() * 2);
+        } else if (spec.getWidth() > 0 && spec.getHeight() > 0) {
+            setSize(spec.getWidth(), spec.getHeight());
+        }
+
+        if (spec.getLifetimeSeconds() > 0) {
+            setLifeTime(spec.getLifetimeSeconds());
+        }
+    }
+
+    /**
      * 初始化视图 (使用EntityBase的ViewComponent)
      */
     protected void initView(Shape shape, Color color) {
@@ -58,8 +83,8 @@ public abstract class Bullet extends EntityBase {
      * 初始化运动 (使用FXGL现有ProjectileComponent)
      */
     protected void initMovement(Point2D direction) {
-        // 正确地使用方向 + 速度 构造投射体，确保对角方向生效
-        addComponent(new ProjectileComponent(direction.normalize(), speed));
+        // 使用自定义直线运动组件，完全去除默认射程限制
+        addComponent(new LinearMovementComponent(direction, speed));
     }
 
     /**
@@ -108,6 +133,15 @@ public abstract class Bullet extends EntityBase {
         }, Duration.seconds(seconds));
     }
 
+    /**
+     * 公共接口：应用寿命（秒）。
+     */
+    public void applyLifetime(double seconds) {
+        if (seconds > 0) {
+            setLifeTime(seconds);
+        }
+    }
+
     // Getter方法
     public Faction getFaction() {
         return faction;
@@ -125,6 +159,14 @@ public abstract class Bullet extends EntityBase {
         return speed;
     }
 
+    public String getId() {
+        return id;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
     // Setter方法
     public void setDamage(int damage) {
         this.damage = Math.max(0, damage);
@@ -136,6 +178,11 @@ public abstract class Bullet extends EntityBase {
 
     public void setSpeed(double speed) {
         this.speed = Math.max(0, speed);
+    }
+
+    public void setMeta(String id, String displayName) {
+        if (id != null && !id.isEmpty()) this.id = id;
+        if (displayName != null && !displayName.isEmpty()) this.displayName = displayName;
     }
 
     /**
@@ -174,24 +221,17 @@ public abstract class Bullet extends EntityBase {
      * 获取子弹的移动方向
      */
     public Point2D getDirection() {
-        ProjectileComponent projectile = getComponent(ProjectileComponent.class);
-        if (projectile != null) {
-            return projectile.getVelocity().normalize();
-        }
-        return new Point2D(1, 0); // 默认向右
+        LinearMovementComponent lm = getComponentOptional(LinearMovementComponent.class).orElse(null);
+        if (lm != null) return lm.getDirection();
+        return new Point2D(1, 0);
     }
 
     /**
      * 设置子弹的移动方向
      */
     public void setDirection(Point2D direction) {
-        ProjectileComponent projectile = getComponent(ProjectileComponent.class);
-        if (projectile != null) {
-            Point2D velocity = direction.normalize().multiply(speed);
-            // 移除旧组件并添加新组件
-            removeComponent(ProjectileComponent.class);
-            addComponent(new ProjectileComponent(velocity, 0));
-        }
+        LinearMovementComponent lm = getComponentOptional(LinearMovementComponent.class).orElse(null);
+        if (lm != null && direction != null) lm.setDirection(direction);
     }
 
     private GameState getGameState() {

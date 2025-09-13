@@ -18,6 +18,8 @@ import javafx.scene.input.KeyCode;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
 
+// 请你完美解决，保证不产生其他问题并不影响其他功能
+
 /**
  * 游戏主类。
  */
@@ -134,7 +136,7 @@ public class GameApp extends GameApplication {
             return;
         }
         // 使用固定移动距离，避免 tpf() 异常值导致的移动问题
-        final double moveDistance = 2.0; // 固定移动距离，降低移动速度
+        final double moveDistance = 2.0; // 增加移动距离，提高转向速度
         
         getInput().addAction(new UserAction("MOVE_LEFT_A") {
             @Override

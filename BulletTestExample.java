@@ -1,8 +1,8 @@
 // 这是一个测试示例，展示如何使用子弹系统
 // 您可以将这些代码添加到GameApp或其他地方进行测试
 
-import com.roguelike.entities.StraightBullet;
-import com.roguelike.entities.CurveBullet;
+import com.roguelike.entities.bullets.StraightBullet;
+import com.roguelike.entities.bullets.CurveBullet;
 import com.roguelike.entities.Bullet;
 import javafx.geometry.Point2D;
 

@@ -3,8 +3,9 @@ package com.roguelike.entities.components;
 import com.almasb.fxgl.entity.component.Component;
 import com.almasb.fxgl.texture.Texture;
 import javafx.animation.Animation;
-import javafx.animation.Interpolator;
-import javafx.animation.Transition;
+// removed unused imports
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
 import javafx.scene.image.Image;
 import javafx.util.Duration;
 
@@ -78,7 +79,6 @@ public class BulletAnimationComponent extends Component {
                     Texture t = new Texture(img);
                     animationFrames.add(t);
                     loaded = true;
-                    //System.out.println("[BulletAnimation] 使用classpath优先加载成功: /" + cpPath);
                 }
             } catch (Exception ignored) { }
 
@@ -89,7 +89,19 @@ public class BulletAnimationComponent extends Component {
                     animationFrames.add(texture);
                     loaded = true;
                 } catch (Exception e) {
-                    System.err.println("无法加载动画帧 (两种方式均失败): FXGL='" + framePath + "', CLASSPATH='/" + cpPath + "'");
+                    // 若该帧不存在，则尝试 0/1 两种编号方案以兼容用户资源：
+                    // 方案A： path/01/1_000.png 形式（当前）
+                    // 方案B： path/01/000.png 形式（去掉前缀 1_）
+                    try {
+                        String altPath = String.format("%s/%03d.png", normalized, i);
+                        Texture texture2 = com.almasb.fxgl.dsl.FXGL.getAssetLoader().loadTexture(altPath);
+                        animationFrames.add(texture2);
+                        loaded = true;
+                    } catch (Exception e2) {
+                        // 若仍失败则跳过这一帧，继续尝试下一帧
+                        System.out.println("跳过无法加载的帧: " + framePath);
+                        continue;
+                    }
                 }
             }
         }
@@ -105,34 +117,29 @@ public class BulletAnimationComponent extends Component {
      */
     private void createAnimation() {
         if (animationFrames.isEmpty()) return;
-        
-        animation = new Transition() {
-            {
-                setCycleDuration(Duration.seconds(frameDuration * animationFrames.size()));
-                setInterpolator(Interpolator.LINEAR);
+
+        // 使用 Timeline 明确按固定步长推进一帧，避免某些环境下 Transition 在一轮后停滞
+        Timeline timeline = new Timeline();
+        timeline.setCycleCount(Animation.INDEFINITE);
+
+        KeyFrame frameStep = new KeyFrame(Duration.seconds(frameDuration), e -> {
+            if (animationFrames.isEmpty()) return;
+            int next = currentFrame + 1;
+            if (next >= animationFrames.size()) next = 0;
+            if (next != currentFrame) {
+                currentFrame = next;
+                updateTexture();
             }
-            
-            @Override
-            protected void interpolate(double frac) {
-                if (animationFrames.isEmpty()) return;
-                
-                int frameIndex = (int) (frac * animationFrames.size());
-                if (frameIndex >= animationFrames.size()) {
-                    frameIndex = animationFrames.size() - 1;
-                }
-                
-                if (frameIndex != currentFrame) {
-                    currentFrame = frameIndex;
-                    updateTexture();
-                }
-            }
-        };
-        
-        if (isLooping) {
-            animation.setCycleCount(Animation.INDEFINITE);
-        } else {
-            animation.setCycleCount(1);
+        });
+        timeline.getKeyFrames().setAll(frameStep);
+
+        // 显示第一帧
+        if (currentFrame < 0 || currentFrame >= animationFrames.size()) {
+            currentFrame = 0;
         }
+        updateTexture();
+
+        animation = timeline;
     }
     
     /**
@@ -184,7 +191,15 @@ public class BulletAnimationComponent extends Component {
     public void setFrameDuration(double duration) {
         this.frameDuration = duration;
         if (animation != null) {
+            // 保存当前循环与播放状态，重建后恢复
+            boolean wasLooping = this.isLooping;
+            boolean wasPlaying = this.isPlaying;
             createAnimation();
+            animation.setCycleCount(wasLooping ? Animation.INDEFINITE : 1);
+            if (wasPlaying) {
+                animation.play();
+                this.isPlaying = true;
+            }
         }
     }
     
@@ -194,7 +209,8 @@ public class BulletAnimationComponent extends Component {
     public void setLooping(boolean looping) {
         this.isLooping = looping;
         if (animation != null) {
-            createAnimation();
+            // 直接设置循环次数，避免重建导致的状态丢失
+            animation.setCycleCount(looping ? Animation.INDEFINITE : 1);
         }
     }
     

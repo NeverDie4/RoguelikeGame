@@ -39,6 +39,10 @@ public class Player extends EntityBase {
     private CharacterAnimationComponent animationComponent;
     private CharacterAnimationComponent.Direction currentDirection = CharacterAnimationComponent.Direction.RIGHT;
 
+    // 面朝方向（用于子弹发射方向对齐），默认向右
+    private double forwardX = 1.0;
+    private double forwardY = 0.0;
+
     public Player() {
         // 添加碰撞组件
         addComponent(new CollidableComponent(true));
@@ -177,6 +181,14 @@ public class Player extends EntityBase {
     }
 
     public void move(double dx, double dy) {
+        // 先记录面朝方向（即使移动被阻挡也更新朝向）
+        if (dx != 0 || dy != 0) {
+            double len = Math.sqrt(dx * dx + dy * dy);
+            if (len > 0) {
+                forwardX = dx / len;
+                forwardY = dy / len;
+            }
+        }
         if (movementValidator != null) {
             // 使用移动验证器进行碰撞检测
             MovementResult result = movementValidator.validateAndMove(this, dx, dy);
@@ -214,6 +226,13 @@ public class Player extends EntityBase {
                 animationComponent.setDirection(currentDirection);
             }
         }
+    }
+
+    /**
+     * 获取玩家当前面朝方向（单位向量）。当玩家静止时为上一次移动方向。
+     */
+    public Point2D getForward() {
+        return new Point2D(forwardX, forwardY);
     }
 
     /**
