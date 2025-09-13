@@ -98,6 +98,10 @@ public class AutoFireComponent extends Component {
 
         List<Point2D> dirs;
         if ("straight_01".equals(bulletSpec.getId())) {
+            // 01 子弹改为环绕：生成 6 枚环绕子弹并返回（本次不按 dirs 直射）
+            spawnOrbitingBullets(bulletSpec);
+            return;
+        } else if ("straight_07".equals(bulletSpec.getId())) {
             // 以面朝方向 fwd 为基，构造四向（与 fwd 垂直向量为 (fy, -fx)）
             Point2D right = new Point2D(usedForward.getY(), -usedForward.getX());
             Point2D f1 = usedForward.add(right).normalize();
@@ -127,6 +131,35 @@ public class AutoFireComponent extends Component {
                 }
                 bullet.getTransformComponent().setPosition(sx, sy);
             }
+        }
+    }
+
+    private void spawnOrbitingBullets(BulletSpec bulletSpec) {
+        // 以玩家为中心生成 6 枚环绕子弹
+        com.almasb.fxgl.entity.Entity p = entity;
+        if (!(p instanceof com.roguelike.entities.Player)) return;
+        com.roguelike.entities.Player player = (com.roguelike.entities.Player) p;
+
+        double[] angles = {0, 60, 120, 180, 240, 300};
+        double radius = 70.0;
+        double angularSpeed = 180.0; // 度/秒
+
+        for (double a : angles) {
+            com.roguelike.entities.bullets.OrbitingBullet ob =
+                    new com.roguelike.entities.bullets.OrbitingBullet(
+                            Bullet.Faction.PLAYER,
+                            new Point2D(1, 0),
+                            15, // 伤害参考值
+                            true, // 穿透先设为 true（后续碰撞时使用）
+                            0.0,
+                            radius,
+                            angularSpeed,
+                            a,
+                            player
+                    );
+            FXGL.getGameWorld().addEntity(ob);
+            // 初始位置在 onUpdate 首帧会被校正
+            ob.getTransformComponent().setPosition(player.getCenter().getX(), player.getCenter().getY());
         }
     }
 

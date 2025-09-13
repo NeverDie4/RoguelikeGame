@@ -25,7 +25,8 @@ public class BulletRegistry {
                 0,
                 "bullets/01",
                 10,
-                0.05
+                0.05,
+                1.5
         ));
 
         // 02 直线弹（4帧）
@@ -41,7 +42,8 @@ public class BulletRegistry {
                 0.0,
                 "bullets/02",
                 4,
-                0.07
+                0.07,
+                3.0
         ));
 
         // 03 直线弹（10帧）
@@ -57,7 +59,8 @@ public class BulletRegistry {
                 0.0,
                 "bullets/03",
                 10,
-                0.05
+                0.05,
+                3.0
         ));
 
         // 04 直线弹（10帧）
@@ -73,7 +76,8 @@ public class BulletRegistry {
                 0.0,
                 "bullets/04",
                 10,
-                0.05
+                0.05,
+                3.0
         ));
 
         // 05 直线弹（10帧）
@@ -89,7 +93,8 @@ public class BulletRegistry {
                 0.0,
                 "bullets/05",
                 10,
-                0.05
+                0.05,
+                3.0
         ));
 
         // 06 直线弹（10帧）
@@ -105,7 +110,8 @@ public class BulletRegistry {
                 0.0,
                 "bullets/06",
                 10,
-                0.05
+                0.05,
+                3.0
         ));
 
         // 07 直线弹（10帧）
@@ -121,7 +127,8 @@ public class BulletRegistry {
                 0.0,
                 "bullets/07",
                 10,
-                0.05
+                0.05,
+                3.0
         ));
     }
 

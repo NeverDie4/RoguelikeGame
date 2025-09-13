@@ -7,6 +7,7 @@ import javafx.animation.Animation;
 import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -17,26 +18,32 @@ import java.util.List;
  */
 public class BulletAnimationComponent extends Component {
     
+    private static final boolean DEBUG = false; // 关闭调试日志
+
     private List<Texture> animationFrames;
+    private List<Image> rawImages;
     private Animation animation;
     private int currentFrame = 0;
     private double frameDuration = 0.1; // 每帧持续时间（秒）
     private boolean isLooping = true;
     private boolean isPlaying = false;
+    private ImageView spriteView;
+    // 视觉放大倍数（不改变碰撞盒），用于统一放大所有子弹外观
+    private double visualScale = 1.5;
     
     public BulletAnimationComponent() {
         this.animationFrames = new ArrayList<>();
+        this.rawImages = new ArrayList<>();
     }
     
-    // 简单的静态缓存，避免重复 IO（保留但不强依赖）
-    private static final java.util.Map<String, List<Texture>> CACHE = new java.util.HashMap<>();
-    private static boolean LOGGED_FXGL_FAIL_ONCE = false;
+    // 移除未使用字段，避免警告
     
     /**
      * 从资源路径加载动画帧
      */
     public void loadAnimationFrames(String basePath, int frameCount) {
         animationFrames.clear();
+        rawImages.clear();
 
         String normalized = basePath == null ? "" : basePath.trim();
         // 统一分隔符
@@ -65,8 +72,8 @@ public class BulletAnimationComponent extends Component {
             String framePath = String.format("%s/1_%03d.png", normalized, i);
             String cpPath = "assets/textures/" + framePath;
 
-            // 1) 优先：类路径读取
             boolean loaded = false;
+            // 仅使用类路径同步加载，避免异步导致的闪烁与 null 图像
             try {
                 java.io.InputStream is = Thread.currentThread().getContextClassLoader()
                         .getResourceAsStream(cpPath);
@@ -78,35 +85,59 @@ public class BulletAnimationComponent extends Component {
                     is.close();
                     Texture t = new Texture(img);
                     animationFrames.add(t);
+                    rawImages.add(img);
+                    if (DEBUG) {
+                        System.out.println("[BulletAnim] Loaded(frame=" + i + ") from CP: " + cpPath +
+                                ", size=" + img.getWidth() + "x" + img.getHeight());
+                    }
                     loaded = true;
                 }
             } catch (Exception ignored) { }
 
-            // 2) 备选：FXGL AssetLoader（若类路径未命中）
+            // 备选：同目录去掉前缀 1_ 的编号（如 000.png）
             if (!loaded) {
                 try {
-                    Texture texture = com.almasb.fxgl.dsl.FXGL.getAssetLoader().loadTexture(framePath);
-                    animationFrames.add(texture);
-                    loaded = true;
-                } catch (Exception e) {
-                    // 若该帧不存在，则尝试 0/1 两种编号方案以兼容用户资源：
-                    // 方案A： path/01/1_000.png 形式（当前）
-                    // 方案B： path/01/000.png 形式（去掉前缀 1_）
-                    try {
-                        String altPath = String.format("%s/%03d.png", normalized, i);
-                        Texture texture2 = com.almasb.fxgl.dsl.FXGL.getAssetLoader().loadTexture(altPath);
-                        animationFrames.add(texture2);
-                        loaded = true;
-                    } catch (Exception e2) {
-                        // 若仍失败则跳过这一帧，继续尝试下一帧
-                        System.out.println("跳过无法加载的帧: " + framePath);
-                        continue;
+                    String altFile = String.format("%s/%03d.png", normalized, i);
+                    String altCpPath = "assets/textures/" + altFile;
+                    java.io.InputStream is2 = Thread.currentThread().getContextClassLoader()
+                            .getResourceAsStream(altCpPath);
+                    if (is2 == null) {
+                        is2 = getClass().getResourceAsStream("/" + altCpPath);
                     }
-                }
+                    if (is2 != null) {
+                        Image img2 = new Image(is2);
+                        is2.close();
+                        Texture t2 = new Texture(img2);
+                        animationFrames.add(t2);
+                        rawImages.add(img2);
+                        if (DEBUG) {
+                            System.out.println("[BulletAnim] Loaded ALT(frame=" + i + ") from CP: " + altCpPath +
+                                    ", size=" + img2.getWidth() + "x" + img2.getHeight());
+                        }
+                        loaded = true;
+                    }
+                } catch (Exception ignored2) { }
+            }
+
+            if (!loaded) {
+                System.out.println("跳过无法加载的帧: " + cpPath);
             }
         }
 
         if (!animationFrames.isEmpty()) {
+            if (DEBUG) {
+                System.out.println("[BulletAnim] Total frames loaded: " + animationFrames.size());
+            }
+            // 预创建视图并显示首帧，减少首次闪烁
+            if (spriteView == null) {
+                spriteView = new ImageView();
+            }
+            if (currentFrame < 0 || currentFrame >= rawImages.size()) {
+                currentFrame = 0;
+            }
+            if (!rawImages.isEmpty()) {
+                spriteView.setImage(rawImages.get(currentFrame));
+            }
             createAnimation();
             play();
         }
@@ -118,20 +149,33 @@ public class BulletAnimationComponent extends Component {
     private void createAnimation() {
         if (animationFrames.isEmpty()) return;
 
-        // 使用 Timeline 明确按固定步长推进一帧，避免某些环境下 Transition 在一轮后停滞
+        // 使用 Timeline 的双 KeyFrame（0s 与 frameDuration）来保证周期稳定重复
         Timeline timeline = new Timeline();
-        timeline.setCycleCount(Animation.INDEFINITE);
 
-        KeyFrame frameStep = new KeyFrame(Duration.seconds(frameDuration), e -> {
+        KeyFrame kfStart = new KeyFrame(Duration.ZERO, e -> {
+            if (animationFrames.isEmpty()) return;
+            // 确保每个周期开始时渲染当前帧
+            updateTexture();
+        });
+
+        KeyFrame kfStep = new KeyFrame(Duration.seconds(frameDuration), e -> {
             if (animationFrames.isEmpty()) return;
             int next = currentFrame + 1;
-            if (next >= animationFrames.size()) next = 0;
+            if (next >= animationFrames.size()) {
+                next = isLooping ? 0 : animationFrames.size() - 1;
+            }
             if (next != currentFrame) {
                 currentFrame = next;
                 updateTexture();
             }
         });
-        timeline.getKeyFrames().setAll(frameStep);
+
+        timeline.getKeyFrames().setAll(kfStart, kfStep);
+        timeline.setCycleCount(isLooping ? Animation.INDEFINITE : 1);
+        if (DEBUG) {
+            System.out.println("[BulletAnim] createAnimation: frames=" + animationFrames.size() +
+                    ", frameDuration=" + frameDuration + ", looping=" + isLooping);
+        }
 
         // 显示第一帧
         if (currentFrame < 0 || currentFrame >= animationFrames.size()) {
@@ -146,13 +190,47 @@ public class BulletAnimationComponent extends Component {
      * 更新当前显示的纹理
      */
     private void updateTexture() {
-        if (currentFrame < animationFrames.size() && entity != null) {
-            Texture currentTexture = animationFrames.get(currentFrame);
-            
-            // 清除旧的视图并添加新的纹理
-            entity.getViewComponent().clearChildren();
-            entity.getViewComponent().addChild(currentTexture);
+        if (entity == null || entity.getViewComponent() == null) return;
+        if (rawImages.isEmpty()) return;
+        if (currentFrame < 0 || currentFrame >= rawImages.size()) return;
+
+        if (spriteView == null) {
+            spriteView = new ImageView();
         }
+
+        // 首次添加：只维护一个视图节点，避免每帧清空/添加引发闪烁
+        if (!entity.getViewComponent().getChildren().contains(spriteView)) {
+            entity.getViewComponent().clearChildren();
+            entity.getViewComponent().addChild(spriteView);
+        }
+
+        Image img = rawImages.get(currentFrame);
+        spriteView.setImage(img);
+        // 自适应缩放到实体尺寸并按视觉倍数放大，避免不同帧分辨率产生大小跳变
+        spriteView.setPreserveRatio(true);
+        spriteView.setSmooth(true);
+        double targetW = Math.max(1.0, entity.getWidth()) * visualScale;
+        double targetH = Math.max(1.0, entity.getHeight()) * visualScale;
+        spriteView.setFitWidth(targetW);
+        spriteView.setFitHeight(targetH);
+        // 居中对齐：放大后向四周溢出，保持实体中心不变
+        spriteView.setTranslateX((entity.getWidth() - targetW) / 2.0);
+        spriteView.setTranslateY((entity.getHeight() - targetH) / 2.0);
+
+        if (DEBUG) {
+            System.out.println("[BulletAnim] show frame=" + currentFrame +
+                    ", size=" + (img != null ? (img.getWidth() + "x" + img.getHeight()) : "null") +
+                    ", childrenCount=" + entity.getViewComponent().getChildren().size());
+        }
+    }
+
+    /**
+     * 设置视觉放大倍数（仅影响渲染，不改变碰撞盒）。
+     */
+    public void setVisualScale(double scale) {
+        this.visualScale = Math.max(0.1, scale);
+        // 立刻应用到当前帧
+        updateTexture();
     }
     
     /**
@@ -162,6 +240,9 @@ public class BulletAnimationComponent extends Component {
         if (animation != null && !isPlaying) {
             animation.play();
             isPlaying = true;
+            if (DEBUG) {
+                System.out.println("[BulletAnim] play()");
+            }
         }
     }
     
@@ -209,7 +290,7 @@ public class BulletAnimationComponent extends Component {
     public void setLooping(boolean looping) {
         this.isLooping = looping;
         if (animation != null) {
-            // 直接设置循环次数，避免重建导致的状态丢失
+            // 同步循环次数；若需要从单次切换为循环或相反，直接应用
             animation.setCycleCount(looping ? Animation.INDEFINITE : 1);
         }
     }

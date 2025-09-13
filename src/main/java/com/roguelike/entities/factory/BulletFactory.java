@@ -56,6 +56,8 @@ public class BulletFactory {
                     sb.setAnimationLooping(true);
                     sb.setAnimationFrameDuration(spec.getFrameDuration());
                     sb.getAnimationComponent().loadAnimationFrames(spec.getAnimationBasePath(), spec.getFrameCount());
+                    // 应用视觉缩放
+                    sb.getAnimationComponent().setVisualScale(spec.getVisualScale());
                 }
             }
         } else if (bullet instanceof CurveBullet) {
@@ -67,6 +69,8 @@ public class BulletFactory {
                     cb.setAnimationLooping(true);
                     cb.setAnimationFrameDuration(spec.getFrameDuration());
                     cb.getAnimationComponent().loadAnimationFrames(spec.getAnimationBasePath(), spec.getFrameCount());
+                    // 应用视觉缩放
+                    cb.getAnimationComponent().setVisualScale(spec.getVisualScale());
                 }
             }
         }

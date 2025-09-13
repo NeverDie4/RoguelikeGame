@@ -29,6 +29,8 @@ public class BulletSpec {
     private final String animationBasePath; // 如："bullets/small_orange"
     private final int frameCount;
     private final double frameDuration;
+    // 视觉缩放（仅影响渲染，不改变碰撞盒）
+    private final double visualScale;
 
     public BulletSpec(
             String id,
@@ -43,7 +45,8 @@ public class BulletSpec {
             double radius,
             String animationBasePath,
             int frameCount,
-            double frameDuration
+            double frameDuration,
+            double visualScale
     ) {
         this.id = id;
         this.displayName = displayName;
@@ -58,6 +61,7 @@ public class BulletSpec {
         this.animationBasePath = animationBasePath;
         this.frameCount = Math.max(0, frameCount);
         this.frameDuration = Math.max(0, frameDuration);
+        this.visualScale = Math.max(0.1, visualScale);
     }
 
     public String getId() {
@@ -110,6 +114,10 @@ public class BulletSpec {
 
     public double getFrameDuration() {
         return frameDuration;
+    }
+
+    public double getVisualScale() {
+        return visualScale;
     }
 }
 
