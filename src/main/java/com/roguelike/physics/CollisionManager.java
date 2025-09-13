@@ -73,6 +73,19 @@ public class CollisionManager {
         }
     }
     
+    /**
+     * 更新实体缓存到碰撞检测器
+     */
+    public void updateEntityCache(com.roguelike.entities.Player player, 
+                                 List<com.roguelike.entities.Enemy> enemies, 
+                                 List<com.roguelike.entities.Bullet> bullets) {
+        if (entityCollisionDetector != null) {
+            entityCollisionDetector.setCachedPlayer(player);
+            entityCollisionDetector.setCachedEnemies(enemies);
+            entityCollisionDetector.setCachedBullets(bullets);
+        }
+    }
+    
     
     
     /**

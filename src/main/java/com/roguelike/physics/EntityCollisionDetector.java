@@ -8,6 +8,7 @@ import com.roguelike.core.GameEvent;
 import javafx.geometry.Rectangle2D;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -495,36 +496,56 @@ public class EntityCollisionDetector {
         // 刚性碰撞系统不需要清理冷却记录
     }
     
+    // 实体缓存引用 - 避免每帧查找
+    private Player cachedPlayer = null;
+    private List<Enemy> cachedEnemies = new ArrayList<>();
+    private List<Bullet> cachedBullets = new ArrayList<>();
+    
     /**
-     * 获取玩家实体
+     * 设置缓存的玩家实体
      */
-    private Player getPlayer() {
-        return com.almasb.fxgl.dsl.FXGL.getGameWorld().getEntitiesByType().stream()
-                .filter(e -> e instanceof Player)
-                .map(e -> (Player) e)
-                .findFirst()
-                .orElse(null);
+    public void setCachedPlayer(Player player) {
+        this.cachedPlayer = player;
     }
     
     /**
-     * 获取所有敌人实体
+     * 设置缓存的敌人列表
+     */
+    public void setCachedEnemies(List<Enemy> enemies) {
+        this.cachedEnemies.clear();
+        this.cachedEnemies.addAll(enemies);
+    }
+    
+    /**
+     * 设置缓存的子弹列表
+     */
+    public void setCachedBullets(List<Bullet> bullets) {
+        this.cachedBullets.clear();
+        this.cachedBullets.addAll(bullets);
+    }
+    
+    /**
+     * 获取玩家实体（使用缓存）
+     */
+    private Player getPlayer() {
+        return cachedPlayer;
+    }
+    
+    /**
+     * 获取所有敌人实体（使用缓存）
      */
     private List<Enemy> getEnemies() {
-        return com.almasb.fxgl.dsl.FXGL.getGameWorld().getEntitiesByType().stream()
-                .filter(e -> e instanceof Enemy)
-                .map(e -> (Enemy) e)
-                .filter(Enemy::isAlive)
+        return cachedEnemies.stream()
+                .filter(enemy -> enemy != null && enemy.isAlive())
                 .collect(Collectors.toList());
     }
     
     /**
-     * 获取所有子弹实体
+     * 获取所有子弹实体（使用缓存）
      */
     private List<Bullet> getBullets() {
-        return com.almasb.fxgl.dsl.FXGL.getGameWorld().getEntitiesByType().stream()
-                .filter(e -> e instanceof Bullet)
-                .map(e -> (Bullet) e)
-                .filter(Bullet::isActive)
+        return cachedBullets.stream()
+                .filter(bullet -> bullet != null && bullet.isActive())
                 .collect(Collectors.toList());
     }
     

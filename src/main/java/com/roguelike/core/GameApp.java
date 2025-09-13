@@ -16,6 +16,7 @@ import com.roguelike.utils.AdaptivePathfinder;
 import com.roguelike.ui.GameHUD;
 import com.roguelike.ui.Menus;
 import com.roguelike.ui.LoadingOverlay;
+import com.roguelike.ui.FPSDisplay;
 import javafx.scene.input.KeyCode;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
@@ -42,6 +43,7 @@ public class GameApp extends GameApplication {
     private MapRenderer mapRenderer;
     private InfiniteMapManager infiniteMapManager;
     private GameHUD gameHUD;
+    private FPSDisplay fpsDisplay;
     private MapCollisionDetector collisionDetector;
     private MovementValidator movementValidator;
     private CollisionManager collisionManager;
@@ -56,9 +58,15 @@ public class GameApp extends GameApplication {
     // 性能优化：缓存玩家实体引用，避免每帧查找
     private Player cachedPlayer = null;
     
+    // 实体缓存系统 - 避免每帧重复查找实体
+    private java.util.List<com.roguelike.entities.Enemy> cachedEnemies = new java.util.ArrayList<>();
+    private java.util.List<com.roguelike.entities.Bullet> cachedBullets = new java.util.ArrayList<>();
+    private long lastEntityCacheUpdateTime = 0;
+    private static final long ENTITY_CACHE_UPDATE_INTERVAL = 100; // 100ms更新一次实体缓存
+    
     // 调试配置
     public static boolean DEBUG_MODE = false; // 调试模式开关
-    public static boolean BULLET_DAMAGE_ENABLED = true; // 子弹伤害开关
+    public static boolean BULLET_DAMAGE_ENABLED = false; // 子弹伤害开关
     
     // 碰撞系统调试配置
     public static boolean COLLISION_DEBUG_MODE = false; // 碰撞调试模式
@@ -183,6 +191,10 @@ public class GameApp extends GameApplication {
         // HUD
         gameHUD = new GameHUD(gameState);
         gameHUD.mount();
+        
+        // FPS显示（调试用）
+        fpsDisplay = new FPSDisplay();
+        fpsDisplay.setupWindowResizeListener();
 
         // 敌人周期生成计时器改为基于受控时间的累积器
         enemySpawnAccumulator = 0.0;
@@ -359,7 +371,19 @@ public class GameApp extends GameApplication {
                     }
                 }, KeyCode.F7);
             }
+            
+            
         }
+
+        // FPS显示切换
+        getInput().addAction(new UserAction("TOGGLE_FPS_DISPLAY") {
+            @Override
+            protected void onAction() {
+                if (fpsDisplay != null) {
+                    fpsDisplay.toggle();
+                }
+            }
+        }, KeyCode.F8);
 
         // 旧的空格攻击移除，采用自动发射
         INPUT_BOUND = true;
@@ -439,25 +463,30 @@ public class GameApp extends GameApplication {
         // 推进受控时间（与现实时间同步）
         TimeService.update(realDt);
 
+        // 更新实体缓存（控制频率，避免每帧更新）
+        updateEntityCache();
+
         // 更新碰撞管理器
         if (collisionManager != null) {
+            // 将缓存的实体传递给碰撞管理器
+            collisionManager.updateEntityCache(cachedPlayer, cachedEnemies, cachedBullets);
             collisionManager.update(realDt);
         }
 
-        // 更新敌人数量并选择路径寻找算法
-        int enemyCount = (int) getGameWorld().getEntitiesByType().stream()
-                .filter(e -> e instanceof com.roguelike.entities.Enemy)
-                .count();
+        // 使用缓存的敌人数量，避免每帧遍历所有实体
+        int enemyCount = cachedEnemies.size();
         
         if (adaptivePathfinder != null) {
             adaptivePathfinder.updateEnemyCount(enemyCount);
         }
         
-        // 敌人 AI 更新（使用相同的时间步长保持一致性）
+        // 使用缓存的敌人列表进行AI更新，避免每帧遍历所有实体
         final double step = realDt;
-        getGameWorld().getEntitiesByType().stream()
-                .filter(e -> e instanceof com.roguelike.entities.Enemy)
-                .forEach(e -> ((com.roguelike.entities.Enemy) e).updateAI(step));
+        for (com.roguelike.entities.Enemy enemy : cachedEnemies) {
+            if (enemy != null && enemy.isActive()) {
+                enemy.updateAI(step);
+            }
+        }
 
         // 基于受控时间的刷怪逻辑
         enemySpawnAccumulator += realDt;
@@ -622,6 +651,57 @@ public class GameApp extends GameApplication {
     public AdaptivePathfinder getAdaptivePathfinder() {
         return adaptivePathfinder;
     }
+    
+    /**
+     * 更新实体缓存 - 避免每帧重复查找实体
+     */
+    private void updateEntityCache() {
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastEntityCacheUpdateTime < ENTITY_CACHE_UPDATE_INTERVAL) {
+            return; // 使用缓存，避免频繁更新
+        }
+        
+        // 清空旧缓存
+        cachedEnemies.clear();
+        cachedBullets.clear();
+        
+        // 重新收集实体
+        getGameWorld().getEntitiesByType().forEach(entity -> {
+            if (entity instanceof com.roguelike.entities.Enemy) {
+                cachedEnemies.add((com.roguelike.entities.Enemy) entity);
+            } else if (entity instanceof com.roguelike.entities.Bullet) {
+                cachedBullets.add((com.roguelike.entities.Bullet) entity);
+            }
+        });
+        
+        lastEntityCacheUpdateTime = currentTime;
+        
+        // 调试信息（可选）
+        if (DEBUG_MODE && frameCount % 300 == 0) { // 每5秒打印一次
+            System.out.println("🔄 实体缓存更新: 敌人=" + cachedEnemies.size() + ", 子弹=" + cachedBullets.size());
+        }
+    }
+    
+    /**
+     * 获取缓存的敌人列表
+     */
+    public java.util.List<com.roguelike.entities.Enemy> getCachedEnemies() {
+        return new java.util.ArrayList<>(cachedEnemies); // 返回副本避免外部修改
+    }
+    
+    /**
+     * 获取缓存的子弹列表
+     */
+    public java.util.List<com.roguelike.entities.Bullet> getCachedBullets() {
+        return new java.util.ArrayList<>(cachedBullets); // 返回副本避免外部修改
+    }
+    
+    /**
+     * 获取FPS显示组件
+     */
+    public FPSDisplay getFPSDisplay() {
+        return fpsDisplay;
+    }
 
     private void showGameOverScreen() {
         // 暂停游戏
@@ -644,6 +724,11 @@ public class GameApp extends GameApplication {
         // 重置游戏状态
         if (gameState != null) {
             gameState = new GameState();
+        }
+        
+        // 清理FPS显示资源
+        if (fpsDisplay != null) {
+            fpsDisplay.cleanup();
         }
         
         // 使用FXGL的内置方法来清理游戏世界
