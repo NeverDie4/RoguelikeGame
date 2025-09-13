@@ -9,8 +9,8 @@ import java.util.List;
  */
 public class GameState {
     private int score = 0;
-    private int playerHP = 500;
-    private int playerMaxHP = 500;
+    private int playerHP = 50000;
+    private int playerMaxHP = 50000;
     private int level = 1;
     private int experience = 0;
     private int experienceToNextLevel = 100;

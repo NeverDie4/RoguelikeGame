@@ -15,6 +15,6 @@ module com.roguelike.main {
 
     exports com.roguelike.core;
     exports com.roguelike.entities to com.almasb.fxgl.core;
-    exports com.roguelike.map;
+    exports com.roguelike.map to com.almasb.fxgl.all;
     exports com.roguelike.physics;
 }

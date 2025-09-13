@@ -396,11 +396,13 @@ public class Enemy extends EntityBase {
         // 检查是否需要更新路径（距离目标太远或路径为空）
         double distanceToTarget = currentPos.distance(targetX, targetY);
         if (currentPath == null || currentPath.isEmpty() || distanceToTarget > 100.0) {
-            currentPath = adaptivePathfinder.findPath(
-                currentPos.getX(), currentPos.getY(),
-                targetX, targetY
-            );
-            currentPathIndex = 0;
+            if (adaptivePathfinder != null) {
+                currentPath = adaptivePathfinder.findPath(
+                    currentPos.getX(), currentPos.getY(),
+                    targetX, targetY
+                );
+                currentPathIndex = 0;
+            }
         }
     }
 
@@ -424,12 +426,18 @@ public class Enemy extends EntityBase {
 
         // 如果距离较远，尝试使用路径寻找
         if (currentPath == null || currentPath.isEmpty() || distanceToPlayer > 100.0) {
-            // 重新计算路径
-            currentPath = adaptivePathfinder.findPath(
-                currentPos.getX(), currentPos.getY(),
-                targetX, targetY
-            );
-            currentPathIndex = 0;
+            // 重新计算路径（检查路径寻找器是否可用）
+            if (adaptivePathfinder != null) {
+                currentPath = adaptivePathfinder.findPath(
+                    currentPos.getX(), currentPos.getY(),
+                    targetX, targetY
+                );
+                currentPathIndex = 0;
+            } else {
+                // 路径寻找器不可用，回退到直接移动
+                fallbackToDirectMovement(tpf);
+                return;
+            }
         }
 
         // 如果路径寻找失败或路径为空，回退到直接移动

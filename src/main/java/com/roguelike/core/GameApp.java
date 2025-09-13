@@ -8,10 +8,10 @@ import com.almasb.fxgl.entity.SpawnData;
 import com.almasb.fxgl.input.UserAction;
 import com.roguelike.entities.Player;
 import com.roguelike.map.MapRenderer;
+import com.roguelike.map.InfiniteMapManager;
 import com.roguelike.physics.MapCollisionDetector;
 import com.roguelike.physics.MovementValidator;
 import com.roguelike.physics.CollisionManager;
-import com.roguelike.physics.RigidCollisionSystem;
 import com.roguelike.utils.AdaptivePathfinder;
 import com.roguelike.ui.GameHUD;
 import com.roguelike.ui.Menus;
@@ -20,6 +20,19 @@ import javafx.scene.input.KeyCode;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
 
+/*
+ * 
+ * 中优先级（后续实现）
+智能预加载策略 - 提升用户体验
+加载优先级系统 - 优化加载顺序
+低优先级（长期优化）
+内存优化策略 - 长期性能优化
+性能监控系统 - 持续改进
+配置化系统 - 灵活调整
+
+还要注意对象的创建与销毁能不能优化
+ */
+
 /**
  * 游戏主类。
  */
@@ -27,6 +40,7 @@ public class GameApp extends GameApplication {
 
     private GameState gameState;
     private MapRenderer mapRenderer;
+    private InfiniteMapManager infiniteMapManager;
     private GameHUD gameHUD;
     private MapCollisionDetector collisionDetector;
     private MovementValidator movementValidator;
@@ -39,19 +53,23 @@ public class GameApp extends GameApplication {
     private int frameCount = 0; // 帧计数器，用于跳过不稳定的初始帧
     private boolean gameReady = false; // 覆盖层完成后才开始计时与更新
     
+    // 性能优化：缓存玩家实体引用，避免每帧查找
+    private Player cachedPlayer = null;
+    
     // 调试配置
     public static boolean DEBUG_MODE = false; // 调试模式开关
     public static boolean BULLET_DAMAGE_ENABLED = true; // 子弹伤害开关
     
     // 碰撞系统调试配置
     public static boolean COLLISION_DEBUG_MODE = false; // 碰撞调试模式
-    public static double COLLISION_PUSH_FORCE_MULTIPLIER = 1.0; // 碰撞推挤力度倍数
+    public static double COLLISION_PUSH_FORCE_MULTIPLIER = 10.0; // 碰撞推挤力度倍数
     public static double COLLISION_UPDATE_INTERVAL = 0.016; // 碰撞更新间隔（秒）
     public static boolean COLLISION_VELOCITY_PUSH_ENABLED = true; // 是否启用速度推挤
     public static boolean COLLISION_POSITION_PUSH_ENABLED = true; // 是否启用位置推挤
     
     // 地图配置
-    private static final String MAP_NAME = "mapgrass"; // 当前使用的地图名称
+    private static final String MAP_NAME = "test"; // 当前使用的地图名称
+    private static final boolean USE_INFINITE_MAP = true; // 是否使用无限地图
     
     // 路径寻找配置
     private static final int ENEMY_COUNT_THRESHOLD = 20; // 敌人数量阈值，超过此数量使用流体算法
@@ -83,12 +101,27 @@ public class GameApp extends GameApplication {
         com.roguelike.entities.EntityFactory.setGameState(gameState);
         FXGL.getGameWorld().addEntityFactory(new com.roguelike.entities.EntityFactory());
 
-        // 地图渲染器 - 加载Tiled地图
-        mapRenderer = new MapRenderer(MAP_NAME);
-        mapRenderer.init();
+        // 地图系统初始化
+        if (USE_INFINITE_MAP) {
+            // 使用无限地图系统
+            infiniteMapManager = new InfiniteMapManager();
+            collisionDetector = new MapCollisionDetector(infiniteMapManager);
+            System.out.println("🌍 无限地图系统已启用");
+        System.out.println("   区块尺寸: " + InfiniteMapManager.getChunkWidthPixels() + "x" + InfiniteMapManager.getChunkHeightPixels() + " 像素");
+        System.out.println("   瓦片尺寸: 32x32 像素");
+        System.out.println("   加载半径: " + infiniteMapManager.getLoadRadius() + " 个区块");
+        System.out.println("   预加载半径: " + infiniteMapManager.getPreloadRadius() + " 个区块");
+        System.out.println("   异步加载: " + (infiniteMapManager.isUseAsyncLoading() ? "启用" : "禁用"));
+        System.out.println("   玩家初始位置: 区块0中心");
+        } else {
+            // 使用传统地图系统
+            mapRenderer = new MapRenderer(MAP_NAME);
+            mapRenderer.init();
+            collisionDetector = new MapCollisionDetector(mapRenderer);
+            System.out.println("🗺️ 传统地图系统已启用");
+        }
         
-        // 初始化碰撞检测系统
-        collisionDetector = new MapCollisionDetector(mapRenderer);
+        // 初始化移动验证和碰撞管理
         movementValidator = new MovementValidator(collisionDetector);
         collisionManager = new CollisionManager();
         collisionManager.setMapCollisionDetector(collisionDetector);
@@ -101,10 +134,16 @@ public class GameApp extends GameApplication {
         config.setEnablePathOptimization(ENABLE_PATH_OPTIMIZATION);
         config.setEnableSmoothing(ENABLE_PATH_SMOOTHING);
         
-        adaptivePathfinder = new AdaptivePathfinder(mapRenderer, config);
-        
-        // 调试：打印碰撞地图信息
-        mapRenderer.printCollisionInfo();
+        // 初始化路径寻找系统
+        if (USE_INFINITE_MAP) {
+            // 无限地图模式下暂时禁用路径寻找（后续实现）
+            adaptivePathfinder = null;
+            System.out.println("⚠️ 无限地图模式下路径寻找系统暂时禁用");
+        } else {
+            adaptivePathfinder = new AdaptivePathfinder(mapRenderer, config);
+            // 调试：打印碰撞地图信息
+            mapRenderer.printCollisionInfo();
+        }
         
         // 调试：打印路径寻找配置
         System.out.println("🎯 路径寻找系统配置:");
@@ -114,13 +153,24 @@ public class GameApp extends GameApplication {
         System.out.println("   - 路径优化: " + ENABLE_PATH_OPTIMIZATION);
         System.out.println("   - 路径平滑: " + ENABLE_PATH_SMOOTHING);
 
-        // 玩家 - 根据地图尺寸调整初始位置
-        double playerX = mapRenderer.getMapWidth() > 0 ?
-            (mapRenderer.getMapWidth() * mapRenderer.getTileWidth()) / 2.0 : 640;
-        double playerY = mapRenderer.getMapHeight() > 0 ?
-            (mapRenderer.getMapHeight() * mapRenderer.getTileHeight()) / 2.0 : 360;
+        // 玩家 - 根据地图系统设置初始位置
+        double playerX, playerY;
+        if (USE_INFINITE_MAP) {
+            // 无限地图：玩家出生在区块0的中心
+            playerX = InfiniteMapManager.getChunkWidthPixels() / 2.0; // 区块0的中心X
+            playerY = InfiniteMapManager.getChunkHeightPixels() / 2.0; // 区块0的中心Y
+        } else {
+            // 传统地图：根据地图尺寸调整初始位置
+            playerX = mapRenderer.getMapWidth() > 0 ?
+                (mapRenderer.getMapWidth() * mapRenderer.getTileWidth()) / 2.0 : 640;
+            playerY = mapRenderer.getMapHeight() > 0 ?
+                (mapRenderer.getMapHeight() * mapRenderer.getTileHeight()) / 2.0 : 360;
+        }
 
         Player player = (Player) getGameWorld().spawn("player", new SpawnData(playerX, playerY));
+        
+        // 缓存玩家引用，避免每帧查找
+        cachedPlayer = player;
         
         // 为玩家设置移动验证器（防止与敌人重叠）
         player.setMovementValidator(collisionManager.getMovementValidator());
@@ -297,6 +347,18 @@ public class GameApp extends GameApplication {
                     resetCollisionDebugSettings();
                 }
             }, KeyCode.F6);
+            
+            // 无限地图调试控制
+            if (USE_INFINITE_MAP) {
+                getInput().addAction(new UserAction("PRINT_INFINITE_MAP_STATUS") {
+                    @Override
+                    protected void onAction() {
+                        if (infiniteMapManager != null) {
+                            infiniteMapManager.printStatus();
+                        }
+                    }
+                }, KeyCode.F7);
+            }
         }
 
         // 旧的空格攻击移除，采用自动发射
@@ -339,9 +401,31 @@ public class GameApp extends GameApplication {
         if (!gameReady) {
             return;
         }
-        if (mapRenderer != null) {
+        
+        // 更新地图系统
+        if (USE_INFINITE_MAP && infiniteMapManager != null) {
+            // 使用缓存的玩家引用，避免每帧查找
+            if (cachedPlayer != null && cachedPlayer.isActive()) {
+                int currentChunkX = InfiniteMapManager.worldToChunkX(cachedPlayer.getX());
+                if (currentChunkX != infiniteMapManager.getPlayerChunkX()) {
+                    System.out.println("🚶 玩家跨越区块边界: " + infiniteMapManager.getPlayerChunkX() + " -> " + currentChunkX);
+                    System.out.println("   世界坐标: " + String.format("%.1f", cachedPlayer.getX()) + ", " + String.format("%.1f", cachedPlayer.getY()));
+                    infiniteMapManager.updateChunks(currentChunkX);
+                } else {
+                    // 玩家在同一区块内移动时，基于视角进行智能预加载
+                    infiniteMapManager.viewportBasedPreload(cachedPlayer.getX(), cachedPlayer.getY());
+                }
+            } else {
+                // 如果缓存的玩家无效，重新查找
+                cachedPlayer = (Player) getGameWorld().getEntitiesByType().stream()
+                    .filter(e -> e instanceof Player)
+                    .findFirst()
+                    .orElse(null);
+            }
+        } else if (mapRenderer != null) {
             mapRenderer.onUpdate(tpf);
         }
+        
         frameCount++;
 
         // 跳过前几帧的不稳定时期，避免首帧暴快
@@ -364,7 +448,10 @@ public class GameApp extends GameApplication {
         int enemyCount = (int) getGameWorld().getEntitiesByType().stream()
                 .filter(e -> e instanceof com.roguelike.entities.Enemy)
                 .count();
-        adaptivePathfinder.updateEnemyCount(enemyCount);
+        
+        if (adaptivePathfinder != null) {
+            adaptivePathfinder.updateEnemyCount(enemyCount);
+        }
         
         // 敌人 AI 更新（使用相同的时间步长保持一致性）
         final double step = realDt;
@@ -379,7 +466,9 @@ public class GameApp extends GameApplication {
             // 为新创建的敌人设置移动验证器和路径寻找器
             if (newEnemy instanceof com.roguelike.entities.Enemy) {
                 ((com.roguelike.entities.Enemy) newEnemy).setMovementValidator(collisionManager.getMovementValidator());
-                ((com.roguelike.entities.Enemy) newEnemy).setAdaptivePathfinder(adaptivePathfinder);
+                if (adaptivePathfinder != null) {
+                    ((com.roguelike.entities.Enemy) newEnemy).setAdaptivePathfinder(adaptivePathfinder);
+                }
             }
             enemySpawnAccumulator -= ENEMY_SPAWN_INTERVAL;
         }
@@ -411,6 +500,13 @@ public class GameApp extends GameApplication {
      */
     public MapRenderer getMapRenderer() {
         return mapRenderer;
+    }
+    
+    /**
+     * 获取无限地图管理器实例
+     */
+    public InfiniteMapManager getInfiniteMapManager() {
+        return infiniteMapManager;
     }
     
     /**
