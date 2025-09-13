@@ -21,7 +21,7 @@ public class Player extends EntityBase {
     private int maxHP = 500;
     private int currentHP = 500;
     private GameState gameState;
-    private com.roguelike.physics.MovementValidator movementValidator;
+    private com.roguelike.physics.OptimizedMovementValidator movementValidator;
 
     // 动画相关
     private CharacterAnimationComponent animationComponent;
@@ -32,13 +32,13 @@ public class Player extends EntityBase {
         addComponent(new CollidableComponent(true));
 
         // 设置实体大小（根据GIF动画帧大小调整）
-        setSize(32, 32);
+        setSize(64, 64);
         
         // 吸血鬼幸存者风格：设置更小的碰撞箱
         // 视觉大小32x32，但碰撞箱只有16x16，让玩家感觉更灵活
         getBoundingBoxComponent().clearHitBoxes();
         getBoundingBoxComponent().addHitBox(new com.almasb.fxgl.physics.HitBox(
-            com.almasb.fxgl.physics.BoundingShape.box(32, 32)
+            com.almasb.fxgl.physics.BoundingShape.box(64, 64)
         ));
 
         // 初始化动画
@@ -188,8 +188,8 @@ public class Player extends EntityBase {
 
     public void move(double dx, double dy) {
         if (movementValidator != null) {
-            // 使用移动验证器进行碰撞检测，防止与敌人重叠
-            com.roguelike.physics.MovementValidator.MovementResult result = 
+            // 使用优化的移动验证器进行碰撞检测，防止与敌人重叠
+            com.roguelike.physics.OptimizedMovementValidator.MovementResult result = 
                 movementValidator.validateAndMove(this, dx, dy);
 
             if (result.isSuccess()) {
@@ -233,14 +233,14 @@ public class Player extends EntityBase {
     /**
      * 设置移动验证器
      */
-    public void setMovementValidator(com.roguelike.physics.MovementValidator validator) {
+    public void setMovementValidator(com.roguelike.physics.OptimizedMovementValidator validator) {
         this.movementValidator = validator;
     }
 
     /**
      * 获取移动验证器
      */
-    public com.roguelike.physics.MovementValidator getMovementValidator() {
+    public com.roguelike.physics.OptimizedMovementValidator getMovementValidator() {
         return movementValidator;
     }
 

@@ -12,7 +12,7 @@ public class CollisionManager {
     
     private MapCollisionDetector mapCollisionDetector;
     private EntityCollisionDetector entityCollisionDetector;
-    private MovementValidator movementValidator;
+    private OptimizedMovementValidator movementValidator;
     
     // 碰撞检测配置
     private boolean enablePlayerEnemyCollision = true;
@@ -37,10 +37,11 @@ public class CollisionManager {
     public void setMapCollisionDetector(MapCollisionDetector detector) {
         this.mapCollisionDetector = detector;
         if (movementValidator == null) {
-            this.movementValidator = new MovementValidator(detector);
+            // 使用优化的移动验证器
+            this.movementValidator = new OptimizedMovementValidator(detector);
         } else {
             // 更新现有验证器的碰撞检测器
-            this.movementValidator = new MovementValidator(detector);
+            this.movementValidator = new OptimizedMovementValidator(detector);
         }
         
         // 吸血鬼幸存者风格：不再需要为实体碰撞检测器设置地图碰撞检测器
@@ -50,7 +51,7 @@ public class CollisionManager {
     /**
      * 获取移动验证器
      */
-    public MovementValidator getMovementValidator() {
+    public OptimizedMovementValidator getMovementValidator() {
         return movementValidator;
     }
     

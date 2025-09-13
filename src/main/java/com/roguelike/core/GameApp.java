@@ -10,7 +10,7 @@ import com.roguelike.entities.Player;
 import com.roguelike.map.MapRenderer;
 import com.roguelike.map.InfiniteMapManager;
 import com.roguelike.physics.MapCollisionDetector;
-import com.roguelike.physics.MovementValidator;
+import com.roguelike.physics.OptimizedMovementValidator;
 import com.roguelike.physics.CollisionManager;
 import com.roguelike.utils.AdaptivePathfinder;
 import com.roguelike.ui.GameHUD;
@@ -45,7 +45,7 @@ public class GameApp extends GameApplication {
     private GameHUD gameHUD;
     private FPSDisplay fpsDisplay;
     private MapCollisionDetector collisionDetector;
-    private MovementValidator movementValidator;
+    private OptimizedMovementValidator movementValidator;
     private CollisionManager collisionManager;
     private AdaptivePathfinder adaptivePathfinder;
     private double enemySpawnAccumulator = 0.0;
@@ -130,7 +130,7 @@ public class GameApp extends GameApplication {
         }
         
         // 初始化移动验证和碰撞管理
-        movementValidator = new MovementValidator(collisionDetector);
+        movementValidator = new OptimizedMovementValidator(collisionDetector);
         collisionManager = new CollisionManager();
         collisionManager.setMapCollisionDetector(collisionDetector);
         
@@ -513,7 +513,7 @@ public class GameApp extends GameApplication {
     /**
      * 获取移动验证器实例
      */
-    public MovementValidator getMovementValidator() {
+    public OptimizedMovementValidator getMovementValidator() {
         return movementValidator;
     }
     

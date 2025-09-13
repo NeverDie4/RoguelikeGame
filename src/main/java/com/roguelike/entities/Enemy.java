@@ -8,9 +8,9 @@ import com.almasb.fxgl.physics.PhysicsComponent;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
 import com.roguelike.entities.components.CharacterAnimationComponent;
-import com.roguelike.physics.MovementValidator;
-import com.roguelike.physics.MovementValidator.MovementResult;
-import com.roguelike.physics.MovementValidator.MovementType;
+import com.roguelike.physics.OptimizedMovementValidator;
+import com.roguelike.physics.OptimizedMovementValidator.MovementResult;
+import com.roguelike.physics.OptimizedMovementValidator.MovementType;
 import com.roguelike.utils.AdaptivePathfinder;
 import com.roguelike.utils.AdaptivePathfinder.PathfindingType;
 import javafx.geometry.Point2D;
@@ -36,7 +36,7 @@ public class Enemy extends EntityBase {
     private double maxTurnRate = Math.PI * 2; // 最大转向速率
 
     // 碰撞检测相关
-    private MovementValidator movementValidator;
+    private OptimizedMovementValidator movementValidator;
 
     // 路径寻找相关
     private AdaptivePathfinder adaptivePathfinder;
@@ -358,14 +358,14 @@ public class Enemy extends EntityBase {
     /**
      * 设置移动验证器
      */
-    public void setMovementValidator(MovementValidator validator) {
+    public void setMovementValidator(OptimizedMovementValidator validator) {
         this.movementValidator = validator;
     }
 
     /**
      * 获取移动验证器
      */
-    public MovementValidator getMovementValidator() {
+    public OptimizedMovementValidator getMovementValidator() {
         return movementValidator;
     }
 
