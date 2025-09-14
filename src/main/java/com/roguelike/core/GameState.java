@@ -9,14 +9,15 @@ import java.util.List;
  */
 public class GameState {
     private int score = 0;
-    private int playerHP = 100;
-    private int playerMaxHP = 100;
+    private int playerHP = 50000;
+    private int playerMaxHP = 50000;
     private int level = 1;
     private int experience = 0;
     private int experienceToNextLevel = 100;
     private int coins = 0;
     private long gameStartTime = System.currentTimeMillis();
     private final List<String> collectedItems = new ArrayList<>();
+    private int killCount = 0;  // 杀敌数统计
 
     public int getPlayerHP() {
         return playerHP;
@@ -201,6 +202,16 @@ public class GameState {
         }
 
         GameEvent.post(new GameEvent(GameEvent.Type.EXPERIENCE_CHANGED));
+    }
+
+    // 杀敌数相关方法
+    public int getKillCount() {
+        return killCount;
+    }
+
+    public void addKill() {
+        killCount++;
+        GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_DEATH));
     }
 }
 

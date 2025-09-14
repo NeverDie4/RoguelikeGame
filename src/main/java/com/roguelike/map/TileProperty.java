@@ -99,6 +99,55 @@ public class TileProperty {
         return !isUnaccessible();
     }
     
+    /**
+     * 检查瓦片是否是传送门
+     */
+    public boolean isTeleport() {
+        return getBooleanProperty("interteleport", false);
+    }
+    
+    /**
+     * 获取传送门的目标地图ID
+     */
+    public String getTeleportMapId() {
+        return getStringProperty("map_id", "");
+    }
+    
+    /**
+     * 获取传送门的目标X坐标（瓦片坐标）
+     */
+    public int getTeleportX() {
+        return getIntProperty("x", 0);
+    }
+    
+    /**
+     * 获取传送门的目标Y坐标（瓦片坐标）
+     */
+    public int getTeleportY() {
+        return getIntProperty("y", 0);
+    }
+    
+    /**
+     * 检查瓦片是否有定时器属性
+     */
+    public boolean hasTimer() {
+        return hasProperty("timer");
+    }
+    
+    /**
+     * 获取瓦片的定时器值（秒）
+     */
+    public int getTimer() {
+        return getIntProperty("timer", 0);
+    }
+    
+    /**
+     * 检查瓦片是否是定时器瓦片（有timer属性且unaccessible为true）
+     */
+    public boolean isTimerTile() {
+        return hasTimer() && isUnaccessible();
+    }
+    
     @Override
     public String toString() {
         return "TileProperty{" + properties + "}";

@@ -39,6 +39,9 @@ public class Tileset {
     public String getImage() { return image; }
     public void setImage(String image) { this.image = image; }
     
+    public String getSource() { return image; }
+    public void setSource(String source) { this.image = source; }
+    
     public int getImagewidth() { return imagewidth; }
     public void setImagewidth(int imagewidth) { this.imagewidth = imagewidth; }
     

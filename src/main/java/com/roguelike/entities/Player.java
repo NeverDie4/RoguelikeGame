@@ -1,20 +1,9 @@
 package com.roguelike.entities;
 
-import com.almasb.fxgl.dsl.FXGL;
-import com.almasb.fxgl.dsl.components.ProjectileComponent;
-import com.almasb.fxgl.entity.Entity;
-import com.almasb.fxgl.entity.SpawnData;
-import com.almasb.fxgl.entity.Spawns;
-import com.almasb.fxgl.entity.component.Component;
 import com.almasb.fxgl.entity.components.CollidableComponent;
-import com.almasb.fxgl.entity.components.TypeComponent;
-import com.almasb.fxgl.texture.Texture;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
 import com.roguelike.entities.components.CharacterAnimationComponent;
-import com.roguelike.physics.MovementValidator;
-import com.roguelike.physics.MovementValidator.MovementResult;
-import com.roguelike.physics.MovementValidator.MovementType;
 import com.roguelike.entities.components.AutoFireComponent;
 import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
@@ -26,14 +15,14 @@ import static com.almasb.fxgl.dsl.FXGL.*;
 
 public class Player extends EntityBase {
 
-    private final double speed = 200;
     private Rectangle hpBar;
     private Rectangle hpBarBackground;
     private StackPane hpBarContainer;
-    private int maxHP = 100;
-    private int currentHP = 100;
+    private int maxHP = 500;
+    private int currentHP = 500;
     private GameState gameState;
-    private MovementValidator movementValidator;
+    private com.roguelike.physics.OptimizedMovementValidator movementValidator;
+    private com.roguelike.map.TeleportManager teleportManager;
 
     // 动画相关
     private CharacterAnimationComponent animationComponent;
@@ -49,6 +38,13 @@ public class Player extends EntityBase {
 
         // 设置实体大小（根据GIF动画帧大小调整）
         setSize(32, 32);
+        
+        // 吸血鬼幸存者风格：设置更小的碰撞箱
+        // 视觉大小32x32，但碰撞箱只有16x16，让玩家感觉更灵活
+        getBoundingBoxComponent().clearHitBoxes();
+        getBoundingBoxComponent().addHitBox(new com.almasb.fxgl.physics.HitBox(
+            com.almasb.fxgl.physics.BoundingShape.box(32, 32)
+        ));
 
         // 初始化动画
         initializeAnimation();
@@ -98,6 +94,9 @@ public class Player extends EntityBase {
 
         // 监听血量变化事件
         GameEvent.listen(GameEvent.Type.PLAYER_HURT, e -> updateHealthBar());
+        
+        // 初始化血条显示
+        updateHealthBar();
     }
 
     private void initializeAnimation() {
@@ -119,7 +118,7 @@ public class Player extends EntityBase {
             System.out.println("玩家动画初始化完成（支持左右转向）");
 
             // 测试：3秒后强制显示第0帧
-            FXGL.runOnce(() -> {
+            runOnce(() -> {
                 //System.out.println("🧪 3秒后测试显示第0帧");
                 animationComponent.testShowFrame(0);
             }, Duration.seconds(3));
@@ -134,8 +133,16 @@ public class Player extends EntityBase {
     }
 
     public void updateHealthBar() {
+        // 从GameState获取当前血量，而不是使用Player的独立血量
+        int currentHP = gameState != null ? gameState.getPlayerHP() : this.currentHP;
+        int maxHP = gameState != null ? gameState.getPlayerMaxHP() : this.maxHP;
+        
         double ratio = maxHP <= 0 ? 0 : (double) currentHP / (double) maxHP;
-        hpBar.setWidth(44 * Math.max(0, Math.min(1, ratio)));
+        
+        // 使用动态计算的血条宽度，而不是硬编码的44像素
+        double characterWidth = getWidth();
+        double hpBarWidth = characterWidth * 1.2; // 与initHealthBar中的计算保持一致
+        hpBar.setWidth(hpBarWidth * Math.max(0, Math.min(1, ratio)));
 
         // 根据血量改变颜色，使用更丰富的颜色渐变
         if (ratio > 0.7) {
@@ -150,16 +157,20 @@ public class Player extends EntityBase {
     }
 
     public void heal(int amount) {
-        currentHP = Math.min(maxHP, currentHP + amount);
+        if (gameState != null) {
+            gameState.healPlayer(amount);
+        } else {
+            currentHP = Math.min(maxHP, currentHP + amount);
+        }
         updateHealthBar();
     }
 
     public int getCurrentHP() {
-        return currentHP;
+        return gameState != null ? gameState.getPlayerHP() : currentHP;
     }
 
     public int getMaxHP() {
-        return maxHP;
+        return gameState != null ? gameState.getPlayerMaxHP() : maxHP;
     }
 
     // 测试方法：模拟受到伤害
@@ -190,21 +201,18 @@ public class Player extends EntityBase {
             }
         }
         if (movementValidator != null) {
-            // 使用移动验证器进行碰撞检测
-            MovementResult result = movementValidator.validateAndMove(this, dx, dy);
+            // 使用优化的移动验证器进行碰撞检测，防止与敌人重叠
+            com.roguelike.physics.OptimizedMovementValidator.MovementResult result = 
+                movementValidator.validateAndMove(this, dx, dy);
 
             if (result.isSuccess()) {
                 // 移动成功
                 translate(result.getDeltaX(), result.getDeltaY());
                 GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
-
-                // 根据移动类型触发相应事件
-                if (result.getType() == MovementType.SLIDING) {
-                    GameEvent.post(new GameEvent(GameEvent.Type.MOVEMENT_SLIDING));
-                }
             } else {
-                // 移动被阻挡
-                handleMovementBlocked();
+                // 移动被阻挡，尝试强制移动（吸血鬼幸存者风格：玩家可以挤开敌人）
+                translate(dx, dy);
+                GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
             }
         } else {
             // 没有移动验证器时允许自由移动
@@ -226,7 +234,13 @@ public class Player extends EntityBase {
                 animationComponent.setDirection(currentDirection);
             }
         }
+        
+        // 检查传送门
+        if (teleportManager != null) {
+            teleportManager.checkAndTeleport(getX(), getY());
+        }
     }
+
 
     /**
      * 获取玩家当前面朝方向（单位向量）。当玩家静止时为上一次移动方向。
@@ -238,22 +252,20 @@ public class Player extends EntityBase {
     /**
      * 处理移动被阻挡的情况
      */
-    private void handleMovementBlocked() {
-        GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_HIT_WALL));
-        // 可以在这里添加音效、震动等效果
-    }
+    // 吸血鬼幸存者风格：移除移动阻挡处理方法
+    // 玩家可以自由移动，不会被阻挡
 
     /**
      * 设置移动验证器
      */
-    public void setMovementValidator(MovementValidator validator) {
+    public void setMovementValidator(com.roguelike.physics.OptimizedMovementValidator validator) {
         this.movementValidator = validator;
     }
 
     /**
      * 获取移动验证器
      */
-    public MovementValidator getMovementValidator() {
+    public com.roguelike.physics.OptimizedMovementValidator getMovementValidator() {
         return movementValidator;
     }
 
@@ -277,6 +289,27 @@ public class Player extends EntityBase {
 
     public Point2D getPositionVec() {
         return getPosition();
+    }
+    
+    /**
+     * 获取血条容器（供动画组件使用）
+     */
+    public javafx.scene.Node getHealthBarContainer() {
+        return hpBarContainer;
+    }
+
+    /**
+     * 设置传送门管理器
+     */
+    public void setTeleportManager(com.roguelike.map.TeleportManager teleportManager) {
+        this.teleportManager = teleportManager;
+    }
+
+    /**
+     * 获取传送门管理器
+     */
+    public com.roguelike.map.TeleportManager getTeleportManager() {
+        return teleportManager;
     }
 
     public static class Types {
