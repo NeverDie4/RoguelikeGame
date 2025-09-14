@@ -5,6 +5,8 @@ import com.almasb.fxgl.entity.SpawnData;
 import com.almasb.fxgl.entity.Spawns;
 import com.roguelike.core.GameState;
 import com.roguelike.utils.RandomUtils;
+import com.roguelike.entities.config.EnemyConfig;
+import com.roguelike.entities.config.EnemyConfigManager;
 import javafx.geometry.Point2D;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
@@ -14,6 +16,7 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
     private static GameState gameState;
     private static boolean initialized;
     private static InfiniteMapEnemySpawnManager infiniteMapSpawnManager;
+    private static BackgroundEnemySpawnManager backgroundSpawnManager;
 
     public static void setGameState(GameState state) {
         gameState = state;
@@ -22,6 +25,10 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
 
     public static void setInfiniteMapSpawnManager(InfiniteMapEnemySpawnManager spawnManager) {
         infiniteMapSpawnManager = spawnManager;
+    }
+    
+    public static void setBackgroundSpawnManager(BackgroundEnemySpawnManager spawnManager) {
+        backgroundSpawnManager = spawnManager;
     }
 
     @Spawns("player")
@@ -37,63 +44,80 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
 
     @Spawns("enemy")
     public Entity newEnemy(SpawnData data) {
-        // 根据游戏时间计算敌人血量（3,5,7,9分钟时血量增加）
-        int baseHP = 50;
-        int expReward = 5;
-
-        // 获取游戏时间（秒）（改用受控时间服务，避免首帧时间暴增）
-        double gameTime = com.roguelike.core.TimeService.getSeconds();
-        int minutes = (int) (gameTime / 60);
-
-        // 在3,5,7,9分钟时血量增加
-        if (minutes >= 3) baseHP += 20;
-        if (minutes >= 5) baseHP += 30;
-        if (minutes >= 7) baseHP += 40;
-        if (minutes >= 9) baseHP += 50;
-
-        // 经验值也相应增加
-        expReward += minutes / 2;
-
-        Enemy enemy = new Enemy(baseHP, expReward);
-
-        // 使用新的无限地图生成系统
-        if (infiniteMapSpawnManager != null) {
-            Entity player = getGameWorld().getEntitiesByType().stream()
-                .filter(e -> e instanceof Player).findFirst().orElse(null);
-            
-            if (player != null) {
-                Point2D playerPos = player.getCenter();
-                
-                // 使用预定的敌人尺寸 48x64
-                double enemyWidth = 48.0;
-                double enemyHeight = 64.0;
-                
-                Point2D spawnPos = infiniteMapSpawnManager.generateEnemySpawnPosition(
-                    playerPos, 
-                    enemyWidth, 
-                    enemyHeight,
-                    200.0, // 最小距离
-                    400.0  // 最大距离
-                );
-                
-                if (spawnPos != null) {
-                    enemy.setX(spawnPos.getX());
-                    enemy.setY(spawnPos.getY());
-                    return enemy;
-                }
-            }
+        // 获取敌人配置管理器
+        EnemyConfigManager configManager = EnemyConfigManager.getInstance();
+        
+        // 如果配置管理器未初始化，先初始化
+        if (!configManager.isInitialized()) {
+            configManager.initialize();
         }
         
-        // 回退到原有逻辑（如果新系统失败或未启用）
-        Entity player = getGameWorld().getEntitiesByType().stream().filter(e -> e instanceof Player).findFirst().orElse(null);
-        Point2D base = player != null ? player.getCenter() : new Point2D(getAppWidth() / 2.0, getAppHeight() / 2.0);
-        double angle = Math.toRadians(RandomUtils.nextInt(0, 359));
-        double radius = RandomUtils.nextInt(200, 400);
-        enemy.setX(base.getX() + Math.cos(angle) * radius);
-        enemy.setY(base.getY() + Math.sin(angle) * radius);
+        // 随机选择一个敌人配置
+        EnemyConfig config = configManager.getRandomEnemyConfig();
+        
+        Enemy enemy;
+        if (config != null) {
+            // 使用配置创建敌人
+            enemy = new Enemy(config);
+            
+            // 根据游戏时间调整属性（可选）
+            adjustEnemyStatsByGameTime(enemy, config);
+        } else {
+            // 回退到原有逻辑
+            System.err.println("⚠️ 无法获取敌人配置，使用默认配置");
+            int baseHP = 50;
+            int expReward = 5;
+            
+            // 获取游戏时间（秒）
+            double gameTime = com.roguelike.core.TimeService.getSeconds();
+            int minutes = (int) (gameTime / 60);
+            
+            // 在3,5,7,9分钟时血量增加
+            if (minutes >= 3) baseHP += 20;
+            if (minutes >= 5) baseHP += 30;
+            if (minutes >= 7) baseHP += 40;
+            if (minutes >= 9) baseHP += 50;
+            
+            // 经验值也相应增加
+            expReward += minutes / 2;
+            
+            enemy = new Enemy(baseHP, expReward);
+        }
 
-        // 敌人不再自动死亡，只能通过玩家攻击或碰撞死亡
+        // 设置位置（由后台生成管理器传入）
+        enemy.setX(data.getX());
+        enemy.setY(data.getY());
+
         return enemy;
+    }
+    
+    @Spawns("particle")
+    public Entity newParticle(SpawnData data) {
+        // 创建粒子实体（粒子组件会在ParticleEffectManager中添加）
+        Entity particle = new Entity();
+        particle.setX(data.getX());
+        particle.setY(data.getY());
+        return particle;
+    }
+    
+    /**
+     * 根据游戏时间调整敌人属性
+     * @param enemy 敌人实体
+     * @param config 敌人配置
+     */
+    private void adjustEnemyStatsByGameTime(Enemy enemy, EnemyConfig config) {
+        if (config == null) return;
+        
+        // 获取游戏时间（秒）
+        double gameTime = com.roguelike.core.TimeService.getSeconds();
+        int minutes = (int) (gameTime / 60);
+        
+        // 根据游戏时间调整血量（可选）
+        if (minutes >= 3) {
+            // 可以在这里调整敌人的属性，比如增加血量
+            // 由于Enemy类目前没有提供setter方法，这里先记录日志
+            System.out.println("🎯 游戏时间 " + minutes + " 分钟，敌人属性可能需要调整");
+        }
     }
 }
 

@@ -13,6 +13,9 @@ import com.roguelike.physics.OptimizedMovementValidator.MovementResult;
 import com.roguelike.physics.OptimizedMovementValidator.MovementType;
 import com.roguelike.utils.AdaptivePathfinder;
 import com.roguelike.utils.AdaptivePathfinder.PathfindingType;
+import com.roguelike.entities.config.EnemyConfig;
+import com.roguelike.entities.effects.ParticleEffectManager;
+import com.roguelike.entities.effects.ParticleEffectConfig;
 import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -49,6 +52,9 @@ public class Enemy extends EntityBase {
 
     // 死亡状态标记
     private boolean isDead = false;
+    
+    // 敌人配置引用（用于死亡效果）
+    private EnemyConfig enemyConfig;
 
     public Enemy() {
         // 添加碰撞组件
@@ -70,6 +76,65 @@ public class Enemy extends EntityBase {
 
 
     }
+    
+    /**
+     * 设置碰撞箱
+     * @param collision 碰撞配置
+     */
+    private void setupCollisionBox(EnemyConfig.EnemyCollision collision) {
+        if (collision != null) {
+            // 清除默认碰撞箱
+            getBoundingBoxComponent().clearHitBoxes();
+            
+            // 添加自定义碰撞箱
+            getBoundingBoxComponent().addHitBox(new com.almasb.fxgl.physics.HitBox(
+                com.almasb.fxgl.physics.BoundingShape.box(collision.getWidth(), collision.getHeight())
+            ));
+            
+            // 设置碰撞箱偏移
+            if (collision.getOffsetX() != 0 || collision.getOffsetY() != 0) {
+                // 注意：FXGL的HitBox偏移可能需要通过其他方式实现
+                // 这里先记录偏移值，后续可能需要调整
+                System.out.println("碰撞箱偏移: (" + collision.getOffsetX() + ", " + collision.getOffsetY() + ")");
+            }
+        }
+    }
+    
+    /**
+     * 基于配置初始化动画
+     * @param config 敌人配置
+     */
+    private void initializeAnimationFromConfig(EnemyConfig config) {
+        try {
+            // 初始化动画组件
+            animationComponent = new CharacterAnimationComponent();
+            addComponent(animationComponent);
+            
+            EnemyConfig.EnemyAnimations animConfig = config.getAnimations();
+            
+            // 加载敌人行走动画帧
+            animationComponent.loadPngAnimationFrames(
+                animConfig.getTexturePath(),
+                animConfig.getWalkFrames(),
+                animConfig.getWalkPattern(),
+                animConfig.getAnimationWidth(),
+                animConfig.getAnimationHeight()
+            );
+            
+            // 死亡动画已移除，改用粒子效果
+            
+            // 设置动画参数
+            animationComponent.setFrameDuration(animConfig.getFrameDuration());
+            animationComponent.setLooping(true);
+            
+        } catch (Exception e) {
+            System.err.println("敌人动画初始化失败: " + e.getMessage());
+            e.printStackTrace();
+            
+            // 如果动画加载失败，使用备用矩形显示
+            getViewComponent().addChild(new Rectangle(64, 64, Color.CRIMSON));
+        }
+    }
 
     private void initializeAnimation() {
         try {
@@ -80,8 +145,7 @@ public class Enemy extends EntityBase {
             // 加载敌人行走动画帧（10帧PNG图片）
             animationComponent.loadPngAnimationFrames("assets/textures/enemy", 10, "enemy_walk_%02d.png");
 
-            // 加载敌人死亡动画帧（11帧PNG图片）
-            animationComponent.loadDeathAnimationFrames("assets/textures/enemy", 11, "die_%04d.png");
+            // 死亡动画已移除，改用粒子效果
 
             // 设置动画参数
             animationComponent.setFrameDuration(0.15); // 每帧150毫秒，比玩家稍快
@@ -101,6 +165,42 @@ public class Enemy extends EntityBase {
         this.maxHP = hp;
         this.currentHP = hp;
         this.expReward = expReward;
+    }
+    
+    /**
+     * 基于配置创建敌人
+     * @param config 敌人配置
+     */
+    public Enemy(EnemyConfig config) {
+        if (config == null) {
+            throw new IllegalArgumentException("敌人配置不能为空");
+        }
+        
+        // 添加碰撞组件
+        addComponent(new CollidableComponent(true));
+        
+        // 从配置设置属性
+        this.maxHP = config.getStats().getMaxHP();
+        this.currentHP = this.maxHP;
+        this.speed = config.getStats().getSpeed();
+        this.expReward = config.getStats().getExpReward();
+        this.enemyConfig = config; // 保存配置引用
+        
+        // 设置实体大小
+        setSize(config.getSize().getWidth(), config.getSize().getHeight());
+        
+        // 设置碰撞箱
+        setupCollisionBox(config.getCollision());
+        
+        // 初始化动画
+        initializeAnimationFromConfig(config);
+        
+        // 设置实体锚点为中心
+        getTransformComponent().setAnchoredPosition(new Point2D(0.5, 0.5));
+        
+        initenemyhpbar();
+        
+        System.out.println("✅ 基于配置创建敌人: " + config.getName() + " (ID: " + config.getId() + ")");
     }
 
     public static void resetNavigation() {
@@ -302,16 +402,11 @@ public class Enemy extends EntityBase {
 
         GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_DEATH));
 
-        // 播放死亡动画，动画完成后移除实体
-        if (animationComponent != null) {
-            animationComponent.playDeathAnimation(() -> {
-                // 死亡动画播放完成后移除实体
-                removeFromWorld();
-            });
-        } else {
-            // 如果没有动画组件，直接移除
-            removeFromWorld();
-        }
+        // 触发死亡粒子效果
+        triggerDeathEffect();
+
+        // 死亡动画已移除，直接移除实体
+        removeFromWorld();
     }
 
     public void onDeath(GameState gameState) {
@@ -324,16 +419,11 @@ public class Enemy extends EntityBase {
         }
         GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_DEATH));
 
-        // 播放死亡动画，动画完成后移除实体
-        if (animationComponent != null) {
-            animationComponent.playDeathAnimation(() -> {
-                // 死亡动画播放完成后移除实体
-                removeFromWorld();
-            });
-        } else {
-            // 如果没有动画组件，直接移除
-            removeFromWorld();
-        }
+        // 触发死亡粒子效果
+        triggerDeathEffect();
+
+        // 死亡动画已移除，直接移除实体
+        removeFromWorld();
     }
 
     public int getCurrentHP() {
@@ -346,6 +436,75 @@ public class Enemy extends EntityBase {
 
     public boolean isAlive() {
         return currentHP > 0 && !isDead;
+    }
+    
+    /**
+     * 获取敌人攻击力
+     */
+    public int getAttack() {
+        // 这里可以从配置中获取，暂时返回默认值
+        return 10;
+    }
+    
+    /**
+     * 获取敌人防御力
+     */
+    public int getDefense() {
+        // 这里可以从配置中获取，暂时返回默认值
+        return 5;
+    }
+    
+    /**
+     * 获取敌人命中率
+     */
+    public int getAccuracy() {
+        // 这里可以从配置中获取，暂时返回默认值
+        return 70;
+    }
+    
+    /**
+     * 获取敌人速度
+     */
+    public double getSpeed() {
+        return speed;
+    }
+    
+    /**
+     * 获取经验奖励
+     */
+    public int getExpReward() {
+        return expReward;
+    }
+    
+    /**
+     * 触发死亡粒子效果
+     */
+    private void triggerDeathEffect() {
+        if (enemyConfig != null && enemyConfig.getDeathEffect() != null) {
+            EnemyConfig.EnemyDeathEffect deathEffect = enemyConfig.getDeathEffect();
+            
+            // 创建粒子效果配置
+            ParticleEffectConfig effectConfig = new ParticleEffectConfig();
+            effectConfig.setType(deathEffect.getEffectType());
+            effectConfig.setParticleCount(deathEffect.getParticleCount());
+            effectConfig.setDuration(deathEffect.getDuration());
+            effectConfig.setColors(deathEffect.getColors());
+            effectConfig.setSize(deathEffect.getSize());
+            effectConfig.setSpeed(deathEffect.getSpeed());
+            effectConfig.setGravity(deathEffect.getGravity());
+            effectConfig.setSpread(deathEffect.getSpread());
+            effectConfig.setFadeOut(deathEffect.isFadeOut());
+            effectConfig.setFadeOutDuration(deathEffect.getFadeOutDuration());
+            
+            // 在敌人位置创建粒子效果
+            ParticleEffectManager.getInstance().createEffect(effectConfig, getX(), getY());
+            
+            System.out.println("🎆 触发敌人死亡粒子效果: " + enemyConfig.getName() + " - " + deathEffect.getEffectType());
+        } else {
+            // 使用默认爆炸效果
+            ParticleEffectManager.getInstance().createEffect("explosion", getX(), getY());
+            System.out.println("🎆 使用默认爆炸效果");
+        }
     }
 
     /**

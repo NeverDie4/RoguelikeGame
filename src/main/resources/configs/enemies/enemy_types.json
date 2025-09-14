@@ -1,0 +1,214 @@
+{
+  "enemyTypes": [
+    {
+      "id": "goblin",
+      "name": "哥布林",
+      "stats": {
+        "maxHP": 30,
+        "attack": 8,
+        "defense": 2,
+        "accuracy": 75,
+        "speed": 120,
+        "expReward": 5
+      },
+      "size": {
+        "width": 32,
+        "height": 32
+      },
+      "animations": {
+        "walkFrames": 10,
+        "frameDuration": 0.15,
+        "texturePath": "assets/textures/enemy",
+        "walkPattern": "enemy_walk_%02d.png",
+        "animationWidth": 32,
+        "animationHeight": 32
+      },
+      "collision": {
+        "width": 24,
+        "height": 24,
+        "offsetX": 4,
+        "offsetY": 4
+      },
+      "deathEffect": {
+        "effectType": "explosion",
+        "particleCount": 15,
+        "duration": 0.8,
+        "colors": ["#FF0000", "#FFA500", "#FFFF00"],
+        "size": 3.0,
+        "speed": 120.0,
+        "gravity": 50.0,
+        "spread": 6.28,
+        "fadeOut": true,
+        "fadeOutDuration": 0.6
+      }
+    },
+    {
+      "id": "orc",
+      "name": "兽人",
+      "stats": {
+        "maxHP": 80,
+        "attack": 18,
+        "defense": 8,
+        "accuracy": 65,
+        "speed": 90,
+        "expReward": 15
+      },
+      "size": {
+        "width": 48,
+        "height": 64
+      },
+      "animations": {
+        "walkFrames": 4,
+        "frameDuration": 0.2,
+        "texturePath": "assets/textures/enemy/orc",
+        "walkPattern": "orc_walk_%02d.png",
+        "animationWidth": 64,
+        "animationHeight": 64
+      },
+      "collision": {
+        "width": 48,
+        "height": 48,
+        "offsetX": 8,
+        "offsetY": 8
+      },
+      "deathEffect": {
+        "effectType": "blood",
+        "particleCount": 20,
+        "duration": 1.0,
+        "colors": ["#8B0000", "#DC143C", "#FF0000"],
+        "size": 4.0,
+        "speed": 100.0,
+        "gravity": 80.0,
+        "spread": 4.71,
+        "fadeOut": true,
+        "fadeOutDuration": 0.7
+      }
+    },
+    {
+      "id": "skeleton",
+      "name": "骷髅",
+      "stats": {
+        "maxHP": 50,
+        "attack": 12,
+        "defense": 4,
+        "accuracy": 70,
+        "speed": 100,
+        "expReward": 8
+      },
+      "size": {
+        "width": 40,
+        "height": 48
+      },
+      "animations": {
+        "walkFrames": 12,
+        "frameDuration": 0.12,
+        "texturePath": "assets/textures/enemy/skeleton",
+        "walkPattern": "skeleton_walk_%02d.png",
+        "animationWidth": 40,
+        "animationHeight": 48
+      },
+      "collision": {
+        "width": 32,
+        "height": 40,
+        "offsetX": 4,
+        "offsetY": 4
+      },
+      "deathEffect": {
+        "effectType": "smoke",
+        "particleCount": 12,
+        "duration": 1.5,
+        "colors": ["#808080", "#A0A0A0", "#C0C0C0"],
+        "size": 5.0,
+        "speed": 70.0,
+        "gravity": -25.0,
+        "spread": 4.71,
+        "fadeOut": true,
+        "fadeOutDuration": 1.2
+      }
+    },
+    {
+      "id": "troll",
+      "name": "巨魔",
+      "stats": {
+        "maxHP": 150,
+        "attack": 25,
+        "defense": 12,
+        "accuracy": 60,
+        "speed": 70,
+        "expReward": 30
+      },
+      "size": {
+        "width": 64,
+        "height": 80
+      },
+      "animations": {
+        "walkFrames": 6,
+        "frameDuration": 0.25,
+        "texturePath": "assets/textures/enemy/troll",
+        "walkPattern": "troll_walk_%02d.png",
+        "animationWidth": 64,
+        "animationHeight": 80
+      },
+      "collision": {
+        "width": 48,
+        "height": 64,
+        "offsetX": 8,
+        "offsetY": 8
+      },
+      "deathEffect": {
+        "effectType": "explosion",
+        "particleCount": 25,
+        "duration": 1.2,
+        "colors": ["#8B0000", "#FF4500", "#FFD700"],
+        "size": 5.0,
+        "speed": 150.0,
+        "gravity": 60.0,
+        "spread": 6.28,
+        "fadeOut": true,
+        "fadeOutDuration": 0.8
+      }
+    },
+    {
+      "id": "dragon",
+      "name": "龙",
+      "stats": {
+        "maxHP": 300,
+        "attack": 40,
+        "defense": 20,
+        "accuracy": 80,
+        "speed": 60,
+        "expReward": 100
+      },
+      "size": {
+        "width": 96,
+        "height": 96
+      },
+      "animations": {
+        "walkFrames": 8,
+        "frameDuration": 0.3,
+        "texturePath": "assets/textures/enemy/dragon",
+        "walkPattern": "dragon_walk_%02d.png",
+        "animationWidth": 96,
+        "animationHeight": 96
+      },
+      "collision": {
+        "width": 80,
+        "height": 80,
+        "offsetX": 8,
+        "offsetY": 8
+      },
+      "deathEffect": {
+        "effectType": "magic",
+        "particleCount": 30,
+        "duration": 2.0,
+        "colors": ["#8A2BE2", "#9370DB", "#BA55D3", "#FFD700"],
+        "size": 6.0,
+        "speed": 120.0,
+        "gravity": -15.0,
+        "spread": 6.28,
+        "fadeOut": true,
+        "fadeOutDuration": 1.5
+      }
+    }
+  ]
+}

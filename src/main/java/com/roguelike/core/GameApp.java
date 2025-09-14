@@ -8,13 +8,13 @@ import com.almasb.fxgl.entity.SpawnData;
 import com.almasb.fxgl.input.UserAction;
 import com.roguelike.entities.Player;
 import com.roguelike.entities.InfiniteMapEnemySpawnManager;
+import com.roguelike.entities.BackgroundEnemySpawnManager;
 import com.roguelike.map.MapRenderer;
 import com.roguelike.map.InfiniteMapManager;
 import com.roguelike.physics.MapCollisionDetector;
 import com.roguelike.physics.OptimizedMovementValidator;
 import com.roguelike.physics.CollisionManager;
 import com.roguelike.utils.AdaptivePathfinder;
-import com.roguelike.core.EventBatchingManager;
 import com.roguelike.ui.GameHUD;
 import com.roguelike.ui.Menus;
 import com.roguelike.ui.LoadingOverlay;
@@ -52,6 +52,7 @@ public class GameApp extends GameApplication {
     private AdaptivePathfinder adaptivePathfinder;
     private EventBatchingManager eventBatchingManager;
     private InfiniteMapEnemySpawnManager infiniteMapEnemySpawnManager;
+    private BackgroundEnemySpawnManager backgroundEnemySpawnManager;
     private double enemySpawnAccumulator = 0.0;
     private static final double ENEMY_SPAWN_INTERVAL = 0.5;
     private static boolean INPUT_BOUND = false;
@@ -70,7 +71,7 @@ public class GameApp extends GameApplication {
     
     // 调试配置
     public static boolean DEBUG_MODE = false; // 调试模式开关
-    public static boolean BULLET_DAMAGE_ENABLED = false; // 子弹伤害开关
+    public static boolean BULLET_DAMAGE_ENABLED = true; // 子弹伤害开关
     
     // 碰撞系统调试配置
     public static boolean COLLISION_DEBUG_MODE = false; // 碰撞调试模式
@@ -130,6 +131,12 @@ public class GameApp extends GameApplication {
             infiniteMapEnemySpawnManager = new InfiniteMapEnemySpawnManager(infiniteMapManager);
             com.roguelike.entities.EntityFactory.setInfiniteMapSpawnManager(infiniteMapEnemySpawnManager);
             System.out.println("🎯 无限地图敌人生成器已启用");
+            
+            // 初始化后台敌人生成管理器
+            backgroundEnemySpawnManager = new BackgroundEnemySpawnManager();
+            backgroundEnemySpawnManager.setInfiniteMapSpawnManager(infiniteMapEnemySpawnManager);
+            com.roguelike.entities.EntityFactory.setBackgroundSpawnManager(backgroundEnemySpawnManager);
+            System.out.println("🎯 后台敌人生成管理器已启用");
         } else {
             // 使用传统地图系统
             mapRenderer = new MapRenderer(MAP_NAME);
@@ -428,6 +435,12 @@ public class GameApp extends GameApplication {
                 gameHUD.resumeTime();
             }
             gameReady = true;
+            
+            // 启动后台敌人生成
+            if (backgroundEnemySpawnManager != null) {
+                backgroundEnemySpawnManager.startSpawning();
+                System.out.println("🚀 后台敌人生成已启动");
+            }
         });
     }
 
@@ -762,6 +775,9 @@ public class GameApp extends GameApplication {
         }
         
         // 清理敌人生成管理器资源
+        if (backgroundEnemySpawnManager != null) {
+            backgroundEnemySpawnManager.stopSpawning();
+        }
         if (infiniteMapEnemySpawnManager != null) {
             infiniteMapEnemySpawnManager.shutdown();
         }
@@ -774,6 +790,10 @@ public class GameApp extends GameApplication {
      * 清理游戏资源
      */
     public void cleanup() {
+        if (backgroundEnemySpawnManager != null) {
+            backgroundEnemySpawnManager.shutdown();
+            backgroundEnemySpawnManager = null;
+        }
         if (infiniteMapEnemySpawnManager != null) {
             infiniteMapEnemySpawnManager.shutdown();
             infiniteMapEnemySpawnManager = null;

@@ -1,8 +1,11 @@
 module com.roguelike.main {
     requires javafx.controls;
     requires javafx.fxml;
+    requires javafx.graphics;
+    requires javafx.base;
     requires java.xml;
     requires java.logging;
+    requires com.google.gson;
 
     requires com.almasb.fxgl.all;
 
@@ -15,6 +18,7 @@ module com.roguelike.main {
 
     exports com.roguelike.core;
     exports com.roguelike.entities to com.almasb.fxgl.core;
+    exports com.roguelike.entities.config;
     exports com.roguelike.map to com.almasb.fxgl.all;
     exports com.roguelike.physics;
     exports com.roguelike.ui;
