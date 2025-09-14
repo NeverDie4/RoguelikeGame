@@ -11,6 +11,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -71,49 +72,67 @@ public class OptionsMenu {
         System.out.println("当前在游戏场景，开始创建设置菜单");
         isShowing = true;
         
-        // 创建覆盖层
+        // 创建覆盖层 - 增强版本，完全阻止底层交互
         overlay = new StackPane();
         overlay.setStyle(
             "-fx-background-color: rgba(0, 0, 0, 0.7);"
         );
         
-        // 设置覆盖层填满整个场景
+        // 设置覆盖层填满整个场景 - 确保完全覆盖
         overlay.setPrefSize(FXGL.getAppWidth(), FXGL.getAppHeight());
         overlay.setMaxSize(FXGL.getAppWidth(), FXGL.getAppHeight());
+        overlay.setMinSize(FXGL.getAppWidth(), FXGL.getAppHeight());
+        
+        // 添加鼠标事件处理，确保覆盖层能够拦截所有鼠标事件
+        overlay.setOnMouseClicked(e -> {
+            // 点击覆盖层背景时不关闭菜单，保持菜单显示
+            e.consume();
+        });
+        
+        // 阻止所有鼠标事件传播到底层
+        overlay.setOnMousePressed(e -> e.consume());
+        overlay.setOnMouseReleased(e -> e.consume());
+        overlay.setOnMouseMoved(e -> e.consume());
+        overlay.setOnMouseDragged(e -> e.consume());
+        overlay.setOnMouseEntered(e -> e.consume());
+        overlay.setOnMouseExited(e -> e.consume());
         
         // 创建设置菜单容器
         VBox menuContainer = new VBox(20);
         menuContainer.setAlignment(Pos.CENTER);
         menuContainer.setPadding(new Insets(40));
         
-        // 设置菜单容器样式
+        // 设置菜单容器样式 - 暗黑风格
         menuContainer.setStyle(
             "-fx-background-color: linear-gradient(to bottom right, " +
-            "rgba(12, 76, 76, 0.95), " +
-            "rgba(20, 99, 99, 0.9), " +
-            "rgba(30, 132, 132, 0.95), " +
-            "rgba(12, 76, 76, 0.98)); " +
-            "-fx-background-radius: 20; " +
+            "rgba(20, 20, 25, 0.95), " +
+            "rgba(15, 15, 20, 0.9), " +
+            "rgba(25, 25, 30, 0.95), " +
+            "rgba(10, 10, 15, 0.98)); " +
+            "-fx-background-radius: 0; " +
             "-fx-border-color: linear-gradient(to bottom right, " +
-            "rgba(45, 212, 191, 0.8), " +
-            "rgba(16, 185, 129, 0.6), " +
-            "rgba(45, 212, 191, 0.8)); " +
+            "rgba(60, 60, 65, 0.8), " +
+            "rgba(40, 40, 45, 0.6), " +
+            "rgba(60, 60, 65, 0.8)); " +
             "-fx-border-width: 3; " +
-            "-fx-border-radius: 20; " +
-            "-fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.4), 20, 0, 0, 10);"
+            "-fx-border-radius: 0; " +
+            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 20, 0, 0, 10);"
         );
         
-        menuContainer.setMinWidth(400);
-        menuContainer.setMinHeight(500);
-        menuContainer.setMaxWidth(500);
-        menuContainer.setMaxHeight(600);
+        // 改进菜单容器的响应式尺寸设置
+        menuContainer.setMinWidth(350);
+        menuContainer.setMinHeight(450);
+        menuContainer.setMaxWidth(Region.USE_COMPUTED_SIZE);
+        menuContainer.setMaxHeight(Region.USE_COMPUTED_SIZE);
+        menuContainer.setPrefWidth(Region.USE_COMPUTED_SIZE);
+        menuContainer.setPrefHeight(Region.USE_COMPUTED_SIZE);
 
         // 标题
         Label title = new Label("游戏设置");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 28));
         title.setTextFill(Color.WHITE);
         title.setStyle(
-            "-fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.6), 15, 0, 0, 8); " +
+            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 15, 0, 0, 8); " +
             "-fx-text-alignment: center; " +
             "-fx-alignment: center;"
         );
@@ -136,7 +155,7 @@ public class OptionsMenu {
 
         // 全屏开关
         CheckBox fullscreenCheckBox = new CheckBox("全屏模式");
-        fullscreenCheckBox.setSelected(false);
+        fullscreenCheckBox.setSelected(FXGL.getPrimaryStage().isFullScreen());
         fullscreenCheckBox.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 14));
         fullscreenCheckBox.setTextFill(Color.WHITE);
         fullscreenCheckBox.setStyle(
@@ -151,7 +170,20 @@ public class OptionsMenu {
 
         // 应用按钮
         Button applyButton = createStyledButton("应用设置", () -> {
-            // 这里可以添加应用设置的逻辑
+            // 应用全屏设置
+            try {
+                if (fullscreenCheckBox.isSelected()) {
+                    // 切换到全屏模式
+                    FXGL.getPrimaryStage().setFullScreen(true);
+                    System.out.println("已应用全屏模式设置");
+                } else {
+                    // 切换到窗口模式
+                    FXGL.getPrimaryStage().setFullScreen(false);
+                    System.out.println("已应用窗口模式设置");
+                }
+            } catch (Exception e) {
+                System.out.println("应用全屏设置时出错: " + e.getMessage());
+            }
             System.out.println("应用设置");
             hide();
         });
@@ -176,14 +208,41 @@ public class OptionsMenu {
         FXGL.getGameScene().getRoot().getChildren().add(overlay);
         System.out.println("设置菜单已添加到游戏场景");
         
-        // 确保覆盖层在最顶层
-        overlay.setViewOrder(-1000);
+        // 确保覆盖层在最顶层 - 使用更高的优先级
+        overlay.setViewOrder(-2000);
         overlay.toFront();
         System.out.println("设置菜单已设置到最顶层");
         
         // 添加进入动画
         addEnterAnimation(menuContainer);
         System.out.println("设置菜单显示完成");
+    }
+
+    /**
+     * 强制清理所有覆盖层，用于游戏重新开始时
+     */
+    public static void forceCleanup() {
+        System.out.println("强制清理设置菜单覆盖层...");
+        isShowing = false;
+        if (overlay != null) {
+            try {
+                // 尝试从主舞台场景移除
+                if (FXGL.getPrimaryStage().getScene() != null && 
+                    FXGL.getPrimaryStage().getScene().getRoot() instanceof Pane) {
+                    ((Pane) FXGL.getPrimaryStage().getScene().getRoot()).getChildren().remove(overlay);
+                    System.out.println("设置菜单已从主菜单场景强制移除");
+                }
+                
+                // 尝试从游戏场景移除
+                if (FXGL.getGameScene() != null && FXGL.getGameScene().getRoot() != null) {
+                    FXGL.getGameScene().getRoot().getChildren().remove(overlay);
+                    System.out.println("设置菜单已从游戏场景强制移除");
+                }
+            } catch (Exception e) {
+                System.out.println("强制清理设置菜单时出错: " + e.getMessage());
+            }
+            overlay = null;
+        }
     }
 
     public static void hide() {
@@ -225,52 +284,58 @@ public class OptionsMenu {
 
     private static Button createStyledButton(String text, Runnable action) {
         Button button = new Button(text);
-        button.setPrefWidth(150);
-        button.setPrefHeight(45);
-        button.setFont(Font.font("Segoe UI", FontWeight.BOLD, 14));
+        // 改进按钮的响应式尺寸设置
+        button.setPrefWidth(Region.USE_COMPUTED_SIZE);
+        button.setPrefHeight(Region.USE_COMPUTED_SIZE);
+        button.setMinWidth(120);
+        button.setMinHeight(40);
+        button.setMaxWidth(Region.USE_COMPUTED_SIZE);
+        button.setMaxHeight(Region.USE_COMPUTED_SIZE);
+        button.setFont(Font.font("Consolas", FontWeight.BOLD, 18));
         button.setTextFill(Color.WHITE);
+        button.setPadding(new Insets(10, 20, 10, 20));
         
-        // 应用按钮样式
+        // 应用按钮样式 - 暗黑风格
         button.setStyle(
             "-fx-background-color: linear-gradient(to bottom, " +
-            "rgba(45, 212, 191, 0.8), " +
-            "rgba(16, 185, 129, 0.6)); " +
-            "-fx-background-radius: 15; " +
-            "-fx-border-color: rgba(45, 212, 191, 0.9); " +
-            "-fx-border-width: 2; " +
-            "-fx-border-radius: 15; " +
-            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 6, 0, 0, 3); " +
+            "rgba(30, 30, 35, 0.95), " +
+            "rgba(15, 15, 20, 1.0)); " +
+            "-fx-background-radius: 0; " +
+            "-fx-border-color: rgba(60, 60, 65, 1.0); " +
+            "-fx-border-width: 3; " +
+            "-fx-border-radius: 0; " +
+            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.9), 8, 0, 0, 4); " +
             "-fx-cursor: hand;"
         );
 
-        // 悬停效果
+        // 悬停效果 - 暗黑风格
         button.setOnMouseEntered(e -> {
             button.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, " +
-                "rgba(45, 212, 191, 1.0), " +
-                "rgba(16, 185, 129, 0.8)); " +
-                "-fx-background-radius: 15; " +
-                "-fx-border-color: rgba(45, 212, 191, 1.0); " +
-                "-fx-border-width: 2; " +
-                "-fx-border-radius: 15; " +
-                "-fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.8), 10, 0, 0, 5); " +
-                "-fx-scale-x: 1.05; " +
-                "-fx-scale-y: 1.05; " +
+                "rgba(50, 50, 55, 1.0), " +
+                "rgba(35, 35, 40, 1.0)); " +
+                "-fx-background-radius: 0; " +
+                "-fx-border-color: rgba(80, 80, 85, 1.0); " +
+                "-fx-border-width: 3; " +
+                "-fx-border-radius: 0; " +
+                "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 1.0), 10, 0, 0, 5); " +
+                "-fx-scale-x: 1.02; " +
+                "-fx-scale-y: 1.02; " +
                 "-fx-cursor: hand;"
             );
         });
 
-        // 鼠标离开效果
+        // 鼠标离开效果 - 暗黑风格
         button.setOnMouseExited(e -> {
             button.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, " +
-                "rgba(45, 212, 191, 0.8), " +
-                "rgba(16, 185, 129, 0.6)); " +
-                "-fx-background-radius: 15; " +
-                "-fx-border-color: rgba(45, 212, 191, 0.9); " +
-                "-fx-border-width: 2; " +
-                "-fx-border-radius: 15; " +
-                "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 6, 0, 0, 3); " +
+                "rgba(30, 30, 35, 0.95), " +
+                "rgba(15, 15, 20, 1.0)); " +
+                "-fx-background-radius: 0; " +
+                "-fx-border-color: rgba(60, 60, 65, 1.0); " +
+                "-fx-border-width: 3; " +
+                "-fx-border-radius: 0; " +
+                "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.9), 8, 0, 0, 4); " +
                 "-fx-cursor: hand;"
             );
         });
@@ -410,49 +475,67 @@ public class OptionsMenu {
         
         isShowing = true;
         
-        // 创建覆盖层
+        // 创建覆盖层 - 增强版本，完全阻止底层交互
         overlay = new StackPane();
         overlay.setStyle(
             "-fx-background-color: rgba(0, 0, 0, 0.7);"
         );
         
-        // 设置覆盖层填满整个场景
+        // 设置覆盖层填满整个场景 - 确保完全覆盖
         overlay.setPrefSize(FXGL.getAppWidth(), FXGL.getAppHeight());
         overlay.setMaxSize(FXGL.getAppWidth(), FXGL.getAppHeight());
+        overlay.setMinSize(FXGL.getAppWidth(), FXGL.getAppHeight());
+        
+        // 添加鼠标事件处理，确保覆盖层能够拦截所有鼠标事件
+        overlay.setOnMouseClicked(e -> {
+            // 点击覆盖层背景时不关闭菜单，保持菜单显示
+            e.consume();
+        });
+        
+        // 阻止所有鼠标事件传播到底层
+        overlay.setOnMousePressed(e -> e.consume());
+        overlay.setOnMouseReleased(e -> e.consume());
+        overlay.setOnMouseMoved(e -> e.consume());
+        overlay.setOnMouseDragged(e -> e.consume());
+        overlay.setOnMouseEntered(e -> e.consume());
+        overlay.setOnMouseExited(e -> e.consume());
         
         // 创建设置菜单容器
         VBox menuContainer = new VBox(20);
         menuContainer.setAlignment(Pos.CENTER);
         menuContainer.setPadding(new Insets(40));
         
-        // 设置菜单容器样式
+        // 设置菜单容器样式 - 暗黑风格
         menuContainer.setStyle(
             "-fx-background-color: linear-gradient(to bottom right, " +
-            "rgba(12, 76, 76, 0.95), " +
-            "rgba(20, 99, 99, 0.9), " +
-            "rgba(30, 132, 132, 0.95), " +
-            "rgba(12, 76, 76, 0.98)); " +
-            "-fx-background-radius: 20; " +
+            "rgba(20, 20, 25, 0.95), " +
+            "rgba(15, 15, 20, 0.9), " +
+            "rgba(25, 25, 30, 0.95), " +
+            "rgba(10, 10, 15, 0.98)); " +
+            "-fx-background-radius: 0; " +
             "-fx-border-color: linear-gradient(to bottom right, " +
-            "rgba(45, 212, 191, 0.8), " +
-            "rgba(16, 185, 129, 0.6), " +
-            "rgba(45, 212, 191, 0.8)); " +
+            "rgba(60, 60, 65, 0.8), " +
+            "rgba(40, 40, 45, 0.6), " +
+            "rgba(60, 60, 65, 0.8)); " +
             "-fx-border-width: 3; " +
-            "-fx-border-radius: 20; " +
-            "-fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.4), 20, 0, 0, 10);"
+            "-fx-border-radius: 0; " +
+            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 20, 0, 0, 10);"
         );
         
-        menuContainer.setMinWidth(400);
-        menuContainer.setMinHeight(500);
-        menuContainer.setMaxWidth(500);
-        menuContainer.setMaxHeight(600);
+        // 改进菜单容器的响应式尺寸设置
+        menuContainer.setMinWidth(350);
+        menuContainer.setMinHeight(450);
+        menuContainer.setMaxWidth(Region.USE_COMPUTED_SIZE);
+        menuContainer.setMaxHeight(Region.USE_COMPUTED_SIZE);
+        menuContainer.setPrefWidth(Region.USE_COMPUTED_SIZE);
+        menuContainer.setPrefHeight(Region.USE_COMPUTED_SIZE);
 
         // 标题
         Label title = new Label("游戏设置");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 28));
         title.setTextFill(Color.WHITE);
         title.setStyle(
-            "-fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.6), 15, 0, 0, 8); " +
+            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 15, 0, 0, 8); " +
             "-fx-text-alignment: center; " +
             "-fx-alignment: center;"
         );
@@ -475,7 +558,7 @@ public class OptionsMenu {
 
         // 全屏开关
         CheckBox fullscreenCheckBox = new CheckBox("全屏模式");
-        fullscreenCheckBox.setSelected(false);
+        fullscreenCheckBox.setSelected(FXGL.getPrimaryStage().isFullScreen());
         fullscreenCheckBox.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 14));
         fullscreenCheckBox.setTextFill(Color.WHITE);
         fullscreenCheckBox.setStyle(
@@ -490,7 +573,20 @@ public class OptionsMenu {
 
         // 应用按钮
         Button applyButton = createStyledButton("应用设置", () -> {
-            // 这里可以添加应用设置的逻辑
+            // 应用全屏设置
+            try {
+                if (fullscreenCheckBox.isSelected()) {
+                    // 切换到全屏模式
+                    FXGL.getPrimaryStage().setFullScreen(true);
+                    System.out.println("已应用全屏模式设置");
+                } else {
+                    // 切换到窗口模式
+                    FXGL.getPrimaryStage().setFullScreen(false);
+                    System.out.println("已应用窗口模式设置");
+                }
+            } catch (Exception e) {
+                System.out.println("应用全屏设置时出错: " + e.getMessage());
+            }
             System.out.println("应用设置");
             hide();
         });
@@ -510,7 +606,7 @@ public class OptionsMenu {
 
         menuContainer.getChildren().addAll(title, optionsContainer, buttonContainer);
         overlay.getChildren().add(menuContainer);
-
+        overlay.setAlignment(Pos.CENTER);
         // 添加到主菜单场景
         try {
             // 使用主舞台的场景
@@ -527,8 +623,8 @@ public class OptionsMenu {
             return;
         }
         
-        // 确保覆盖层在最顶层
-        overlay.setViewOrder(-1000);
+        // 确保覆盖层在最顶层 - 使用更高的优先级
+        overlay.setViewOrder(-2000);
         overlay.toFront();
         System.out.println("设置菜单已设置到最顶层");
         

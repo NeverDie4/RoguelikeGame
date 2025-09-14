@@ -69,3 +69,4 @@ public class AudioExample {
         System.out.println("背景音乐启用: " + audioManager.isMusicEnabled());
     }
 }
+

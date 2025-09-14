@@ -8,7 +8,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -23,48 +22,71 @@ public class CustomGameMenu extends FXGLMenu {
 
     public CustomGameMenu() {
         super(MenuType.GAME_MENU);
+        System.out.println("暂停菜单类已创建，等待用户按ESC键显示");
+        // 当暂停菜单创建时，暂停游戏时间
+        com.roguelike.core.TimeService.pause();
+        System.out.println("暂停菜单显示，游戏时间已暂停");
+        System.out.println("开始初始化自定义游戏菜单...");
         initCustomGameMenu();
+        System.out.println("自定义游戏菜单初始化完成");
     }
 
     private void initCustomGameMenu() {
-        // 背景将由StackPane处理
-
-        // 创建菜单容器 - 完全适应窗口大小
+        System.out.println("开始初始化自定义游戏菜单...");
+        
+        // 创建根节点StackPane，用于背景和菜单的层叠
+        StackPane rootContainer = new StackPane();
+        
+        // 关键修复：设置覆盖层填满整个游戏场景
+        rootContainer.setPrefSize(com.almasb.fxgl.dsl.FXGL.getAppWidth(), com.almasb.fxgl.dsl.FXGL.getAppHeight());
+        rootContainer.setMaxSize(com.almasb.fxgl.dsl.FXGL.getAppWidth(), com.almasb.fxgl.dsl.FXGL.getAppHeight());
+        rootContainer.setMinSize(com.almasb.fxgl.dsl.FXGL.getAppWidth(), com.almasb.fxgl.dsl.FXGL.getAppHeight());
+        
+        // 创建游戏变暗背景遮罩 - 更深的半透明黑色，让游戏背景变暗
+        rootContainer.setStyle(
+            "-fx-background-color: rgba(0, 0, 0, 0.8);"
+        );
+        
+        // 创建菜单容器 - 固定尺寸
         VBox menuContainer = new VBox(20);
         menuContainer.setAlignment(Pos.CENTER);
         menuContainer.setPadding(new Insets(50));
         
-        // 设置菜单容器完全适应窗口
-        menuContainer.setPrefWidth(Region.USE_COMPUTED_SIZE);
-        menuContainer.setPrefHeight(Region.USE_COMPUTED_SIZE);
-        menuContainer.setMaxWidth(Double.MAX_VALUE);
-        menuContainer.setMaxHeight(Double.MAX_VALUE);
+        // 设置菜单容器为固定尺寸
+        menuContainer.setPrefWidth(400);
+        menuContainer.setPrefHeight(500);
+        menuContainer.setMaxWidth(400);
+        menuContainer.setMaxHeight(500);
         menuContainer.setMinWidth(350);
         menuContainer.setMinHeight(450);
         
-        // 应用菜单容器样式
+        // 确保菜单容器可见
+        menuContainer.setVisible(true);
+        menuContainer.setManaged(true);
+        
+        // 应用菜单容器样式 - 暗黑风格
         menuContainer.setStyle(
             "-fx-background-color: linear-gradient(to bottom right, " +
-            "rgba(12, 76, 76, 0.9), " +
-            "rgba(20, 99, 99, 0.85), " +
-            "rgba(30, 132, 132, 0.9), " +
-            "rgba(12, 76, 76, 0.95)); " +
-            "-fx-background-radius: 25; " +
+            "rgba(20, 20, 25, 0.95), " +
+            "rgba(15, 15, 20, 0.9), " +
+            "rgba(25, 25, 30, 0.95), " +
+            "rgba(10, 10, 15, 0.98)); " +
+            "-fx-background-radius: 0; " +
             "-fx-border-color: linear-gradient(to bottom right, " +
-            "rgba(45, 212, 191, 0.8), " +
-            "rgba(16, 185, 129, 0.6), " +
-            "rgba(45, 212, 191, 0.8)); " +
+            "rgba(60, 60, 65, 0.9), " +
+            "rgba(40, 40, 45, 0.7), " +
+            "rgba(60, 60, 65, 0.9)); " +
             "-fx-border-width: 4; " +
-            "-fx-border-radius: 25; " +
-            "-fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.4), 25, 0, 0, 15);"
+            "-fx-border-radius: 0; " +
+            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 25, 0, 0, 15);"
         );
 
-        // 菜单标题 - 适应窗口大小
+        // 菜单标题
         Label title = new Label("游戏暂停");
         title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 36));
         title.setTextFill(Color.WHITE);
         title.setStyle(
-            "-fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.6), 20, 0, 0, 10); " +
+            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 20, 0, 0, 10); " +
             "-fx-text-alignment: center; " +
             "-fx-alignment: center;"
         );
@@ -77,8 +99,11 @@ public class CustomGameMenu extends FXGLMenu {
 
         // 创建菜单按钮
         Button resumeButton = createStyledButton("继续游戏", () -> {
+            System.out.println("继续游戏按钮被点击");
             // 恢复游戏时间
             com.roguelike.core.TimeService.resume();
+            System.out.println("恢复游戏，游戏时间已恢复");
+            // 调用FXGL的恢复方法
             fireResume();
         });
 
@@ -104,29 +129,30 @@ public class CustomGameMenu extends FXGLMenu {
         });
 
         buttonContainer.getChildren().addAll(resumeButton, optionsButton, mainMenuButton, exitButton);
-
         menuContainer.getChildren().addAll(title, buttonContainer);
 
-        // 使用StackPane确保菜单填满整个窗口并居中
-        StackPane fullScreenContainer = new StackPane();
-        fullScreenContainer.setStyle(
-            "-fx-background-color: linear-gradient(to bottom right, " +
-            "rgba(12, 76, 76, 0.95), " +
-            "rgba(20, 99, 99, 0.9), " +
-            "rgba(30, 132, 132, 0.95), " +
-            "rgba(12, 76, 76, 0.98));"
-        );
-        
-        // 确保菜单容器在StackPane中居中
+        // 将菜单容器添加到根容器中，并居中显示
         StackPane.setAlignment(menuContainer, Pos.CENTER);
-        fullScreenContainer.getChildren().add(menuContainer);
-        getContentRoot().getChildren().add(fullScreenContainer);
+        rootContainer.getChildren().add(menuContainer);
         
-        // 添加响应式布局支持
-        setupResponsiveLayout(menuContainer, fullScreenContainer);
+        // 使用FXGL菜单系统的正确方法：将根容器添加到菜单的内容根节点
+        getContentRoot().getChildren().add(rootContainer);
+        
+        // 设置菜单在最顶层
+        rootContainer.setViewOrder(-1000);
+        rootContainer.toFront();
+        
+        // 强制刷新显示
+        getContentRoot().requestLayout();
+        
+        // 添加调试信息
+        System.out.println("菜单已添加到内容根节点，子节点数量: " + getContentRoot().getChildren().size());
+        System.out.println("菜单容器尺寸: " + menuContainer.getPrefWidth() + "x" + menuContainer.getPrefHeight());
         
         // 添加进入动画
         addEnterAnimation(menuContainer);
+        
+        System.out.println("暂停菜单已创建并居中显示");
     }
 
     private Button createStyledButton(String text, Runnable action) {
@@ -138,67 +164,67 @@ public class CustomGameMenu extends FXGLMenu {
         button.setMinHeight(45);
         button.setMaxWidth(320);
         button.setMaxHeight(75);
-        button.setFont(Font.font("Segoe UI", FontWeight.BOLD, 15));
+        button.setFont(Font.font("Consolas", FontWeight.BOLD, 18));
         button.setTextFill(Color.WHITE);
         button.setWrapText(true);
         
-        // 应用按钮样式
+        // 应用按钮样式 - 暗黑风格
         button.setStyle(
             "-fx-background-color: linear-gradient(to bottom, " +
-            "rgba(45, 212, 191, 0.8), " +
-            "rgba(16, 185, 129, 0.6)); " +
-            "-fx-background-radius: 18; " +
-            "-fx-border-color: rgba(45, 212, 191, 0.9); " +
+            "rgba(30, 30, 35, 0.95), " +
+            "rgba(15, 15, 20, 1.0)); " +
+            "-fx-background-radius: 0; " +
+            "-fx-border-color: rgba(60, 60, 65, 1.0); " +
             "-fx-border-width: 3; " +
-            "-fx-border-radius: 18; " +
-            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 8, 0, 0, 4); " +
+            "-fx-border-radius: 0; " +
+            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.9), 8, 0, 0, 4); " +
             "-fx-cursor: hand;"
         );
 
-        // 悬停效果
+        // 悬停效果 - 暗黑风格
         button.setOnMouseEntered(e -> {
             button.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, " +
-                "rgba(45, 212, 191, 1.0), " +
-                "rgba(16, 185, 129, 0.8)); " +
-                "-fx-background-radius: 18; " +
-                "-fx-border-color: rgba(45, 212, 191, 1.0); " +
+                "rgba(50, 50, 55, 1.0), " +
+                "rgba(35, 35, 40, 1.0)); " +
+                "-fx-background-radius: 0; " +
+                "-fx-border-color: rgba(80, 80, 85, 1.0); " +
                 "-fx-border-width: 3; " +
-                "-fx-border-radius: 18; " +
-                "-fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.8), 15, 0, 0, 8); " +
-                "-fx-scale-x: 1.08; " +
-                "-fx-scale-y: 1.08; " +
+                "-fx-border-radius: 0; " +
+                "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 1.0), 10, 0, 0, 5); " +
+                "-fx-scale-x: 1.02; " +
+                "-fx-scale-y: 1.02; " +
                 "-fx-cursor: hand;"
             );
         });
 
-        // 鼠标离开效果
+        // 鼠标离开效果 - 暗黑风格
         button.setOnMouseExited(e -> {
             button.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, " +
-                "rgba(45, 212, 191, 0.8), " +
-                "rgba(16, 185, 129, 0.6)); " +
-                "-fx-background-radius: 18; " +
-                "-fx-border-color: rgba(45, 212, 191, 0.9); " +
+                "rgba(30, 30, 35, 0.95), " +
+                "rgba(15, 15, 20, 1.0)); " +
+                "-fx-background-radius: 0; " +
+                "-fx-border-color: rgba(60, 60, 65, 1.0); " +
                 "-fx-border-width: 3; " +
-                "-fx-border-radius: 18; " +
-                "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 8, 0, 0, 4); " +
+                "-fx-border-radius: 0; " +
+                "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.9), 8, 0, 0, 4); " +
                 "-fx-cursor: hand;"
             );
         });
 
-        // 点击效果
+        // 点击效果 - 暗黑风格
         button.setOnMousePressed(e -> {
             button.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, " +
-                "rgba(16, 185, 129, 0.8), " +
-                "rgba(45, 212, 191, 0.6)); " +
-                "-fx-background-radius: 18; " +
-                "-fx-border-color: rgba(45, 212, 191, 0.9); " +
+                "rgba(15, 15, 20, 1.0), " +
+                "rgba(5, 5, 10, 1.0)); " +
+                "-fx-background-radius: 0; " +
+                "-fx-border-color: rgba(40, 40, 45, 1.0); " +
                 "-fx-border-width: 3; " +
-                "-fx-border-radius: 18; " +
-                "-fx-scale-x: 0.95; " +
-                "-fx-scale-y: 0.95; " +
+                "-fx-border-radius: 0; " +
+                "-fx-scale-x: 0.98; " +
+                "-fx-scale-y: 0.98; " +
                 "-fx-cursor: hand;"
             );
         });
@@ -224,38 +250,6 @@ public class CustomGameMenu extends FXGLMenu {
         scaleIn.play();
     }
 
-    private void setupResponsiveLayout(VBox menuContainer, StackPane fullScreenContainer) {
-        // 监听窗口大小变化，调整菜单大小以完全适应窗口
-        getContentRoot().widthProperty().addListener((obs, oldVal, newVal) -> {
-            double windowWidth = newVal.doubleValue();
-            // 菜单宽度适应窗口，但保持合理的最小宽度
-            double menuWidth = Math.max(windowWidth * 0.5, 350);
-            menuContainer.setPrefWidth(menuWidth);
-            
-            // 确保全屏容器也适应窗口宽度
-            fullScreenContainer.setPrefWidth(windowWidth);
-        });
-
-        getContentRoot().heightProperty().addListener((obs, oldVal, newVal) -> {
-            double windowHeight = newVal.doubleValue();
-            // 菜单高度适应窗口，但保持合理的最小高度
-            double menuHeight = Math.max(windowHeight * 0.6, 450);
-            menuContainer.setPrefHeight(menuHeight);
-            
-            // 确保全屏容器也适应窗口高度
-            fullScreenContainer.setPrefHeight(windowHeight);
-        });
-        
-        // 初始设置
-        double initialWidth = Math.max(getContentRoot().getWidth() * 0.5, 350);
-        double initialHeight = Math.max(getContentRoot().getHeight() * 0.6, 450);
-        menuContainer.setPrefWidth(initialWidth);
-        menuContainer.setPrefHeight(initialHeight);
-        
-        // 设置全屏容器的初始大小
-        fullScreenContainer.setPrefWidth(getContentRoot().getWidth());
-        fullScreenContainer.setPrefHeight(getContentRoot().getHeight());
-    }
 
     /**
      * 自定义返回主菜单方法，绕过原来的确认机制

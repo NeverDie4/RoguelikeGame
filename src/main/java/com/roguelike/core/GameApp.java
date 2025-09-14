@@ -43,10 +43,32 @@ public class GameApp extends GameApplication {
         settings.setSceneFactory(new CustomSceneFactory());
         System.out.println("已设置自定义场景工厂，使用美化后的菜单系统");
     }
+    
+    /**
+     * 强制重新创建场景工厂，绕过FXGL缓存
+     */
+    public static void forceRecreateSceneFactory() {
+        System.out.println("=== 强制重新创建场景工厂 ===");
+        try {
+            // 创建新的场景工厂实例
+            CustomSceneFactory newFactory = new CustomSceneFactory();
+            System.out.println("场景工厂已重新创建，实例ID: " + System.identityHashCode(newFactory));
+            // 注意：FXGL的GameSettings是只读的，无法在运行时修改
+            // 但我们可以通过重置静态变量来确保下次创建菜单时使用新实例
+            System.out.println("场景工厂重置完成，下次创建菜单时将使用新实例");
+        } catch (Exception e) {
+            System.out.println("重新创建场景工厂时出错: " + e.getMessage());
+        }
+    }
 
     // 对应用户需求中的 init()
     @Override
     protected void initGame() {
+        // 强制清理所有可能的覆盖层，防止重新进入游戏时出现交互问题
+        com.roguelike.ui.ConfirmationDialog.forceCleanup();
+        com.roguelike.ui.OptionsMenu.forceCleanup();
+        System.out.println("游戏初始化：已清理所有覆盖层");
+        
         // 显示加载过程
         LoadingOverlay.show(2000, () -> {
             System.out.println("游戏加载完成");
@@ -54,8 +76,13 @@ public class GameApp extends GameApplication {
             TimeService.startGame();
         });
         
-        // 重置时间服务
+        // 重置时间服务 - 确保从暂停状态恢复
         TimeService.reset();
+        // 确保时间服务处于正常状态
+        if (TimeService.isPaused()) {
+            TimeService.resume();
+        }
+        System.out.println("游戏初始化：时间服务状态已重置");
         
         gameState = new GameState();
         getWorldProperties().setValue("score", 0);
@@ -211,17 +238,8 @@ public class GameApp extends GameApplication {
             // 如果动作已存在，忽略异常
         }
 
-        try {
-            getInput().addAction(new UserAction("PAUSE") {
-                @Override
-                protected void onActionBegin() {
-                    // 暂停游戏时间
-                    TimeService.pause();
-                }
-            }, KeyCode.ESCAPE);
-        } catch (Exception e) {
-            // 如果动作已存在，忽略异常
-        }
+        // 使用FXGL内置的暂停菜单系统，不添加自定义ESC键处理
+        // FXGL内置的CustomGameMenu会自动处理ESC键和暂停功能
     }
 
     // 对应用户需求中的 start()

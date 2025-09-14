@@ -2,12 +2,15 @@ package com.roguelike.ui;
 
 import com.almasb.fxgl.app.scene.FXGLMenu;
 import com.almasb.fxgl.app.scene.MenuType;
+import com.almasb.fxgl.dsl.FXGL;
 import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -15,6 +18,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.util.Duration;
+import java.io.InputStream;
 
 /**
  * 自定义主菜单类
@@ -27,33 +31,64 @@ public class CustomMainMenu extends FXGLMenu {
     }
 
     private void initCustomMainMenu() {
-        // 创建菜单容器 - 完全适应窗口大小
+        // 创建根节点StackPane，用于背景和菜单的层叠
+        StackPane rootContainer = new StackPane();
+        rootContainer.setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
+        rootContainer.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        
+        // 尝试加载背景图片 - 参考MapRenderer.java的加载方式
+        try {
+            // 使用Java标准资源加载方式，参考MapRenderer.java
+            String resourcePath = "assets/icons/Background.jpg";
+            InputStream imageStream = getClass().getResourceAsStream("/" + resourcePath);
+            
+            if (imageStream != null) {
+                Image backgroundImage = new Image(imageStream);
+                ImageView backgroundView = new ImageView(backgroundImage);
+                
+                // 设置背景图片覆盖整个窗口
+                backgroundView.setFitWidth(FXGL.getAppWidth());
+                backgroundView.setFitHeight(FXGL.getAppHeight());
+                backgroundView.setPreserveRatio(false);
+                backgroundView.setSmooth(true);
+                
+                // 将背景图片作为第一个子节点（最底层）
+                rootContainer.getChildren().add(0, backgroundView);
+                System.out.println("背景图片已设置为根节点，覆盖整个窗口: " + resourcePath);
+                imageStream.close();
+            } else {
+                throw new Exception("无法找到背景图片资源: /" + resourcePath);
+            }
+        } catch (Exception e) {
+            System.out.println("背景图片加载失败，使用渐变背景: " + e.getMessage());
+            // 如果背景图片加载失败，使用渐变背景
+            rootContainer.setStyle(
+                "-fx-background-color: linear-gradient(to bottom right, " +
+                "rgba(12, 76, 76, 0.95), " +
+                "rgba(20, 99, 99, 0.9), " +
+                "rgba(30, 132, 132, 0.95), " +
+                "rgba(12, 76, 76, 0.98));"
+            );
+        }
+
+        
+        // 创建菜单容器 - 固定合理尺寸
         VBox menuContainer = new VBox(20);
         menuContainer.setAlignment(Pos.CENTER);
         menuContainer.setPadding(new Insets(50));
         
-        // 设置菜单容器完全适应窗口
-        menuContainer.setPrefWidth(Region.USE_COMPUTED_SIZE);
-        menuContainer.setPrefHeight(Region.USE_COMPUTED_SIZE);
-        menuContainer.setMaxWidth(Double.MAX_VALUE);
-        menuContainer.setMaxHeight(Double.MAX_VALUE);
+        // 设置固定尺寸，避免响应式布局问题
+        menuContainer.setPrefWidth(400);
+        menuContainer.setPrefHeight(500);
+        menuContainer.setMaxWidth(400);
+        menuContainer.setMaxHeight(500);
         menuContainer.setMinWidth(350);
         menuContainer.setMinHeight(450);
         
-        // 应用菜单容器样式
+        // 应用菜单容器样式 - 透明背景，无边框
         menuContainer.setStyle(
-            "-fx-background-color: linear-gradient(to bottom right, " +
-            "rgba(12, 76, 76, 0.9), " +
-            "rgba(20, 99, 99, 0.85), " +
-            "rgba(30, 132, 132, 0.9), " +
-            "rgba(12, 76, 76, 0.95)); " +
+            "-fx-background-color: transparent; " +
             "-fx-background-radius: 25; " +
-            "-fx-border-color: linear-gradient(to bottom right, " +
-            "rgba(45, 212, 191, 0.8), " +
-            "rgba(16, 185, 129, 0.6), " +
-            "rgba(45, 212, 191, 0.8)); " +
-            "-fx-border-width: 4; " +
-            "-fx-border-radius: 25; " +
             "-fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.4), 25, 0, 0, 15);"
         );
 
@@ -106,23 +141,16 @@ public class CustomMainMenu extends FXGLMenu {
 
         menuContainer.getChildren().addAll(title, subtitle, buttonContainer);
 
-        // 使用StackPane确保菜单填满整个窗口并居中
-        StackPane fullScreenContainer = new StackPane();
-        fullScreenContainer.setStyle(
-            "-fx-background-color: linear-gradient(to bottom right, " +
-            "rgba(12, 76, 76, 0.95), " +
-            "rgba(20, 99, 99, 0.9), " +
-            "rgba(30, 132, 132, 0.95), " +
-            "rgba(12, 76, 76, 0.98));"
-        );
-        
-        // 确保菜单容器在StackPane中居中
+        // 将菜单容器添加到根容器中，并居中显示
         StackPane.setAlignment(menuContainer, Pos.CENTER);
-        fullScreenContainer.getChildren().add(menuContainer);
-        getContentRoot().getChildren().add(fullScreenContainer);
+        rootContainer.getChildren().add(menuContainer);
         
-        // 添加响应式布局支持
-        setupResponsiveLayout(menuContainer, fullScreenContainer);
+        // 添加主菜单标识到菜单容器本身
+        menuContainer.getStyleClass().add("main-menu");
+        menuContainer.setId("main-menu-container");
+        
+        // 将根容器添加到FXGL的内容根节点
+        getContentRoot().getChildren().add(rootContainer);
         
         // 添加进入动画
         addEnterAnimation(menuContainer);
@@ -137,67 +165,67 @@ public class CustomMainMenu extends FXGLMenu {
         button.setMinHeight(45);
         button.setMaxWidth(320);
         button.setMaxHeight(75);
-        button.setFont(Font.font("Segoe UI", FontWeight.BOLD, 15));
+        button.setFont(Font.font("Consolas", FontWeight.BOLD, 18));
         button.setTextFill(Color.WHITE);
         button.setWrapText(true);
         
-        // 应用按钮样式
+        // 应用按钮样式 - 暗黑风格
         button.setStyle(
             "-fx-background-color: linear-gradient(to bottom, " +
-            "rgba(45, 212, 191, 0.8), " +
-            "rgba(16, 185, 129, 0.6)); " +
-            "-fx-background-radius: 18; " +
-            "-fx-border-color: rgba(45, 212, 191, 0.9); " +
+            "rgba(30, 30, 35, 0.95), " +
+            "rgba(15, 15, 20, 1.0)); " +
+            "-fx-background-radius: 0; " +
+            "-fx-border-color: rgba(60, 60, 65, 1.0); " +
             "-fx-border-width: 3; " +
-            "-fx-border-radius: 18; " +
-            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 8, 0, 0, 4); " +
+            "-fx-border-radius: 0; " +
+            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.9), 10, 0, 0, 5); " +
             "-fx-cursor: hand;"
         );
 
-        // 悬停效果
+        // 悬停效果 - 暗黑风格
         button.setOnMouseEntered(e -> {
             button.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, " +
-                "rgba(45, 212, 191, 1.0), " +
-                "rgba(16, 185, 129, 0.8)); " +
-                "-fx-background-radius: 18; " +
-                "-fx-border-color: rgba(45, 212, 191, 1.0); " +
+                "rgba(50, 50, 55, 1.0), " +
+                "rgba(35, 35, 40, 1.0)); " +
+                "-fx-background-radius: 0; " +
+                "-fx-border-color: rgba(80, 80, 85, 1.0); " +
                 "-fx-border-width: 3; " +
-                "-fx-border-radius: 18; " +
-                "-fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.8), 15, 0, 0, 8); " +
-                "-fx-scale-x: 1.08; " +
-                "-fx-scale-y: 1.08; " +
+                "-fx-border-radius: 0; " +
+                "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 1.0), 12, 0, 0, 6); " +
+                "-fx-scale-x: 1.02; " +
+                "-fx-scale-y: 1.02; " +
                 "-fx-cursor: hand;"
             );
         });
 
-        // 鼠标离开效果
+        // 鼠标离开效果 - 暗黑风格
         button.setOnMouseExited(e -> {
             button.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, " +
-                "rgba(45, 212, 191, 0.8), " +
-                "rgba(16, 185, 129, 0.6)); " +
-                "-fx-background-radius: 18; " +
-                "-fx-border-color: rgba(45, 212, 191, 0.9); " +
+                "rgba(30, 30, 35, 0.95), " +
+                "rgba(15, 15, 20, 1.0)); " +
+                "-fx-background-radius: 0; " +
+                "-fx-border-color: rgba(60, 60, 65, 1.0); " +
                 "-fx-border-width: 3; " +
-                "-fx-border-radius: 18; " +
-                "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 8, 0, 0, 4); " +
+                "-fx-border-radius: 0; " +
+                "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.9), 10, 0, 0, 5); " +
                 "-fx-cursor: hand;"
             );
         });
 
-        // 点击效果
+        // 点击效果 - 暗黑风格
         button.setOnMousePressed(e -> {
             button.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, " +
-                "rgba(16, 185, 129, 0.8), " +
-                "rgba(45, 212, 191, 0.6)); " +
-                "-fx-background-radius: 18; " +
-                "-fx-border-color: rgba(45, 212, 191, 0.9); " +
+                "rgba(15, 15, 20, 1.0), " +
+                "rgba(5, 5, 10, 1.0)); " +
+                "-fx-background-radius: 0; " +
+                "-fx-border-color: rgba(40, 40, 45, 1.0); " +
                 "-fx-border-width: 3; " +
-                "-fx-border-radius: 18; " +
-                "-fx-scale-x: 0.95; " +
-                "-fx-scale-y: 0.95; " +
+                "-fx-border-radius: 0; " +
+                "-fx-scale-x: 0.98; " +
+                "-fx-scale-y: 0.98; " +
                 "-fx-cursor: hand;"
             );
         });
@@ -223,36 +251,4 @@ public class CustomMainMenu extends FXGLMenu {
         scaleIn.play();
     }
 
-    private void setupResponsiveLayout(VBox menuContainer, StackPane fullScreenContainer) {
-        // 监听窗口大小变化，调整菜单大小以完全适应窗口
-        getContentRoot().widthProperty().addListener((obs, oldVal, newVal) -> {
-            double windowWidth = newVal.doubleValue();
-            // 菜单宽度适应窗口，但保持合理的最小宽度
-            double menuWidth = Math.max(windowWidth * 0.6, 350);
-            menuContainer.setPrefWidth(menuWidth);
-            
-            // 确保全屏容器也适应窗口宽度
-            fullScreenContainer.setPrefWidth(windowWidth);
-        });
-
-        getContentRoot().heightProperty().addListener((obs, oldVal, newVal) -> {
-            double windowHeight = newVal.doubleValue();
-            // 菜单高度适应窗口，但保持合理的最小高度
-            double menuHeight = Math.max(windowHeight * 0.7, 450);
-            menuContainer.setPrefHeight(menuHeight);
-            
-            // 确保全屏容器也适应窗口高度
-            fullScreenContainer.setPrefHeight(windowHeight);
-        });
-        
-        // 初始设置
-        double initialWidth = Math.max(getContentRoot().getWidth() * 0.6, 350);
-        double initialHeight = Math.max(getContentRoot().getHeight() * 0.7, 450);
-        menuContainer.setPrefWidth(initialWidth);
-        menuContainer.setPrefHeight(initialHeight);
-        
-        // 设置全屏容器的初始大小
-        fullScreenContainer.setPrefWidth(getContentRoot().getWidth());
-        fullScreenContainer.setPrefHeight(getContentRoot().getHeight());
-    }
 }
