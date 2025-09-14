@@ -19,6 +19,7 @@ public class InfiniteMapManager {
     private int playerChunkX;                     // 玩家当前所在区块X坐标
     private int loadRadius;                       // 加载半径（区块数）
     private int preloadRadius;                    // 预加载半径（区块数）
+    private String mapName;                       // 地图名称
     
     // 异步加载和状态管理
     private AsyncChunkLoader asyncLoader;         // 异步加载器
@@ -40,19 +41,43 @@ public class InfiniteMapManager {
     private static final int DEFAULT_LOAD_RADIUS = 2; // 默认加载半径：左右各2个区块
     private static final int DEFAULT_PRELOAD_RADIUS = 2; // 默认预加载半径：左右各2个区块（增加预加载范围）
     
+    // 特殊区块地图配置：区块编号 -> 地图名称
+    // 只有区块2使用test_door地图，其他区块使用默认地图
+    private static final Map<Integer, String> SPECIAL_CHUNK_MAPS = Map.of(
+        2, "test_door"  // 区块2使用test_door地图
+    );
+    
+    // Boss房区块配置：区块3是Boss房，只能通过传送门到达
+    private static final int BOSS_CHUNK_X = 3;
+    private static final String BOSS_MAP_NAME = "test_boss";
+    
+    // 传送门管理器引用
+    private TeleportManager teleportManager;
+    
+    // 定时器瓦片管理器
+    private TimerTileManager timerTileManager;
+    
     public InfiniteMapManager() {
+        this("test"); // 默认地图名称，区块0、1、3使用test地图
+    }
+    
+    public InfiniteMapManager(String mapName) {
         this.loadedChunks = new HashMap<>();
         this.playerChunkX = 0;
         this.loadRadius = DEFAULT_LOAD_RADIUS;
         this.preloadRadius = DEFAULT_PRELOAD_RADIUS;
         this.useAsyncLoading = true; // 默认启用异步加载
         this.lastUpdateTime = System.currentTimeMillis();
+        this.mapName = mapName;
         
         // 初始化状态管理器
         this.stateManager = new ChunkStateManager();
         
         // 初始化异步加载器
-        this.asyncLoader = new AsyncChunkLoader(stateManager);
+        this.asyncLoader = new AsyncChunkLoader(stateManager, mapName);
+        
+        // 初始化定时器瓦片管理器
+        this.timerTileManager = new TimerTileManager();
         
         // 初始加载玩家所在区块和预加载区块
         if (useAsyncLoading) {
@@ -73,6 +98,12 @@ public class InfiniteMapManager {
     public void updateChunks(int newPlayerChunkX) {
         if (newPlayerChunkX == playerChunkX) {
             return; // 玩家仍在同一区块
+        }
+        
+        // 检查是否尝试进入Boss房区块
+        if (newPlayerChunkX == BOSS_CHUNK_X && teleportManager != null && !teleportManager.isBossChunkActivated()) {
+            System.out.println("🚫 玩家尝试进入Boss房区块，但Boss房未被激活，阻止进入");
+            return; // 阻止进入Boss房
         }
         
         int oldPlayerChunkX = playerChunkX;
@@ -265,6 +296,19 @@ public class InfiniteMapManager {
     }
     
     /**
+     * 获取指定区块对应的地图名称
+     * 如果区块有特殊配置则使用特殊地图，否则使用默认地图
+     */
+    private String getMapNameForChunk(int chunkX) {
+        // 检查是否是Boss房区块
+        if (chunkX == BOSS_CHUNK_X) {
+            return BOSS_MAP_NAME;
+        }
+        
+        return SPECIAL_CHUNK_MAPS.getOrDefault(chunkX, mapName);
+    }
+    
+    /**
      * 加载指定区块
      */
     public void loadChunk(int chunkX) {
@@ -273,11 +317,19 @@ public class InfiniteMapManager {
         }
         
         stateManager.transitionToState(chunkX, ChunkState.LOADING);
-        MapChunk chunk = new MapChunk(chunkX);
+        String chunkMapName = getMapNameForChunk(chunkX);
+        MapChunk chunk = new MapChunk(chunkX, chunkMapName);
         chunk.load();
         chunk.addToScene(); // 同步加载时直接添加到场景
         loadedChunks.put(chunkX, chunk);
         stateManager.transitionToState(chunkX, ChunkState.LOADED);
+        
+        // 扫描新加载区块中的定时器瓦片
+        if (timerTileManager != null) {
+            timerTileManager.scanChunkForTimerTiles(chunk);
+        }
+        
+        System.out.println("🗺️ 区块 " + chunkX + " 使用地图: " + chunkMapName);
     }
     
     /**
@@ -288,7 +340,8 @@ public class InfiniteMapManager {
             return; // 已加载或正在加载
         }
         
-        CompletableFuture<MapChunk> future = asyncLoader.loadChunkAsync(chunkX);
+        String chunkMapName = getMapNameForChunk(chunkX);
+        CompletableFuture<MapChunk> future = asyncLoader.loadChunkAsync(chunkX, chunkMapName);
         if (future != null) {
             future.thenAccept(chunk -> {
                 if (chunk != null) {
@@ -296,7 +349,13 @@ public class InfiniteMapManager {
                     // 立即在主线程中添加地图视图到场景，减少延迟
                     Platform.runLater(() -> {
                         chunk.addToScene();
-                        System.out.println("✅ 区块 " + chunkX + " 异步加载完成并添加到场景");
+                        
+                        // 扫描新加载区块中的定时器瓦片
+                        if (timerTileManager != null) {
+                            timerTileManager.scanChunkForTimerTiles(chunk);
+                        }
+                        
+                        System.out.println("✅ 区块 " + chunkX + " 异步加载完成并添加到场景 (地图: " + chunkMapName + ")");
                     });
                 }
             });
@@ -312,6 +371,12 @@ public class InfiniteMapManager {
         if (chunk != null) {
             // 清理区块内的敌人和子弹
             cleanupEntitiesInChunk(chunkX);
+            
+            // 清理该区块的定时器瓦片
+            if (timerTileManager != null) {
+                timerTileManager.clearChunkTimerTiles(chunkX);
+            }
+            
             chunk.unload();
         }
         stateManager.transitionToState(chunkX, ChunkState.UNLOADED);
@@ -448,8 +513,9 @@ public class InfiniteMapManager {
             return chunk.isPassable(worldX, worldY);
         }
         
-        // 区块未加载时默认可通行
-        return true;
+        // 区块未加载时默认为不可通行，防止敌人穿过未加载的障碍物
+        // 这确保了碰撞检测的准确性，同时依赖预加载机制保证玩家周围区块已加载
+        return false;
     }
     
     /**
@@ -628,5 +694,47 @@ public class InfiniteMapManager {
      */
     private void setLastPreloadedChunkList(ArrayList<Integer> chunkList) {
         this.lastPreloadedChunkList = chunkList;
+    }
+    
+    /**
+     * 设置传送门管理器
+     */
+    public void setTeleportManager(TeleportManager teleportManager) {
+        this.teleportManager = teleportManager;
+    }
+    
+    /**
+     * 获取传送门管理器
+     */
+    public TeleportManager getTeleportManager() {
+        return teleportManager;
+    }
+    
+    /**
+     * 获取定时器瓦片管理器
+     */
+    public TimerTileManager getTimerTileManager() {
+        return timerTileManager;
+    }
+    
+    /**
+     * 设置定时器瓦片管理器
+     */
+    public void setTimerTileManager(TimerTileManager timerTileManager) {
+        this.timerTileManager = timerTileManager;
+    }
+    
+    /**
+     * 获取Boss房区块X坐标
+     */
+    public static int getBossChunkX() {
+        return BOSS_CHUNK_X;
+    }
+    
+    /**
+     * 获取Boss房地图名称
+     */
+    public static String getBossMapName() {
+        return BOSS_MAP_NAME;
     }
 }

@@ -3,7 +3,6 @@ package com.roguelike.core;
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import com.almasb.fxgl.dsl.FXGL;
-import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.SpawnData;
 import com.almasb.fxgl.input.UserAction;
 import com.roguelike.entities.Player;
@@ -19,6 +18,7 @@ import com.roguelike.ui.GameHUD;
 import com.roguelike.ui.Menus;
 import com.roguelike.ui.LoadingOverlay;
 import com.roguelike.ui.FPSDisplay;
+import com.roguelike.ui.ArrowIndicator;
 import javafx.scene.input.KeyCode;
 
 import static com.almasb.fxgl.dsl.FXGL.*;
@@ -44,8 +44,11 @@ public class GameApp extends GameApplication {
     private GameState gameState;
     private MapRenderer mapRenderer;
     private InfiniteMapManager infiniteMapManager;
+    private com.roguelike.map.TeleportManager teleportManager;
+    private com.roguelike.map.TimerTileManager timerTileManager;
     private GameHUD gameHUD;
     private FPSDisplay fpsDisplay;
+    private ArrowIndicator arrowIndicator;
     private MapCollisionDetector collisionDetector;
     private OptimizedMovementValidator movementValidator;
     private CollisionManager collisionManager;
@@ -56,9 +59,18 @@ public class GameApp extends GameApplication {
     private double enemySpawnAccumulator = 0.0;
     private static final double ENEMY_SPAWN_INTERVAL = 0.5;
     private static boolean INPUT_BOUND = false;
-    private static final double TARGET_DT = 1.0 / 60.0; // 目标帧时长
+    // 目标帧时长将根据TARGET_FPS动态计算
     private int frameCount = 0; // 帧计数器，用于跳过不稳定的初始帧
     private boolean gameReady = false; // 覆盖层完成后才开始计时与更新
+    
+    // 帧率控制相关变量
+    private long lastFrameTime = 0; // 上一帧的时间戳
+    
+    // 输入缓冲相关变量
+    private long lastFPSToggleTime = 0; // 上次FPS切换的时间戳
+    private long lastFPSLimitChangeTime = 0; // 上次帧率限制更改的时间戳
+    private static final long FPS_TOGGLE_COOLDOWN = 300_000_000L; // 0.3秒的冷却时间（纳秒）
+    private static final long FPS_LIMIT_CHANGE_COOLDOWN = 200_000_000L; // 0.2秒的冷却时间（纳秒）
     
     // 性能优化：缓存玩家实体引用，避免每帧查找
     private Player cachedPlayer = null;
@@ -71,7 +83,7 @@ public class GameApp extends GameApplication {
     
     // 调试配置
     public static boolean DEBUG_MODE = false; // 调试模式开关
-    public static boolean BULLET_DAMAGE_ENABLED = true; // 子弹伤害开关
+    public static boolean BULLET_DAMAGE_ENABLED = false; // 子弹伤害开关
     
     // 碰撞系统调试配置
     public static boolean COLLISION_DEBUG_MODE = false; // 碰撞调试模式
@@ -85,11 +97,17 @@ public class GameApp extends GameApplication {
     private static final boolean USE_INFINITE_MAP = true; // 是否使用无限地图
     
     // 路径寻找配置
-    private static final int ENEMY_COUNT_THRESHOLD = 20; // 敌人数量阈值，超过此数量使用流体算法
+    private static final int ENEMY_COUNT_THRESHOLD = 100; // 敌人数量阈值，超过此数量使用流体算法
     private static final boolean ALLOW_DIAGONAL_MOVEMENT = true; // 是否允许对角线移动
     private static final double PATHFINDING_UPDATE_INTERVAL = 0.05; // 路径寻找更新间隔（秒）
     private static final boolean ENABLE_PATH_OPTIMIZATION = true; // 是否启用路径优化
     private static final boolean ENABLE_PATH_SMOOTHING = true; // 是否启用路径平滑
+    
+    // 帧率配置
+    private static int TARGET_FPS = 60; // 目标帧率上限
+
+            // 使用固定移动距离，避免 tpf() 异常值导致的移动问题
+    private static double moveDistance = 10.0; // 固定移动距离，提高移动速度
 
     @Override
     protected void initSettings(GameSettings settings) {
@@ -99,6 +117,15 @@ public class GameApp extends GameApplication {
         settings.setHeight(720);
         settings.setMainMenuEnabled(true);
         settings.setGameMenuEnabled(true);
+        
+        // 设置帧率上限为60FPS
+        // 注意：FXGL的GameSettings可能没有setTargetFPS方法，我们通过其他方式实现帧率限制
+        System.out.println("🎯 目标帧率设置为: " + TARGET_FPS + " FPS");
+        System.out.println("   帧率控制快捷键 (带输入缓冲):");
+        System.out.println("   F9: 增加帧率上限 (+10, 0.2秒缓冲)");
+        System.out.println("   F10: 减少帧率上限 (-10, 0.2秒缓冲)");
+        System.out.println("   F11: 重置帧率上限 (60, 0.2秒缓冲)");
+        System.out.println("   F8: 切换FPS显示 (0.3秒缓冲)");
     }
 
     // 对应用户需求中的 init()
@@ -117,9 +144,20 @@ public class GameApp extends GameApplication {
         // 地图系统初始化
         if (USE_INFINITE_MAP) {
             // 使用无限地图系统
-            infiniteMapManager = new InfiniteMapManager();
+            infiniteMapManager = new InfiniteMapManager(MAP_NAME);
             collisionDetector = new MapCollisionDetector(infiniteMapManager);
+            
+            // 初始化传送门管理器
+            teleportManager = new com.roguelike.map.TeleportManager(infiniteMapManager);
+            infiniteMapManager.setTeleportManager(teleportManager);
+            
+            // 获取定时器瓦片管理器
+            timerTileManager = infiniteMapManager.getTimerTileManager();
+            
             System.out.println("🌍 无限地图系统已启用");
+            System.out.println("🚪 传送门系统已启用");
+            System.out.println("⏰ 定时器瓦片系统已启用");
+            System.out.println("🏰 Boss房区块限制已启用（只能通过传送门到达）");
         System.out.println("   区块尺寸: " + InfiniteMapManager.getChunkWidthPixels() + "x" + InfiniteMapManager.getChunkHeightPixels() + " 像素");
         System.out.println("   瓦片尺寸: 32x32 像素");
         System.out.println("   加载半径: " + infiniteMapManager.getLoadRadius() + " 个区块");
@@ -150,6 +188,9 @@ public class GameApp extends GameApplication {
         collisionManager = new CollisionManager();
         collisionManager.setMapCollisionDetector(collisionDetector);
         
+        // 设置移动验证器到EntityFactory，确保所有生成的敌人都能获得碰撞检测
+        com.roguelike.entities.EntityFactory.setMovementValidator(movementValidator);
+        
         // 初始化事件批处理管理器
         eventBatchingManager = new EventBatchingManager();
         eventBatchingManager.setDebugMode(DEBUG_MODE);
@@ -164,22 +205,18 @@ public class GameApp extends GameApplication {
         
         // 初始化路径寻找系统
         if (USE_INFINITE_MAP) {
-            // 无限地图模式下暂时禁用路径寻找（后续实现）
-            adaptivePathfinder = null;
-            System.out.println("⚠️ 无限地图模式下路径寻找系统暂时禁用");
+            // 无限地图模式下启用跨区块寻路
+            adaptivePathfinder = new AdaptivePathfinder(infiniteMapManager, config);
+            System.out.println("✅ 无限地图模式下启用跨区块寻路系统");
         } else {
             adaptivePathfinder = new AdaptivePathfinder(mapRenderer, config);
             // 调试：打印碰撞地图信息
             mapRenderer.printCollisionInfo();
         }
         
-        // 调试：打印路径寻找配置
-        System.out.println("🎯 路径寻找系统配置:");
-        System.out.println("   - 敌人数量阈值: " + ENEMY_COUNT_THRESHOLD);
-        System.out.println("   - 允许对角线移动: " + ALLOW_DIAGONAL_MOVEMENT);
-        System.out.println("   - 路径更新间隔: " + PATHFINDING_UPDATE_INTERVAL + "秒");
-        System.out.println("   - 路径优化: " + ENABLE_PATH_OPTIMIZATION);
-        System.out.println("   - 路径平滑: " + ENABLE_PATH_SMOOTHING);
+        // 设置路径寻找器到EntityFactory，确保所有生成的敌人都能获得寻路功能
+        com.roguelike.entities.EntityFactory.setAdaptivePathfinder(adaptivePathfinder);
+        
 
         // 玩家 - 根据地图系统设置初始位置
         double playerX, playerY;
@@ -203,6 +240,12 @@ public class GameApp extends GameApplication {
         // 为玩家设置移动验证器（防止与敌人重叠）
         player.setMovementValidator(collisionManager.getMovementValidator());
         
+        // 为玩家设置传送门管理器
+        if (teleportManager != null) {
+            teleportManager.setPlayer(player);
+            player.setTeleportManager(teleportManager);
+        }
+        
         FXGL.getGameScene().getViewport().bindToEntity(player, getAppWidth() / 2.0, getAppHeight() / 2.0);
 
         // 输入
@@ -215,6 +258,11 @@ public class GameApp extends GameApplication {
         // FPS显示（调试用）
         fpsDisplay = new FPSDisplay();
         fpsDisplay.setupWindowResizeListener();
+        
+        // 箭头指示器
+        arrowIndicator = new ArrowIndicator();
+        getGameScene().addUINode(arrowIndicator.getNode());
+        System.out.println("🎯 箭头指示器已初始化");
 
         // 敌人周期生成计时器改为基于受控时间的累积器
         enemySpawnAccumulator = 0.0;
@@ -237,8 +285,7 @@ public class GameApp extends GameApplication {
         if (INPUT_BOUND) {
             return;
         }
-        // 使用固定移动距离，避免 tpf() 异常值导致的移动问题
-        final double moveDistance = 2.0; // 固定移动距离，降低移动速度
+
         
         getInput().addAction(new UserAction("MOVE_LEFT_A") {
             @Override
@@ -390,20 +437,50 @@ public class GameApp extends GameApplication {
                         }
                     }
                 }, KeyCode.F7);
+                
+                // 定时器瓦片调试控制
+                getInput().addAction(new UserAction("PRINT_TIMER_TILE_STATUS") {
+                    @Override
+                    protected void onAction() {
+                        if (timerTileManager != null) {
+                            timerTileManager.printStatus();
+                        }
+                    }
+                }, KeyCode.F12);
             }
             
             
         }
 
-        // FPS显示切换
+        // FPS显示切换（带输入缓冲）
         getInput().addAction(new UserAction("TOGGLE_FPS_DISPLAY") {
             @Override
             protected void onAction() {
-                if (fpsDisplay != null) {
-                    fpsDisplay.toggle();
-                }
+                toggleFPSDisplayWithBuffer();
             }
         }, KeyCode.F8);
+        
+        // 帧率控制快捷键（带输入缓冲）
+        getInput().addAction(new UserAction("INCREASE_FPS_LIMIT") {
+            @Override
+            protected void onAction() {
+                changeFPSLimitWithBuffer(10);
+            }
+        }, KeyCode.F9);
+        
+        getInput().addAction(new UserAction("DECREASE_FPS_LIMIT") {
+            @Override
+            protected void onAction() {
+                changeFPSLimitWithBuffer(-10);
+            }
+        }, KeyCode.F10);
+        
+        getInput().addAction(new UserAction("RESET_FPS_LIMIT") {
+            @Override
+            protected void onAction() {
+                resetFPSLimitWithBuffer();
+            }
+        }, KeyCode.F11);
 
         // 旧的空格攻击移除，采用自动发射
         INPUT_BOUND = true;
@@ -452,6 +529,26 @@ public class GameApp extends GameApplication {
             return;
         }
         
+        // 帧率控制逻辑
+        long currentTime = System.nanoTime();
+        if (lastFrameTime == 0) {
+            lastFrameTime = currentTime;
+        }
+        
+        long frameTime = currentTime - lastFrameTime;
+        long targetFrameTime = 1_000_000_000L / TARGET_FPS; // 纳秒
+        
+        // 如果帧时间小于目标时间，则等待
+        if (frameTime < targetFrameTime) {
+            try {
+                Thread.sleep((targetFrameTime - frameTime) / 1_000_000); // 转换为毫秒
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        
+        lastFrameTime = System.nanoTime();
+        
         // 更新地图系统
         if (USE_INFINITE_MAP && infiniteMapManager != null) {
             // 使用缓存的玩家引用，避免每帧查找
@@ -484,13 +581,18 @@ public class GameApp extends GameApplication {
         }
 
         // 使用实际时间推进，但严格限幅避免首帧异常
-        double realDt = Math.max(0.0, Math.min(tpf, TARGET_DT));
+        // 根据TARGET_FPS动态计算目标帧时长
+        double targetDt = 1.0 / TARGET_FPS;
+        double realDt = Math.max(0.0, Math.min(tpf, targetDt));
 
         // 推进受控时间（与现实时间同步）
         TimeService.update(realDt);
 
         // 更新实体缓存（控制频率，避免每帧更新）
         updateEntityCache();
+        
+        // 更新箭头指示器
+        updateArrowIndicator();
 
         // 更新碰撞管理器
         if (collisionManager != null) {
@@ -502,6 +604,11 @@ public class GameApp extends GameApplication {
         // 处理所有批处理事件
         if (eventBatchingManager != null) {
             eventBatchingManager.processAllBatches();
+        }
+        
+        // 更新定时器瓦片
+        if (timerTileManager != null) {
+            timerTileManager.update();
         }
 
         // 使用缓存的敌人数量，避免每帧遍历所有实体
@@ -524,19 +631,20 @@ public class GameApp extends GameApplication {
             }
         }
 
-        // 基于受控时间的刷怪逻辑
-        enemySpawnAccumulator += realDt;
-        while (enemySpawnAccumulator >= ENEMY_SPAWN_INTERVAL) {
-            Entity newEnemy = getGameWorld().spawn("enemy");
-            // 为新创建的敌人设置移动验证器和路径寻找器
-            if (newEnemy instanceof com.roguelike.entities.Enemy) {
-                ((com.roguelike.entities.Enemy) newEnemy).setMovementValidator(collisionManager.getMovementValidator());
-                if (adaptivePathfinder != null) {
-                    ((com.roguelike.entities.Enemy) newEnemy).setAdaptivePathfinder(adaptivePathfinder);
-                }
-            }
-            enemySpawnAccumulator -= ENEMY_SPAWN_INTERVAL;
-        }
+        // 旧的敌人生成逻辑已移除，现在使用BackgroundEnemySpawnManager
+        // 基于受控时间的刷怪逻辑 - 已禁用
+        // enemySpawnAccumulator += realDt;
+        // while (enemySpawnAccumulator >= ENEMY_SPAWN_INTERVAL) {
+        //     Entity newEnemy = getGameWorld().spawn("enemy");
+        //     // 为新创建的敌人设置移动验证器和路径寻找器
+        //     if (newEnemy instanceof com.roguelike.entities.Enemy) {
+        //         ((com.roguelike.entities.Enemy) newEnemy).setMovementValidator(collisionManager.getMovementValidator());
+        //         if (adaptivePathfinder != null) {
+        //             ((com.roguelike.entities.Enemy) newEnemy).setAdaptivePathfinder(adaptivePathfinder);
+        //         }
+        //     }
+        //     enemySpawnAccumulator -= ENEMY_SPAWN_INTERVAL;
+        // }
     }
 
     /**
@@ -579,6 +687,20 @@ public class GameApp extends GameApplication {
      */
     public InfiniteMapManager getInfiniteMapManager() {
         return infiniteMapManager;
+    }
+    
+    /**
+     * 获取传送门管理器实例
+     */
+    public com.roguelike.map.TeleportManager getTeleportManager() {
+        return teleportManager;
+    }
+    
+    /**
+     * 获取定时器瓦片管理器实例
+     */
+    public com.roguelike.map.TimerTileManager getTimerTileManager() {
+        return timerTileManager;
     }
     
     /**
@@ -745,6 +867,102 @@ public class GameApp extends GameApplication {
     public FPSDisplay getFPSDisplay() {
         return fpsDisplay;
     }
+    
+    /**
+     * 获取当前目标帧率上限
+     * @return 目标帧率上限
+     */
+    public static int getTargetFPS() {
+        return TARGET_FPS;
+    }
+    
+    /**
+     * 设置目标帧率上限
+     * @param fps 新的目标帧率上限
+     */
+    public static void setTargetFPS(int fps) {
+        if (fps > 0 && fps <= 120) {
+            TARGET_FPS = fps;
+            System.out.println("✅ 帧率上限已设置为: " + fps + " FPS");
+            System.out.println("   注意：帧率限制通过游戏循环中的时间控制实现");
+        } else {
+            System.out.println("❌ 无效的帧率值: " + fps + " (有效范围: 1-120)");
+        }
+    }
+    
+    /**
+     * 获取帧率设置信息
+     * @return 帧率设置信息字符串
+     */
+    public static String getFPSInfo() {
+        return "当前目标帧率: " + TARGET_FPS + " FPS (有效范围: 1-120)";
+    }
+    
+    /**
+     * 带输入缓冲的FPS显示切换
+     * 防止频繁按键导致的快速切换
+     */
+    private void toggleFPSDisplayWithBuffer() {
+        long currentTime = System.nanoTime();
+        
+        // 检查是否在冷却时间内
+        if (currentTime - lastFPSToggleTime < FPS_TOGGLE_COOLDOWN) {
+            // 在冷却时间内，忽略输入
+            return;
+        }
+        
+        // 更新上次切换时间
+        lastFPSToggleTime = currentTime;
+        
+        // 执行FPS显示切换
+        if (fpsDisplay != null) {
+            fpsDisplay.toggle();
+        }
+    }
+    
+    /**
+     * 带输入缓冲的帧率限制更改
+     * @param delta 帧率变化量
+     */
+    private void changeFPSLimitWithBuffer(int delta) {
+        long currentTime = System.nanoTime();
+        
+        // 检查是否在冷却时间内
+        if (currentTime - lastFPSLimitChangeTime < FPS_LIMIT_CHANGE_COOLDOWN) {
+            // 在冷却时间内，忽略输入
+            return;
+        }
+        
+        // 更新上次更改时间
+        lastFPSLimitChangeTime = currentTime;
+        
+        // 执行帧率更改
+        int currentFPS = getTargetFPS();
+        int newFPS = currentFPS + delta;
+        
+        if (newFPS >= 30 && newFPS <= 120) {
+            setTargetFPS(newFPS);
+        }
+    }
+    
+    /**
+     * 带输入缓冲的帧率限制重置
+     */
+    private void resetFPSLimitWithBuffer() {
+        long currentTime = System.nanoTime();
+        
+        // 检查是否在冷却时间内
+        if (currentTime - lastFPSLimitChangeTime < FPS_LIMIT_CHANGE_COOLDOWN) {
+            // 在冷却时间内，忽略输入
+            return;
+        }
+        
+        // 更新上次更改时间
+        lastFPSLimitChangeTime = currentTime;
+        
+        // 执行帧率重置
+        setTargetFPS(60);
+    }
 
     private void showGameOverScreen() {
         // 暂停游戏
@@ -784,6 +1002,29 @@ public class GameApp extends GameApplication {
         
         // 使用FXGL的内置方法来清理游戏世界
         getGameController().startNewGame();
+        
+        // 重新初始化系统（确保路径寻找器等组件正确设置）
+        reinitializeSystems();
+    }
+    
+    /**
+     * 重新初始化系统组件
+     */
+    private void reinitializeSystems() {
+        // 重新设置EntityFactory的组件
+        if (movementValidator != null) {
+            com.roguelike.entities.EntityFactory.setMovementValidator(movementValidator);
+        }
+        
+        if (adaptivePathfinder != null) {
+            com.roguelike.entities.EntityFactory.setAdaptivePathfinder(adaptivePathfinder);
+        }
+        
+        // 重新设置敌人生成管理器
+        if (backgroundEnemySpawnManager != null) {
+            backgroundEnemySpawnManager.setInfiniteMapSpawnManager(infiniteMapEnemySpawnManager);
+        }
+        
     }
     
     /**
@@ -797,6 +1038,55 @@ public class GameApp extends GameApplication {
         if (infiniteMapEnemySpawnManager != null) {
             infiniteMapEnemySpawnManager.shutdown();
             infiniteMapEnemySpawnManager = null;
+        }
+    }
+    
+    /**
+     * 更新箭头指示器
+     * 玩家不在特殊区块时显示箭头指向特殊区块，在特殊区块时隐藏箭头
+     */
+    private void updateArrowIndicator() {
+        if (arrowIndicator == null || cachedPlayer == null || !cachedPlayer.isActive()) {
+            return;
+        }
+        
+        // 检查是否使用无限地图系统
+        if (!USE_INFINITE_MAP || infiniteMapManager == null) {
+            return;
+        }
+        
+        // 获取玩家当前区块
+        int currentChunkX = InfiniteMapManager.worldToChunkX(cachedPlayer.getX());
+        
+        // 特殊区块编号（区块2 - 门地图，区块3 - Boss房）
+        final int DOOR_CHUNK_X = 2;
+        final int BOSS_CHUNK_X = 3;
+        
+        if (currentChunkX == DOOR_CHUNK_X || currentChunkX == BOSS_CHUNK_X) {
+            // 玩家在特殊区块（门地图或Boss房），隐藏箭头
+            if (arrowIndicator.isVisible()) {
+                arrowIndicator.hideArrow();
+            }
+        } else {
+            // 玩家不在特殊区块，显示箭头指向门地图区块
+            if (!arrowIndicator.isVisible()) {
+                // 计算门地图区块的中心位置
+                double doorChunkCenterX = InfiniteMapManager.chunkToWorldX(DOOR_CHUNK_X) + 
+                                        InfiniteMapManager.getChunkWidthPixels() / 2.0;
+                double doorChunkCenterY = InfiniteMapManager.getChunkHeightPixels() / 2.0;
+                
+                // 显示箭头
+                arrowIndicator.showArrow(doorChunkCenterX, doorChunkCenterY, 
+                                       cachedPlayer.getX(), cachedPlayer.getY());
+            } else {
+                // 更新箭头位置和方向
+                double doorChunkCenterX = InfiniteMapManager.chunkToWorldX(DOOR_CHUNK_X) + 
+                                        InfiniteMapManager.getChunkWidthPixels() / 2.0;
+                double doorChunkCenterY = InfiniteMapManager.getChunkHeightPixels() / 2.0;
+                
+                arrowIndicator.updateArrow(doorChunkCenterX, doorChunkCenterY, 
+                                         cachedPlayer.getX(), cachedPlayer.getY());
+            }
         }
     }
 

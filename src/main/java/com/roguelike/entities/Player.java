@@ -22,6 +22,7 @@ public class Player extends EntityBase {
     private int currentHP = 500;
     private GameState gameState;
     private com.roguelike.physics.OptimizedMovementValidator movementValidator;
+    private com.roguelike.map.TeleportManager teleportManager;
 
     // 动画相关
     private CharacterAnimationComponent animationComponent;
@@ -32,13 +33,13 @@ public class Player extends EntityBase {
         addComponent(new CollidableComponent(true));
 
         // 设置实体大小（根据GIF动画帧大小调整）
-        setSize(64, 64);
+        setSize(32, 32);
         
         // 吸血鬼幸存者风格：设置更小的碰撞箱
         // 视觉大小32x32，但碰撞箱只有16x16，让玩家感觉更灵活
         getBoundingBoxComponent().clearHitBoxes();
         getBoundingBoxComponent().addHitBox(new com.almasb.fxgl.physics.HitBox(
-            com.almasb.fxgl.physics.BoundingShape.box(64, 64)
+            com.almasb.fxgl.physics.BoundingShape.box(32, 32)
         ));
 
         // 初始化动画
@@ -221,6 +222,11 @@ public class Player extends EntityBase {
                 animationComponent.setDirection(currentDirection);
             }
         }
+        
+        // 检查传送门
+        if (teleportManager != null) {
+            teleportManager.checkAndTeleport(getX(), getY());
+        }
     }
 
 
@@ -271,6 +277,20 @@ public class Player extends EntityBase {
      */
     public javafx.scene.Node getHealthBarContainer() {
         return hpBarContainer;
+    }
+
+    /**
+     * 设置传送门管理器
+     */
+    public void setTeleportManager(com.roguelike.map.TeleportManager teleportManager) {
+        this.teleportManager = teleportManager;
+    }
+
+    /**
+     * 获取传送门管理器
+     */
+    public com.roguelike.map.TeleportManager getTeleportManager() {
+        return teleportManager;
     }
 
     public static class Types {

@@ -31,7 +31,8 @@ public class Enemy extends EntityBase {
     private double targetX = 0;
     private double targetY = 0;
     private double lastTargetUpdateTime = 0;
-    private static final double TARGET_UPDATE_INTERVAL = 0.5; // 每0.5秒更新一次目标
+    private static final double TARGET_UPDATE_INTERVAL = 0.1; // 每0.5秒更新一次目标，减少寻路频率
+    private boolean isNewlySpawned = true; // 标记是否为新生成的敌人
 
     // 平滑转向相关
     private double currentDirectionX = 0;
@@ -55,6 +56,10 @@ public class Enemy extends EntityBase {
     
     // 敌人配置引用（用于死亡效果）
     private EnemyConfig enemyConfig;
+    
+    // 墙壁内扣血冷却
+    private double lastWallDamageTime = 0;
+    private static final double WALL_DAMAGE_COOLDOWN = 0.2; // 0.2秒冷却
 
     public Enemy() {
         // 添加碰撞组件
@@ -95,7 +100,6 @@ public class Enemy extends EntityBase {
             if (collision.getOffsetX() != 0 || collision.getOffsetY() != 0) {
                 // 注意：FXGL的HitBox偏移可能需要通过其他方式实现
                 // 这里先记录偏移值，后续可能需要调整
-                System.out.println("碰撞箱偏移: (" + collision.getOffsetX() + ", " + collision.getOffsetY() + ")");
             }
         }
     }
@@ -200,7 +204,6 @@ public class Enemy extends EntityBase {
         
         initenemyhpbar();
         
-        System.out.println("✅ 基于配置创建敌人: " + config.getName() + " (ID: " + config.getId() + ")");
     }
 
     public static void resetNavigation() {
@@ -222,27 +225,36 @@ public class Enemy extends EntityBase {
             return;
         }
 
+        // 检查路径寻找器是否丢失，如果丢失则尝试重新获取
+        if (adaptivePathfinder == null) {
+            // 尝试从EntityFactory重新获取路径寻找器
+            com.roguelike.utils.AdaptivePathfinder globalPathfinder = 
+                com.roguelike.entities.EntityFactory.getAdaptivePathfinder();
+            if (globalPathfinder != null) {
+                this.adaptivePathfinder = globalPathfinder;
+            }
+        }
+
         // 更新路径寻找系统
         if (adaptivePathfinder != null) {
             adaptivePathfinder.update(tpf);
         }
 
-        // 更新目标位置和路径（每0.5秒更新一次）
+        // 更新目标位置和路径（每0.5秒更新一次，但新生成的敌人立即更新）
         double currentTime = com.roguelike.core.TimeService.getSeconds();
-        if (currentTime - lastTargetUpdateTime >= TARGET_UPDATE_INTERVAL) {
+        if (isNewlySpawned || currentTime - lastTargetUpdateTime >= TARGET_UPDATE_INTERVAL) {
             updateTargetToPlayer();
             updatePathToTarget();
             lastTargetUpdateTime = currentTime;
+            isNewlySpawned = false; // 标记为已初始化
         }
 
-        // 根据当前算法选择移动方式
-        if (adaptivePathfinder != null && adaptivePathfinder.getCurrentAlgorithm() == PathfindingType.FLOW_FIELD) {
-            // 使用流体算法移动
-            moveWithFlowField(tpf);
-        } else {
-            // 使用A*路径移动
-            moveWithAStarPath(tpf);
-        }
+        // 始终使用A*路径移动（流场算法已移除）
+        moveWithAStarPath(tpf);
+        
+        // 检查敌人是否处于墙壁内，如果是则扣血
+        checkEnemyInWallDamage();
+        
     }
 
     private void smoothTurnToDirection(double targetX, double targetY, double tpf) {
@@ -295,6 +307,7 @@ public class Enemy extends EntityBase {
         double moveDistance = speed * tpf;
         double moveX = currentDirectionX * moveDistance;
         double moveY = currentDirectionY * moveDistance;
+
 
         // 使用碰撞检测进行移动
         if (movementValidator != null) {
@@ -357,6 +370,27 @@ public class Enemy extends EntityBase {
         currentDirectionY = Math.sin(angle);
 
         GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_HIT_WALL));
+    }
+
+    /**
+     * 初始化目标位置
+     */
+    public void initializeTargetPosition() {
+        Entity player = FXGL.getGameWorld().getEntitiesByType().stream()
+                .filter(e -> e instanceof Player)
+                .findFirst().orElse(null);
+
+        if (player != null) {
+            Point2D playerPos = player.getCenter();
+            targetX = playerPos.getX();
+            targetY = playerPos.getY();
+        } else {
+            // 如果玩家不存在，设置一个默认目标位置
+            double currentX = getX();
+            double currentY = getY();
+            targetX = currentX + 100; // 向右移动100像素
+            targetY = currentY;
+        }
     }
 
     private void updateTargetToPlayer() {
@@ -566,57 +600,77 @@ public class Enemy extends EntityBase {
     }
 
     /**
-     * 使用A*路径移动（吸血鬼幸存者风格：简化路径寻找）
+     * 使用A*路径移动（简化版本，确保敌人始终在移动）
      */
     private void moveWithAStarPath(double tpf) {
-        // 吸血鬼幸存者风格：优先使用直接移动，只在必要时使用路径寻找
-        if (targetX == 0 || targetY == 0) {
-            return;
+        // 检查目标位置是否有效
+        if (targetX == 0 && targetY == 0) {
+            // 如果目标位置无效，尝试重新初始化
+            initializeTargetPosition();
+            if (targetX == 0 && targetY == 0) {
+                return; // 仍然无效，不移动
+            }
         }
 
         Point2D currentPos = getCenter();
         double distanceToPlayer = currentPos.distance(targetX, targetY);
 
-        // 如果距离玩家很近（小于50像素），直接移动
-        if (distanceToPlayer < 50.0) {
+        // 如果距离玩家很近（小于30像素），直接移动
+        if (distanceToPlayer < 30.0) {
             fallbackToDirectMovement(tpf);
             return;
         }
 
-        // 如果距离较远，尝试使用路径寻找
-        if (currentPath == null || currentPath.isEmpty() || distanceToPlayer > 100.0) {
-            // 重新计算路径（检查路径寻找器是否可用）
-            if (adaptivePathfinder != null) {
-                currentPath = adaptivePathfinder.findPath(
-                    currentPos.getX(), currentPos.getY(),
-                    targetX, targetY
-                );
-                currentPathIndex = 0;
-            } else {
-                // 路径寻找器不可用，回退到直接移动
-                fallbackToDirectMovement(tpf);
+        // 尝试使用路径寻找（如果可用）
+        if (adaptivePathfinder != null) {
+            // 如果路径为空或距离目标很远，重新计算路径
+            if (currentPath == null || currentPath.isEmpty() || distanceToPlayer > 300.0) {
+                try {
+                    currentPath = adaptivePathfinder.findPath(
+                            currentPos.getX(), currentPos.getY(),
+                            targetX, targetY
+                    );
+                    currentPathIndex = 0;
+
+                } catch (Exception e) {
+                    currentPath = null;
+                }
+            }
+
+            // 如果路径寻找成功，使用路径移动
+            if (currentPath != null && !currentPath.isEmpty()) {
+                moveAlongPath(tpf);
                 return;
             }
         }
 
-        // 如果路径寻找失败或路径为空，回退到直接移动
+        // 如果路径寻找失败或不可用，直接朝向玩家移动
+        fallbackToDirectMovement(tpf);
+    }
+
+    /**
+     * 沿着路径移动
+     */
+    private void moveAlongPath(double tpf) {
         if (currentPath == null || currentPath.isEmpty()) {
-            fallbackToDirectMovement(tpf);
             return;
         }
 
-        // 使用路径移动
+        Point2D currentPos = getCenter();
+
+        // 跳过已经到达的路径点，增加距离阈值减少抽搐
         while (currentPathIndex < currentPath.size()) {
             Point2D targetPoint = currentPath.get(currentPathIndex);
             double distanceToTarget = currentPos.distance(targetPoint);
 
-            if (distanceToTarget < 20.0) {
+            if (distanceToTarget < 25.0) { // 减少距离阈值，提高路径点切换频率
                 currentPathIndex++;
             } else {
                 break;
             }
         }
 
+        // 移动到下一个路径点
         if (currentPathIndex < currentPath.size()) {
             Point2D targetPoint = currentPath.get(currentPathIndex);
             double dx = targetPoint.getX() - currentPos.getX();
@@ -628,55 +682,27 @@ public class Enemy extends EntityBase {
                 dy /= length;
                 currentDirectionX = dx;
                 currentDirectionY = dy;
+                
+                
                 moveInCurrentDirection(tpf);
             }
         } else {
-            // 路径完成，回退到直接移动
+            // 路径完成，直接朝向玩家移动
             fallbackToDirectMovement(tpf);
         }
     }
 
-    /**
-     * 使用流体算法移动（吸血鬼幸存者风格：简化流体算法）
-     */
-    private void moveWithFlowField(double tpf) {
-        // 吸血鬼幸存者风格：优先使用直接移动
-        if (targetX == 0 || targetY == 0) {
-            return;
-        }
-
-        Point2D currentPos = getCenter();
-        double distanceToPlayer = currentPos.distance(targetX, targetY);
-
-        // 如果距离玩家很近（小于80像素），直接移动
-        if (distanceToPlayer < 80.0) {
-            fallbackToDirectMovement(tpf);
-            return;
-        }
-
-        // 距离较远时使用流体算法
-        if (adaptivePathfinder != null) {
-            Point2D direction = adaptivePathfinder.getMovementDirection(
-                currentPos.getX(), currentPos.getY()
-            );
-
-            if (direction.getX() != 0 || direction.getY() != 0) {
-                smoothTurnToDirection(direction.getX(), direction.getY(), tpf);
-                moveInCurrentDirection(tpf);
-            } else {
-                fallbackToDirectMovement(tpf);
-            }
-        } else {
-            fallbackToDirectMovement(tpf);
-        }
-    }
 
     /**
-     * 回退到直接移动（朝向玩家）- 吸血鬼幸存者风格
+     * 回退到直接移动（朝向玩家）
      */
     private void fallbackToDirectMovement(double tpf) {
-        if (targetX == 0 || targetY == 0) {
-            return;
+        // 确保目标位置有效
+        if (targetX == 0 && targetY == 0) {
+            initializeTargetPosition();
+            if (targetX == 0 && targetY == 0) {
+                return;
+            }
         }
 
         Point2D currentPos = getCenter();
@@ -688,10 +714,25 @@ public class Enemy extends EntityBase {
             dx /= length;
             dy /= length;
             
-            // 吸血鬼幸存者风格：直接设置方向，不进行平滑转向
+            // 直接设置方向，不进行平滑转向
             currentDirectionX = dx;
             currentDirectionY = dy;
             moveInCurrentDirection(tpf);
+        }
+    }
+    
+    /**
+     * 检查敌人是否处于墙壁内，如果是则扣血
+     */
+    private void checkEnemyInWallDamage() {
+        if (movementValidator != null) {
+            // 检查冷却时间
+            double currentTime = com.roguelike.core.TimeService.getSeconds();
+            if (currentTime - lastWallDamageTime >= WALL_DAMAGE_COOLDOWN) {
+                // 使用移动验证器检查墙壁碰撞
+                movementValidator.checkEnemyInWallDamage(this);
+                lastWallDamageTime = currentTime;
+            }
         }
     }
 }

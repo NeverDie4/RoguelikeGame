@@ -102,8 +102,8 @@
       "animations": {
         "walkFrames": 12,
         "frameDuration": 0.12,
-        "texturePath": "assets/textures/enemy/skeleton",
-        "walkPattern": "skeleton_walk_%02d.png",
+        "texturePath": "assets/textures/enemy/orc",
+        "walkPattern": "orc_walk_%02d.png",
         "animationWidth": 40,
         "animationHeight": 48
       },
@@ -144,8 +144,8 @@
       "animations": {
         "walkFrames": 6,
         "frameDuration": 0.25,
-        "texturePath": "assets/textures/enemy/troll",
-        "walkPattern": "troll_walk_%02d.png",
+        "texturePath": "assets/textures/enemy/orc",
+        "walkPattern": "orc_walk_%02d.png",
         "animationWidth": 64,
         "animationHeight": 80
       },
@@ -186,8 +186,8 @@
       "animations": {
         "walkFrames": 8,
         "frameDuration": 0.3,
-        "texturePath": "assets/textures/enemy/dragon",
-        "walkPattern": "dragon_walk_%02d.png",
+        "texturePath": "assets/textures/enemy/orc",
+        "walkPattern": "orc_walk_%02d.png",
         "animationWidth": 96,
         "animationHeight": 96
       },

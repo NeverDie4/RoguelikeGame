@@ -3,6 +3,7 @@ package com.roguelike.entities;
 import com.almasb.fxgl.entity.Entity;
 import com.roguelike.entities.config.EnemyConfig;
 import com.roguelike.entities.config.EnemyConfigManager;
+import com.roguelike.entities.config.SpawnConfig;
 import javafx.geometry.Point2D;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -22,14 +23,14 @@ public class BackgroundEnemySpawnManager {
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private final AtomicInteger activeSpawnTasks = new AtomicInteger(0);
     
-    // 生成配置
-    private static final int MAX_CONCURRENT_SPAWNS = 3; // 最大并发生成任务数
+    // 生成配置（使用SpawnConfig中的配置）
+    private static final int MAX_CONCURRENT_SPAWNS = SpawnConfig.MAX_CONCURRENT_SPAWNS;
     private static final long SPAWN_INTERVAL_MS = 2000; // 生成间隔（毫秒）
-    private static final int MAX_ENEMIES_PER_BATCH = 2; // 每批最大敌人数
+    private static final int MAX_ENEMIES_PER_BATCH = SpawnConfig.MAX_ENEMIES_PER_BATCH;
     
-    // 生成参数
-    private double minSpawnDistance = 200.0;
-    private double maxSpawnDistance = 400.0;
+    // 生成参数（使用SpawnConfig中的默认值）
+    private double minSpawnDistance = SpawnConfig.SCREEN_OUT_MIN;
+    private double maxSpawnDistance = SpawnConfig.SCREEN_OUT_MAX;
     private int maxEnemiesInWorld = 50; // 世界中最大敌人数
     
     // 依赖组件
@@ -39,6 +40,10 @@ public class BackgroundEnemySpawnManager {
     // 统计信息
     private final AtomicInteger totalSpawned = new AtomicInteger(0);
     private final AtomicInteger totalFailed = new AtomicInteger(0);
+    
+    // 智能间隔调整
+    private Point2D lastPlayerPosition = new Point2D(0, 0);
+    private long lastUpdateTime = 0;
     
     public BackgroundEnemySpawnManager() {
         // 创建线程池
@@ -109,7 +114,7 @@ public class BackgroundEnemySpawnManager {
     }
     
     /**
-     * 调度敌人生成任务
+     * 调度敌人生成任务（智能间隔调整）
      */
     private void scheduleEnemySpawn() {
         if (!isRunning.get()) {
@@ -127,11 +132,18 @@ public class BackgroundEnemySpawnManager {
             return; // 并发任务数已达上限
         }
         
+        // 智能间隔调整
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastUpdateTime < calculateSmartInterval()) {
+            return; // 间隔时间未到
+        }
+        
         // 提交生成任务
         backgroundExecutor.submit(() -> {
             try {
                 activeSpawnTasks.incrementAndGet();
                 spawnEnemyBatch();
+                lastUpdateTime = currentTime;
             } catch (Exception e) {
                 System.err.println("❌ 敌人生成任务失败: " + e.getMessage());
                 totalFailed.incrementAndGet();
@@ -139,6 +151,30 @@ public class BackgroundEnemySpawnManager {
                 activeSpawnTasks.decrementAndGet();
             }
         });
+    }
+    
+    /**
+     * 计算智能更新间隔
+     */
+    private long calculateSmartInterval() {
+        // 获取玩家当前位置
+        Entity player = getGameWorld().getEntitiesByType().stream()
+            .filter(e -> e instanceof Player)
+            .findFirst()
+            .orElse(null);
+        
+        if (player == null) {
+            return SpawnConfig.UPDATE_INTERVAL_STATIC;
+        }
+        
+        Point2D currentPlayerPos = player.getCenter();
+        double movementDistance = lastPlayerPosition.distance(currentPlayerPos);
+        
+        // 更新玩家位置
+        lastPlayerPosition = currentPlayerPos;
+        
+        // 根据移动距离计算间隔
+        return SpawnConfig.calculateUpdateInterval(movementDistance);
     }
     
     /**
@@ -199,7 +235,7 @@ public class BackgroundEnemySpawnManager {
                 spawnPos = generateRandomPosition(playerPos, minSpawnDistance, maxSpawnDistance);
             }
             
-            // 在JavaFX应用线程中创建敌人实体
+            // 在JavaFX应用线程中创建敌人实体，使用高优先级确保及时执行
             final EnemyConfig finalConfig = config;
             final Point2D finalSpawnPos = spawnPos;
             javafx.application.Platform.runLater(() -> {
@@ -207,7 +243,11 @@ public class BackgroundEnemySpawnManager {
                     Entity enemy = spawn("enemy", finalSpawnPos.getX(), finalSpawnPos.getY());
                     if (enemy != null) {
                         totalSpawned.incrementAndGet();
-                        System.out.println("✅ 后台生成敌人: " + finalConfig.getName() + " 在位置 " + finalSpawnPos);
+                        
+                        // 确保新生成的敌人立即开始寻路
+                        if (enemy instanceof Enemy) {
+                            ((Enemy) enemy).initializeTargetPosition();
+                        }
                     }
                 } catch (Exception e) {
                     System.err.println("❌ 创建敌人实体失败: " + e.getMessage());
@@ -255,6 +295,20 @@ public class BackgroundEnemySpawnManager {
         System.out.println("🔧 更新生成参数:");
         System.out.println("   生成距离: " + minDistance + " - " + maxDistance);
         System.out.println("   最大敌人数: " + maxEnemies);
+        System.out.println("   使用智能间隔调整");
+    }
+    
+    /**
+     * 使用SpawnConfig中的默认参数
+     */
+    public void useDefaultSpawnParameters() {
+        this.minSpawnDistance = SpawnConfig.SCREEN_OUT_MIN;
+        this.maxSpawnDistance = SpawnConfig.SCREEN_OUT_MAX;
+        
+        System.out.println("🔧 使用默认生成参数:");
+        System.out.println("   生成距离: " + minSpawnDistance + " - " + maxSpawnDistance);
+        System.out.println("   最大敌人数: " + maxEnemiesInWorld);
+        System.out.println("   使用智能间隔调整");
     }
     
     /**

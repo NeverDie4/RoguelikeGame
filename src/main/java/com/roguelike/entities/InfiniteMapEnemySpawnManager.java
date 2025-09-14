@@ -1,5 +1,6 @@
 package com.roguelike.entities;
 
+import com.roguelike.entities.config.SpawnConfig;
 import com.roguelike.map.InfiniteMapManager;
 import com.roguelike.utils.RandomUtils;
 import javafx.geometry.Point2D;
@@ -13,12 +14,9 @@ import java.util.concurrent.*;
  */
 public class InfiniteMapEnemySpawnManager {
     
-    // 配置参数
-    private static final double DEFAULT_MIN_SPAWN_DISTANCE = 800.0;
-    private static final double DEFAULT_MAX_SPAWN_DISTANCE = 1200.0;
-    private static final int DEFAULT_MAX_ATTEMPTS = 100;
+    // 配置参数（使用SpawnConfig中的配置）
+    private static final int DEFAULT_MAX_ATTEMPTS = SpawnConfig.DEFAULT_MAX_ATTEMPTS;
     private static final double DEFAULT_MIN_ENEMY_DISTANCE = 50.0;
-    private static final double CACHE_UPDATE_INTERVAL = 2.0;
     
     // 地图系统
     private InfiniteMapManager infiniteMapManager;
@@ -27,22 +25,21 @@ public class InfiniteMapEnemySpawnManager {
     private ExecutorService backgroundExecutor;
     private Map<String, Set<Point2D>> passablePositionsCache = new ConcurrentHashMap<>();
     private Map<String, Long> regionCacheTime = new ConcurrentHashMap<>();
-    private static final long CACHE_DURATION = 10000; // 10秒缓存
+    private static final long CACHE_DURATION = SpawnConfig.CACHE_DURATION;
     
     // 敌人位置记录（避免重叠）
     private Set<Point2D> occupiedPositions = ConcurrentHashMap.newKeySet();
     private Map<Point2D, Long> positionOccupiedTime = new ConcurrentHashMap<>();
-    private static final long POSITION_OCCUPIED_DURATION = 5000;
+    private static final long POSITION_OCCUPIED_DURATION = SpawnConfig.POSITION_OCCUPIED_DURATION;
     
     // 调试信息
-    private boolean debugMode = false;
+    private boolean debugMode = false; // 关闭调试模式
     private int totalSpawnAttempts = 0;
     private int successfulSpawns = 0;
     private int failedSpawns = 0;
     
-    // 预计算范围
-    private static final double PRECOMPUTE_RANGE = 600.0; // 预计算范围
-    private static final int PRECOMPUTE_STEP = 32; // 预计算步长
+    // 预计算范围（使用SpawnConfig中的配置）
+    private static final double PRECOMPUTE_RANGE = SpawnConfig.PRECOMPUTE_RANGE;
     
     public InfiniteMapEnemySpawnManager(InfiniteMapManager infiniteMapManager) {
         this.infiniteMapManager = infiniteMapManager;
@@ -50,8 +47,8 @@ public class InfiniteMapEnemySpawnManager {
         
         System.out.println("🎯 无限地图敌人生成管理器初始化完成");
         System.out.println("   预计算范围: " + PRECOMPUTE_RANGE + " 像素");
-        System.out.println("   预计算步长: " + PRECOMPUTE_STEP + " 像素");
         System.out.println("   缓存持续时间: " + CACHE_DURATION + " 毫秒");
+        System.out.println("   支持分层预计算和智能生成");
     }
     
     /**
@@ -81,8 +78,8 @@ public class InfiniteMapEnemySpawnManager {
             System.out.println("   生成距离: " + minDistance + " - " + maxDistance);
         }
         
-        // 异步预计算区域
-        precomputeRegionAsync(playerPosition);
+        // 异步分层预计算区域
+        precomputeLayeredAsync(playerPosition, Math.max(enemyWidth, enemyHeight));
         
         // 清理过期的占用位置
         cleanupExpiredOccupiedPositions();
@@ -93,6 +90,12 @@ public class InfiniteMapEnemySpawnManager {
             
             Point2D candidate = generateRandomPosition(playerPosition, minDistance, maxDistance);
             
+            // 检查距离是否在要求范围内
+            double distanceToPlayer = candidate.distance(playerPosition);
+            if (distanceToPlayer < minDistance || distanceToPlayer > maxDistance) {
+                continue; // 距离不符合要求，尝试下一个
+            }
+            
             if (isValidSpawnPosition(candidate, enemyWidth, enemyHeight, playerPosition)) {
                 // 记录占用位置
                 occupiedPositions.add(candidate);
@@ -101,7 +104,7 @@ public class InfiniteMapEnemySpawnManager {
                 successfulSpawns++;
                 
                 if (debugMode) {
-                    System.out.println("✅ 成功生成敌人生成位置: " + candidate + " (尝试次数: " + (attempt + 1) + ")");
+                    System.out.println("✅ 成功生成敌人生成位置: " + candidate + " (尝试次数: " + (attempt + 1) + ", 距离: " + String.format("%.1f", distanceToPlayer) + ")");
                 }
                 
                 return candidate;
@@ -177,11 +180,8 @@ public class InfiniteMapEnemySpawnManager {
             return false;
         }
         
-        // 检查是否与玩家距离合适
-        double distanceToPlayer = position.distance(playerPosition);
-        if (distanceToPlayer < DEFAULT_MIN_SPAWN_DISTANCE) {
-            return false;
-        }
+        // 距离检查由调用方控制，这里不进行硬编码的距离检查
+        // 因为不同的生成策略可能需要不同的距离要求
         
         return true;
     }
@@ -203,7 +203,7 @@ public class InfiniteMapEnemySpawnManager {
         
         // 检查是否与玩家距离合适
         double distanceToPlayer = position.distance(playerPosition);
-        if (distanceToPlayer < DEFAULT_MIN_SPAWN_DISTANCE * 0.8) { // 稍微放宽玩家距离要求
+        if (distanceToPlayer < SpawnConfig.SCREEN_OUT_MIN * 0.8) { // 稍微放宽玩家距离要求
             return false;
         }
         
@@ -236,9 +236,34 @@ public class InfiniteMapEnemySpawnManager {
     }
     
     /**
-     * 异步预计算区域
+     * 检查区域是否可通行（考虑敌人尺寸和安全距离）
      */
-    private void precomputeRegionAsync(Point2D playerPosition) {
+    private boolean isAreaPassableWithSafety(Point2D center, double width, double height, double safetyDistance) {
+        double halfWidth = width / 2.0 + safetyDistance;
+        double halfHeight = height / 2.0 + safetyDistance;
+        
+        // 检查扩展后的四个角点
+        Point2D[] corners = {
+            new Point2D(center.getX() - halfWidth, center.getY() - halfHeight), // 左上
+            new Point2D(center.getX() + halfWidth, center.getY() - halfHeight), // 右上
+            new Point2D(center.getX() - halfWidth, center.getY() + halfHeight), // 左下
+            new Point2D(center.getX() + halfWidth, center.getY() + halfHeight)  // 右下
+        };
+        
+        for (Point2D corner : corners) {
+            if (infiniteMapManager.isUnaccessible(corner.getX(), corner.getY())) {
+                return false;
+            }
+        }
+        
+        // 额外检查中心点
+        return infiniteMapManager.isPassable(center.getX(), center.getY());
+    }
+    
+    /**
+     * 异步分层预计算区域
+     */
+    private void precomputeLayeredAsync(Point2D playerPosition, double enemySize) {
         String regionKey = getRegionKey(playerPosition);
         
         // 检查缓存是否有效
@@ -249,22 +274,68 @@ public class InfiniteMapEnemySpawnManager {
         // 提交后台任务
         backgroundExecutor.submit(() -> {
             try {
-                precomputeRegion(playerPosition, regionKey);
+                precomputeLayered(playerPosition, regionKey, enemySize);
             } catch (Exception e) {
-                System.err.println("预计算区域失败: " + e.getMessage());
+                System.err.println("分层预计算区域失败: " + e.getMessage());
             }
         });
     }
     
     /**
-     * 预计算区域（后台线程执行）
+     * 分层预计算区域（后台线程执行）
+     */
+    private void precomputeLayered(Point2D playerPosition, String regionKey, double enemySize) {
+        Set<Point2D> passablePositions = new HashSet<>();
+        
+        // 根据敌人尺寸获取预计算参数
+        int stepSize = SpawnConfig.getStepSizeForEnemy(enemySize);
+        double safetyDistance = SpawnConfig.getSafetyDistanceForEnemy(enemySize);
+        
+        // 获取生成距离范围
+        double[][] distanceRanges = SpawnConfig.getSpawnDistanceRanges();
+        
+        // 分层预计算
+        for (double[] range : distanceRanges) {
+            double minDist = range[0];
+            double maxDist = range[1];
+            
+            // 计算该层的预计算范围
+            for (double x = playerPosition.getX() - maxDist; x <= playerPosition.getX() + maxDist; x += stepSize) {
+                for (double y = playerPosition.getY() - maxDist; y <= playerPosition.getY() + maxDist; y += stepSize) {
+                    double distance = playerPosition.distance(x, y);
+                    
+                    // 检查是否在该层范围内
+                    if (distance >= minDist && distance <= maxDist) {
+                        // 检查是否可通行（考虑敌人尺寸和安全距离）
+                        if (isAreaPassableWithSafety(new Point2D(x, y), enemySize, enemySize, safetyDistance)) {
+                            passablePositions.add(new Point2D(x, y));
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 更新缓存
+        passablePositionsCache.put(regionKey, passablePositions);
+        regionCacheTime.put(regionKey, System.currentTimeMillis());
+        
+        if (debugMode) {
+            System.out.println("🗺️ 分层预计算完成: " + regionKey + " (" + passablePositions.size() + "个位置, 步长:" + stepSize + ", 安全距离:" + safetyDistance + ")");
+        }
+    }
+    
+    /**
+     * 预计算区域（后台线程执行）- 保留原方法作为备用
      */
     private void precomputeRegion(Point2D playerPosition, String regionKey) {
         Set<Point2D> passablePositions = new HashSet<>();
         
+        // 使用默认步长进行预计算
+        int stepSize = SpawnConfig.SMALL_ENEMY_STEP;
+        
         // 计算预计算范围
-        for (double x = playerPosition.getX() - PRECOMPUTE_RANGE; x <= playerPosition.getX() + PRECOMPUTE_RANGE; x += PRECOMPUTE_STEP) {
-            for (double y = playerPosition.getY() - PRECOMPUTE_RANGE; y <= playerPosition.getY() + PRECOMPUTE_RANGE; y += PRECOMPUTE_STEP) {
+        for (double x = playerPosition.getX() - PRECOMPUTE_RANGE; x <= playerPosition.getX() + PRECOMPUTE_RANGE; x += stepSize) {
+            for (double y = playerPosition.getY() - PRECOMPUTE_RANGE; y <= playerPosition.getY() + PRECOMPUTE_RANGE; y += stepSize) {
                 if (infiniteMapManager.isPassable(x, y)) {
                     passablePositions.add(new Point2D(x, y));
                 }
@@ -290,7 +361,16 @@ public class InfiniteMapEnemySpawnManager {
         double x = playerPosition.getX() + Math.cos(angle) * distance;
         double y = playerPosition.getY() + Math.sin(angle) * distance;
         
-        return new Point2D(x, y);
+        Point2D result = new Point2D(x, y);
+        
+        if (debugMode) {
+            double actualDistance = playerPosition.distance(result);
+            System.out.println("🎲 生成候选位置: " + result + " (角度: " + String.format("%.1f", Math.toDegrees(angle)) + 
+                             "°, 期望距离: " + String.format("%.1f", distance) + 
+                             ", 实际距离: " + String.format("%.1f", actualDistance) + ")");
+        }
+        
+        return result;
     }
     
     /**
@@ -349,8 +429,10 @@ public class InfiniteMapEnemySpawnManager {
      * 生成区域键
      */
     private String getRegionKey(Point2D position) {
-        int chunkX = (int) Math.floor(position.getX() / PRECOMPUTE_RANGE);
-        int chunkY = (int) Math.floor(position.getY() / PRECOMPUTE_RANGE);
+        // 使用更小的区域分割，避免缓存过于粗糙
+        double regionSize = 800.0; // 800像素一个区域
+        int chunkX = (int) Math.floor(position.getX() / regionSize);
+        int chunkY = (int) Math.floor(position.getY() / regionSize);
         return chunkX + "," + chunkY;
     }
     

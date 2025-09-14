@@ -23,6 +23,7 @@ import org.w3c.dom.NodeList;
 public class MapChunk {
     
     private int chunkX;                    // 区块X坐标
+    private String mapName;                // 地图名称
     private TiledMap tiledMap;             // 区块的地图数据
     private CollisionMap collisionMap;     // 区块的碰撞数据
     private GameView mapView;              // 区块的渲染视图
@@ -31,8 +32,9 @@ public class MapChunk {
     private Map<String, Image> tilesetImages = new HashMap<>(); // 瓦片集图像缓存
     
     // 静态缓存，避免重复解析相同的地图文件
-    private static TiledMap cachedTiledMap = null;
-    private static Map<String, Image> cachedTilesetImages = null;
+    // 基于(chunkX, mapName)组合的缓存，支持不同区块使用不同地图
+    private static Map<String, TiledMap> cachedTiledMaps = new HashMap<>();
+    private static Map<String, Map<String, Image>> cachedTilesetImagesMap = new HashMap<>();
     private static final Object cacheLock = new Object();
     
     // 地图常量
@@ -40,8 +42,9 @@ public class MapChunk {
     private static final int CHUNK_HEIGHT = 54;  // 区块高度（瓦片数）
     private static final int TILE_SIZE = 32;     // 瓦片尺寸
     
-    public MapChunk(int chunkX) {
+    public MapChunk(int chunkX, String mapName) {
         this.chunkX = chunkX;
+        this.mapName = mapName;
         this.worldOffsetX = chunkX * CHUNK_WIDTH * TILE_SIZE;
         this.isLoaded = false;
     }
@@ -100,15 +103,19 @@ public class MapChunk {
     
     /**
      * 加载基础地图数据（使用缓存避免重复解析）
+     * 支持基于(chunkX, mapName)组合的缓存
      */
     private void loadBaseMap() throws Exception {
         synchronized (cacheLock) {
-            // 如果缓存为空，则解析地图文件
-            if (cachedTiledMap == null) {
-                System.out.println("📋 首次解析地图文件，创建缓存...");
+            // 生成缓存键：chunkX_mapName
+            String cacheKey = chunkX + "_" + mapName;
+            
+            // 如果该组合的缓存不存在，则解析地图文件
+            if (!cachedTiledMaps.containsKey(cacheKey)) {
+                System.out.println("📋 首次解析地图文件 " + mapName + " 用于区块 " + chunkX + "，创建缓存...");
                 
-                // 使用test地图作为基础地图
-                String resourcePath = "assets/maps/test/test.tmx";
+                // 使用配置的地图名称
+                String resourcePath = "assets/maps/" + mapName + "/" + mapName + ".tmx";
                 InputStream inputStream = getClass().getResourceAsStream("/" + resourcePath);
                 
                 if (inputStream == null) {
@@ -122,21 +129,20 @@ public class MapChunk {
                 Element mapElement = document.getDocumentElement();
                 
                 // 创建TiledMap对象
-                cachedTiledMap = new TiledMap();
-                cachedTiledMap.setWidth(Integer.parseInt(mapElement.getAttribute("width")));
-                cachedTiledMap.setHeight(Integer.parseInt(mapElement.getAttribute("height")));
-                cachedTiledMap.setTilewidth(Integer.parseInt(mapElement.getAttribute("tilewidth")));
-                cachedTiledMap.setTileheight(Integer.parseInt(mapElement.getAttribute("tileheight")));
+                TiledMap newTiledMap = new TiledMap();
+                newTiledMap.setWidth(Integer.parseInt(mapElement.getAttribute("width")));
+                newTiledMap.setHeight(Integer.parseInt(mapElement.getAttribute("height")));
+                newTiledMap.setTilewidth(Integer.parseInt(mapElement.getAttribute("tilewidth")));
+                newTiledMap.setTileheight(Integer.parseInt(mapElement.getAttribute("tileheight")));
                 
                 // 解析瓦片集和图层（使用临时变量）
-                TiledMap tempTiledMap = cachedTiledMap;
                 Map<String, Image> tempTilesetImages = new HashMap<>();
                 
                 // 临时设置实例变量用于解析
                 TiledMap originalTiledMap = this.tiledMap;
                 Map<String, Image> originalTilesetImages = this.tilesetImages;
                 
-                this.tiledMap = tempTiledMap;
+                this.tiledMap = newTiledMap;
                 this.tilesetImages = tempTilesetImages;
                 
                 parseTilesets(mapElement);
@@ -146,16 +152,17 @@ public class MapChunk {
                 this.tiledMap = originalTiledMap;
                 this.tilesetImages = originalTilesetImages;
                 
-                // 缓存瓦片集图像
-                cachedTilesetImages = new HashMap<>(tempTilesetImages);
+                // 缓存地图数据和瓦片集图像
+                cachedTiledMaps.put(cacheKey, newTiledMap);
+                cachedTilesetImagesMap.put(cacheKey, new HashMap<>(tempTilesetImages));
                 
                 inputStream.close();
-                System.out.println("✅ 地图缓存创建完成");
+                System.out.println("✅ 地图缓存创建完成: " + cacheKey);
             }
             
             // 使用缓存的地图数据
-            tiledMap = cachedTiledMap;
-            tilesetImages = new HashMap<>(cachedTilesetImages);
+            tiledMap = cachedTiledMaps.get(cacheKey);
+            tilesetImages = new HashMap<>(cachedTilesetImagesMap.get(cacheKey));
         }
     }
     
@@ -198,7 +205,7 @@ public class MapChunk {
      */
     private void loadTilesetImage(String tilesetName, String imageSource) {
         try {
-            String imagePath = "assets/maps/test/" + imageSource;
+            String imagePath = "assets/maps/" + mapName + "/" + imageSource;
             InputStream imageStream = getClass().getResourceAsStream("/" + imagePath);
             
             if (imageStream != null) {
@@ -522,7 +529,7 @@ public class MapChunk {
      */
     public boolean isPassable(double worldX, double worldY) {
         if (!isLoaded || collisionMap == null) {
-            return true; // 未加载时默认可通行
+            return false; // 未加载时默认为不可通行，确保碰撞检测准确性
         }
         
         // 转换为区块内坐标
@@ -531,7 +538,29 @@ public class MapChunk {
         
         // 检查是否在区块范围内
         if (localX < 0 || localX >= CHUNK_WIDTH || localY < 0 || localY >= CHUNK_HEIGHT) {
-            return true; // 超出区块范围时默认可通行
+            return false; // 超出区块范围时默认为不可通行，防止越界移动
+        }
+        
+        return collisionMap.isPassable(localX, localY);
+    }
+    
+    /**
+     * 检查指定位置是否可通行（支持跨区块检测）
+     * 用于无限地图的跨区块寻路
+     */
+    public boolean isPassableCrossChunk(double worldX, double worldY, InfiniteMapManager infiniteMapManager) {
+        if (!isLoaded || collisionMap == null) {
+            return false; // 未加载时默认为不可通行
+        }
+        
+        // 转换为区块内坐标
+        int localX = (int) ((worldX - worldOffsetX) / TILE_SIZE);
+        int localY = (int) (worldY / TILE_SIZE);
+        
+        // 检查是否在区块范围内
+        if (localX < 0 || localX >= CHUNK_WIDTH || localY < 0 || localY >= CHUNK_HEIGHT) {
+            // 超出当前区块范围，检查是否在邻近区块内
+            return infiniteMapManager.isPassable(worldX, worldY);
         }
         
         return collisionMap.isPassable(localX, localY);
@@ -542,6 +571,57 @@ public class MapChunk {
      */
     public boolean isUnaccessible(double worldX, double worldY) {
         return !isPassable(worldX, worldY);
+    }
+    
+    /**
+     * 使指定瓦片位置变为可通行（用于定时器瓦片）
+     * @param tileX 瓦片X坐标
+     * @param tileY 瓦片Y坐标
+     */
+    public void makeTilePassable(int tileX, int tileY) {
+        if (collisionMap != null && 
+            tileX >= 0 && tileX < collisionMap.getWidth() && 
+            tileY >= 0 && tileY < collisionMap.getHeight()) {
+            
+            // 将碰撞地图中该位置设置为可通行
+            collisionMap.setCollision(tileX, tileY, false);
+            
+            System.out.println("✅ 瓦片位置(" + tileX + "," + tileY + ") 已变为可通行");
+        }
+    }
+    
+    /**
+     * 使指定瓦片位置变为不可通行
+     * @param tileX 瓦片X坐标
+     * @param tileY 瓦片Y坐标
+     */
+    public void makeTileUnpassable(int tileX, int tileY) {
+        if (collisionMap != null && 
+            tileX >= 0 && tileX < collisionMap.getWidth() && 
+            tileY >= 0 && tileY < collisionMap.getHeight()) {
+            
+            // 将碰撞地图中该位置设置为不可通行
+            collisionMap.setCollision(tileX, tileY, true);
+            
+            System.out.println("🚫 瓦片位置(" + tileX + "," + tileY + ") 已变为不可通行");
+        }
+    }
+    
+    /**
+     * 检查指定瓦片位置是否可通行
+     * @param tileX 瓦片X坐标
+     * @param tileY 瓦片Y坐标
+     * @return 是否可通行
+     */
+    public boolean isTilePassable(int tileX, int tileY) {
+        if (collisionMap != null && 
+            tileX >= 0 && tileX < collisionMap.getWidth() && 
+            tileY >= 0 && tileY < collisionMap.getHeight()) {
+            
+            return collisionMap.isPassable(tileX, tileY);
+        }
+        
+        return false;
     }
     
     // Getter方法
@@ -578,5 +658,26 @@ public class MapChunk {
      */
     public static int getChunkHeightPixels() {
         return CHUNK_HEIGHT * TILE_SIZE;
+    }
+    
+    /**
+     * 清理所有缓存（用于内存管理）
+     */
+    public static void clearCache() {
+        synchronized (cacheLock) {
+            cachedTiledMaps.clear();
+            cachedTilesetImagesMap.clear();
+            System.out.println("🗑️ 地图缓存已清理");
+        }
+    }
+    
+    /**
+     * 获取缓存统计信息
+     */
+    public static String getCacheStats() {
+        synchronized (cacheLock) {
+            return "缓存的地图数量: " + cachedTiledMaps.size() + 
+                   ", 缓存的瓦片集数量: " + cachedTilesetImagesMap.size();
+        }
     }
 }

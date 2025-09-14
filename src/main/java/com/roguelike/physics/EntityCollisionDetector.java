@@ -338,6 +338,7 @@ public class EntityCollisionDetector {
         }
         
         // 玩家受到伤害（固定10点伤害）
+        //System.out.println("💥 玩家与敌人碰撞，玩家扣血 " + PLAYER_DAMAGE_AMOUNT + " 点，当前血量: " + player.getGameState().getPlayerHP());
         player.takeDamage(PLAYER_DAMAGE_AMOUNT);
         
         // 使用批处理系统处理碰撞事件

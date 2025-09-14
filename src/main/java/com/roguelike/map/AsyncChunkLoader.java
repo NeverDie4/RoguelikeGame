@@ -16,6 +16,7 @@ public class AsyncChunkLoader {
     private Map<Integer, CompletableFuture<MapChunk>> loadingTasks;
     private ChunkStateManager stateManager;
     private AtomicInteger activeLoadingTasks;
+    private String mapName;
     
     // 配置参数
     private final int maxConcurrentLoads;
@@ -23,7 +24,12 @@ public class AsyncChunkLoader {
     private final long maxLoadingTimeMs;
     
     public AsyncChunkLoader(ChunkStateManager stateManager) {
+        this(stateManager, "test"); // 默认地图名称
+    }
+    
+    public AsyncChunkLoader(ChunkStateManager stateManager, String mapName) {
         this.stateManager = stateManager;
+        this.mapName = mapName;
         this.loadingTasks = new HashMap<>();
         this.activeLoadingTasks = new AtomicInteger(0);
         
@@ -52,6 +58,13 @@ public class AsyncChunkLoader {
      * 异步加载区块
      */
     public CompletableFuture<MapChunk> loadChunkAsync(int chunkX) {
+        return loadChunkAsync(chunkX, mapName);
+    }
+    
+    /**
+     * 异步加载区块（指定地图名称）
+     */
+    public CompletableFuture<MapChunk> loadChunkAsync(int chunkX, String chunkMapName) {
         // 检查是否已经在加载
         if (loadingTasks.containsKey(chunkX)) {
             return loadingTasks.get(chunkX);
@@ -75,7 +88,7 @@ public class AsyncChunkLoader {
                 System.out.println("🔄 开始异步加载区块 " + chunkX);
                 
                 // 创建并加载区块
-                MapChunk chunk = new MapChunk(chunkX);
+                MapChunk chunk = new MapChunk(chunkX, chunkMapName);
                 chunk.load();
                 
                 long loadTime = System.currentTimeMillis() - startTime;

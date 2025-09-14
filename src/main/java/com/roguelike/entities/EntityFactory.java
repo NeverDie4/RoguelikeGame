@@ -17,6 +17,8 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
     private static boolean initialized;
     private static InfiniteMapEnemySpawnManager infiniteMapSpawnManager;
     private static BackgroundEnemySpawnManager backgroundSpawnManager;
+    private static com.roguelike.physics.OptimizedMovementValidator movementValidator;
+    private static com.roguelike.utils.AdaptivePathfinder adaptivePathfinder;
 
     public static void setGameState(GameState state) {
         gameState = state;
@@ -29,6 +31,21 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
     
     public static void setBackgroundSpawnManager(BackgroundEnemySpawnManager spawnManager) {
         backgroundSpawnManager = spawnManager;
+    }
+    
+    public static void setMovementValidator(com.roguelike.physics.OptimizedMovementValidator validator) {
+        movementValidator = validator;
+    }
+    
+    public static void setAdaptivePathfinder(com.roguelike.utils.AdaptivePathfinder pathfinder) {
+        adaptivePathfinder = pathfinder;
+    }
+    
+    /**
+     * 获取自适应路径寻找器
+     */
+    public static com.roguelike.utils.AdaptivePathfinder getAdaptivePathfinder() {
+        return adaptivePathfinder;
     }
 
     @Spawns("player")
@@ -87,6 +104,19 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
         // 设置位置（由后台生成管理器传入）
         enemy.setX(data.getX());
         enemy.setY(data.getY());
+        
+        // 设置移动验证器（如果可用）
+        if (movementValidator != null) {
+            enemy.setMovementValidator(movementValidator);
+        }
+        
+        // 设置路径寻找器（如果可用）
+        if (adaptivePathfinder != null) {
+            enemy.setAdaptivePathfinder(adaptivePathfinder);
+        }
+        
+        // 在寻路器设置后立即初始化目标位置，确保新生成的敌人能立即开始寻路
+        enemy.initializeTargetPosition();
 
         return enemy;
     }
@@ -116,7 +146,6 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
         if (minutes >= 3) {
             // 可以在这里调整敌人的属性，比如增加血量
             // 由于Enemy类目前没有提供setter方法，这里先记录日志
-            System.out.println("🎯 游戏时间 " + minutes + " 分钟，敌人属性可能需要调整");
         }
     }
 }
