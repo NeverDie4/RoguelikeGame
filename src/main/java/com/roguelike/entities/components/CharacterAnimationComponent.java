@@ -266,6 +266,7 @@ public class CharacterAnimationComponent extends Component {
      * 开始动画播放
      */
     private void startAnimation() {
+        if (com.roguelike.core.TimeService.isPaused()) return;
         if (animationTimeline != null) {
             animationTimeline.stop();
         }

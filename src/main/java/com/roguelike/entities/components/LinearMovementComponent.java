@@ -24,6 +24,7 @@ public class LinearMovementComponent extends Component {
 
     @Override
     public void onUpdate(double tpf) {
+        if (com.roguelike.core.TimeService.isPaused()) return;
         if (speed <= 0) return;
         double dx = direction.getX() * speed * tpf;
         double dy = direction.getY() * speed * tpf;

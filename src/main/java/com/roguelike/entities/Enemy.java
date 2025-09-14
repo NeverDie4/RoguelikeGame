@@ -22,7 +22,7 @@ public class Enemy extends EntityBase {
     private double speed = 200;
     private int maxHP = 50;
     private int currentHP = 50;
-    private int expReward = 5; // 击败敌人获得的经验值
+    private int expReward = 10; // 击败敌人获得的经验值
 
     // 目标位置相关
     private double targetX = 0;
@@ -113,6 +113,9 @@ public class Enemy extends EntityBase {
 
     // 提供给外部驱动的 AI 更新函数（由 GameApp 调用）
     public void updateAI(double tpf) {
+        if (com.roguelike.core.TimeService.isPaused()) {
+            return;
+        }
         // 如果敌人已死亡，不再执行移动逻辑
         if (isDead) {
             return;
@@ -275,6 +278,10 @@ public class Enemy extends EntityBase {
 
     public void takeDamage(int damage) {
         if (damage <= 0) return;
+        // 显示伤害数字（世界坐标 -> 服务内部转换至屏幕坐标）
+        try {
+            com.roguelike.ui.DamageNumberService.spawn(getCenter().getX(), getCenter().getY(), damage);
+        } catch (Throwable ignored) {}
         currentHP -= damage;
         GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_HP_CHANGED));
 

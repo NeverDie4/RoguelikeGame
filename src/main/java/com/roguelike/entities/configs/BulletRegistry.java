@@ -26,7 +26,7 @@ public class BulletRegistry {
                 "bullets/01",
                 10,
                 0.05,
-                1.5
+                4.0
         ));
 
         // 02 直线弹（4帧）
@@ -43,7 +43,7 @@ public class BulletRegistry {
                 "bullets/02",
                 4,
                 0.07,
-                4.0
+                5.0
         ));
 
         // 03 直线弹（10帧）
@@ -121,13 +121,30 @@ public class BulletRegistry {
                 BulletSpec.BulletType.STRAIGHT,
                 25,
                 false,
-                450.0,
+                360.0,
                 8.0,
                 16, 16,
                 0.0,
                 "bullets/07",
                 10,
                 0.05,
+                4.0
+        ));
+
+        // 08 反弹（帧数按资源，假设10帧），基础伤害将由 WeaponManager 覆盖
+        register(new BulletSpec(
+                "straight_08",
+                "Straight Bullet 08",
+                BulletSpec.BulletType.STRAIGHT,
+                10,
+                true,
+                320.0,
+                0.0,
+                16, 16,
+                0.0,
+                "bullets/08",
+                10,
+                0.06,
                 4.0
         ));
     }

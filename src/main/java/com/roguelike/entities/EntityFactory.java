@@ -61,8 +61,7 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
         enemy.setX(base.getX() + Math.cos(angle) * radius);
         enemy.setY(base.getY() + Math.sin(angle) * radius);
 
-        // 被子弹击中时死亡的简单碰撞在 FXGL 中通常通过层次/碰撞处理，这里简化：寿命到时自删并加分
-        runOnce(() -> enemy.onDeath(gameState), javafx.util.Duration.seconds(15));
+        // 移除固定寿命定时，避免暂停时仍继续；敌人由战斗中逻辑自然消亡
         return enemy;
     }
 }

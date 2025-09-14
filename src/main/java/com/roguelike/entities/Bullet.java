@@ -126,11 +126,13 @@ public abstract class Bullet extends EntityBase {
      * 设置生命周期 (使用FXGL现有计时器)
      */
     protected void setLifeTime(double seconds) {
-        runOnce(() -> {
-            if (isActive()) {
-                removeFromWorld();
+        // 将寿命基于 TimeService 的受控时间推进
+        final double expireAt = com.roguelike.core.TimeService.getSeconds() + Math.max(0.0, seconds);
+        FXGL.run(() -> {
+            if (com.roguelike.core.TimeService.getSeconds() >= expireAt) {
+                if (isActive()) removeFromWorld();
             }
-        }, Duration.seconds(seconds));
+        }, Duration.millis(50));
     }
 
     /**

@@ -16,7 +16,9 @@ public class OrbitingBullet extends Bullet {
     private BulletAnimationComponent animationComponent;
 
     public OrbitingBullet(Faction faction, Point2D dummyDir, int damage, boolean piercing, double speed,
-                          double radius, double angularSpeedDegPerSec, double initialAngleDeg, Entity playerEntity) {
+                          double radius, double angularSpeedDegPerSec, double initialAngleDeg,
+                          Entity playerEntity, String animBasePath, int frameCount, double frameDuration,
+                          double durationSeconds) {
         super(faction, damage, piercing, speed);
 
         setSize(16, 16);
@@ -25,11 +27,11 @@ public class OrbitingBullet extends Bullet {
         animationComponent = new BulletAnimationComponent();
         addComponent(animationComponent);
         animationComponent.setLooping(true);
-        animationComponent.setFrameDuration(0.05);
-        animationComponent.loadAnimationFrames("bullets/01", 10);
+        animationComponent.setFrameDuration(frameDuration);
+        animationComponent.loadAnimationFrames(animBasePath, frameCount);
 
-        // 环绕控制
-        addComponent(new OrbitMovementComponent(playerEntity, radius, angularSpeedDegPerSec, initialAngleDeg, 4.0));
+        // 环绕控制（durationSeconds <= 0 表示无限）
+        addComponent(new OrbitMovementComponent(playerEntity, radius, angularSpeedDegPerSec, initialAngleDeg, durationSeconds));
     }
 
     /**
@@ -39,7 +41,7 @@ public class OrbitingBullet extends Bullet {
         private final Entity target; // 玩家实体
         private final double radius;
         private final double angularSpeed; // 度/秒
-        private final double duration;
+        private final double duration; // <= 0 表示无限
         private double angleDeg;
         private double elapsed = 0.0;
 
@@ -54,7 +56,7 @@ public class OrbitingBullet extends Bullet {
         @Override
         public void onUpdate(double tpf) {
             elapsed += tpf;
-            if (elapsed >= duration) {
+            if (duration > 0 && elapsed >= duration) {
                 entity.removeFromWorld();
                 return;
             }

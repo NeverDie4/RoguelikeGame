@@ -1,6 +1,7 @@
 module com.roguelike.main {
     requires javafx.controls;
     requires javafx.fxml;
+    requires javafx.media;
     requires java.xml;
     requires java.logging;
 
@@ -13,6 +14,8 @@ module com.roguelike.main {
     opens com.roguelike.entities.attacks to javafx.fxml;
     opens com.roguelike.entities.configs to javafx.fxml;
     opens com.roguelike.entities.factory to javafx.fxml;
+    opens com.roguelike.entities.weapons to javafx.fxml;
+    opens com.roguelike.entities.components to javafx.fxml;
     opens com.roguelike.map to javafx.fxml;
     opens com.roguelike.physics to javafx.fxml;
     opens com.roguelike.ui to javafx.fxml;
@@ -25,6 +28,7 @@ module com.roguelike.main {
     exports com.roguelike.entities.configs;
     exports com.roguelike.entities.factory;
     exports com.roguelike.entities.components;
+    exports com.roguelike.entities.weapons;
     exports com.roguelike.map;
     exports com.roguelike.physics;
 }

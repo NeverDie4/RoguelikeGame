@@ -5,6 +5,7 @@ package com.roguelike.core;
  */
 public final class TimeService {
     private static double accumulatedSeconds = 0.0;
+    private static boolean paused = false;
 
     private TimeService() {}
 
@@ -17,11 +18,20 @@ public final class TimeService {
      */
     public static void update(double dtSeconds) {
         if (dtSeconds <= 0) return;
+        if (paused) return;
         accumulatedSeconds += dtSeconds;
     }
 
     public static double getSeconds() {
         return accumulatedSeconds;
+    }
+
+    public static void setPaused(boolean value) {
+        paused = value;
+    }
+
+    public static boolean isPaused() {
+        return paused;
     }
 }
 

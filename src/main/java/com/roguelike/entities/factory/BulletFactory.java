@@ -64,22 +64,59 @@ public class BulletFactory {
                     sb.getAnimationComponent().loadAnimationFrames(spec.getAnimationBasePath(), spec.getFrameCount());
                     // 应用视觉缩放
                     sb.getAnimationComponent().setVisualScale(spec.getVisualScale());
-                    // 针对 straight_06：发射时按方向旋转动画
-                    if ("straight_06".equals(spec.getId()) && direction != null) {
-                        double deg = Math.toDegrees(Math.atan2(direction.getY(), direction.getX()));
+                    // 针对 01/05/06：发射时按方向旋转动画
+                    if (("straight_06".equals(spec.getId()) || "straight_01".equals(spec.getId()) || "straight_05".equals(spec.getId())) && direction != null) {
+                        javafx.geometry.Point2D dir = direction.normalize();
+                        double deg = Math.toDegrees(Math.atan2(dir.getY(), dir.getX()));
                         // 右=0，上=90，左=180，下=270
-                        double visualDeg = 360.0 - deg;
-                        // 对上下方向做 180 度翻转修正
-                        double nx = direction.normalize().getX();
-                        double ny = direction.normalize().getY();
-                        if (Math.abs(ny) > Math.abs(nx)) {
-                            visualDeg = (visualDeg + 180.0) % 360.0;
+                        double base = 360.0 - deg;
+
+                        // 斜向精确旋转需求：
+                        // 左上 -> 顺时针 90°；左下 -> 逆时针 90°；右下 -> 顺时针 90°；右上 -> 逆时针 90°。
+                        // 依据象限对 base 进行±90°校正，同时保证左右/上下完全在直线上。
+                        double visualDeg = base;
+                        boolean isHorizontal = Math.abs(dir.getY()) < 1e-6;
+                        boolean isVertical = Math.abs(dir.getX()) < 1e-6;
+                        if (!isHorizontal && !isVertical) {
+                            if (dir.getX() < 0 && dir.getY() < 0) { // 左上
+                                visualDeg = base + 90.0; // 顺时针90
+                            } else if (dir.getX() < 0 && dir.getY() > 0) { // 左下
+                                visualDeg = base - 90.0; // 逆时针90
+                            } else if (dir.getX() > 0 && dir.getY() > 0) { // 右下
+                                visualDeg = base + 90.0; // 顺时针90
+                            } else if (dir.getX() > 0 && dir.getY() < 0) { // 右上
+                                visualDeg = base - 90.0; // 逆时针90
+                            }
+                        } else if (isVertical) {
+                            // 上/下方向额外加 180° 以修正颠倒
+                            visualDeg = (base + 180.0);
                         }
+
                         while (visualDeg < 0) visualDeg += 360.0;
                         while (visualDeg >= 360.0) visualDeg -= 360.0;
                         sb.getAnimationComponent().setVisualRotationDegrees(visualDeg);
                     }
                 }
+            }
+            // 03：销毁时爆炸（bullets/09），AOE=当前伤害，半径与爆炸缩放取自 WeaponManager
+            if ("straight_03".equals(spec.getId())) {
+                int dmg = spec.getBaseDamage();
+                double radius = com.roguelike.entities.weapons.WeaponManager.getWeapon03ExplosionRadius();
+                double scale = com.roguelike.entities.weapons.WeaponManager.getWeapon03ExplosionScale();
+                sb.addComponent(new com.roguelike.entities.components.ExplosionOnDestroyComponent(
+                        "assets/textures/bullets/09", 10, 0.06,
+                        scale, radius, dmg
+                ));
+            }
+            // 07：与03相同，但爆炸资源改为 bullets/10
+            if ("straight_07".equals(spec.getId())) {
+                int dmg = spec.getBaseDamage();
+                double radius = com.roguelike.entities.weapons.WeaponManager.getWeapon07ExplosionRadius();
+                double scale = com.roguelike.entities.weapons.WeaponManager.getWeapon07ExplosionScale();
+                sb.addComponent(new com.roguelike.entities.components.ExplosionOnDestroyComponent(
+                        "assets/textures/bullets/10", 10, 0.09,
+                        scale, radius, dmg
+                ));
             }
         } else if (bullet instanceof CurveBullet) {
             CurveBullet cb = (CurveBullet) bullet;
@@ -104,6 +141,15 @@ public class BulletFactory {
             if (bullet.getComponentOptional(OutOfViewportDestroyComponent.class).isEmpty()) {
                 bullet.addComponent(new OutOfViewportDestroyComponent(600));
             }
+        }
+
+        // 临时：将 straight_03 的寿命设为 1s，以便可见爆炸动画
+        if ("straight_03".equals(spec.getId())) {
+            bullet.applyLifetime(1.0);
+        }
+        // 临时：将 straight_07 的寿命设为 1s，以便可见爆炸动画
+        if ("straight_07".equals(spec.getId())) {
+            bullet.applyLifetime(1.0);
         }
 
         return bullet;

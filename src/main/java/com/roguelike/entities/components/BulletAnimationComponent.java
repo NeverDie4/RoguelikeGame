@@ -124,8 +124,9 @@ public class BulletAnimationComponent extends Component {
                 } catch (Exception ignored2) { }
             }
 
+            // 静默跳过缺失帧，不打印日志
             if (!loaded) {
-                System.out.println("跳过无法加载的帧: " + cpPath);
+                // no-op
             }
         }
 
@@ -232,11 +233,14 @@ public class BulletAnimationComponent extends Component {
         double targetH = Math.max(1.0, entity.getHeight()) * visualScale;
         spriteView.setFitWidth(targetW);
         spriteView.setFitHeight(targetH);
+        // 使用实际渲染尺寸（考虑 preserveRatio 生效后的真实大小）
+        double realW = spriteView.getBoundsInLocal().getWidth();
+        double realH = spriteView.getBoundsInLocal().getHeight();
         // 居中对齐：放大后向四周溢出，保持实体中心不变
-        spriteView.setTranslateX((entity.getWidth() - targetW) / 2.0);
-        spriteView.setTranslateY((entity.getHeight() - targetH) / 2.0);
-        // 以中心为轴进行旋转
-        spriteView.getTransforms().setAll(new Rotate(visualRotationDegrees, targetW / 2.0, targetH / 2.0));
+        spriteView.setTranslateX((entity.getWidth() - realW) / 2.0);
+        spriteView.setTranslateY((entity.getHeight() - realH) / 2.0);
+        // 以实际中心为轴进行旋转
+        spriteView.getTransforms().setAll(new Rotate(visualRotationDegrees, realW / 2.0, realH / 2.0));
 
         if (DEBUG) {
             System.out.println("[BulletAnim] show frame=" + currentFrame +
@@ -266,6 +270,7 @@ public class BulletAnimationComponent extends Component {
      * 播放动画
      */
     public void play() {
+        if (com.roguelike.core.TimeService.isPaused()) return;
         if (animation != null && !isPlaying) {
             animation.play();
             isPlaying = true;

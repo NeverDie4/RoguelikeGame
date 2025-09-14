@@ -6,6 +6,7 @@ import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.SpawnData;
 import com.almasb.fxgl.input.UserAction;
+ 
 import com.roguelike.entities.Player;
 import com.roguelike.map.MapRenderer;
 import com.roguelike.physics.MapCollisionDetector;
@@ -19,6 +20,7 @@ import javafx.scene.input.KeyCode;
 import static com.almasb.fxgl.dsl.FXGL.*;
 
 // 请你完美解决，保证不产生其他问题并不影响其他功能
+// 你看看有什么不明白的地方，有的话告诉我，没的话先列出待办事项，不写代码
 
 /**
  * 游戏主类。
@@ -28,11 +30,12 @@ public class GameApp extends GameApplication {
     private GameState gameState;
     private MapRenderer mapRenderer;
     private GameHUD gameHUD;
+    private com.roguelike.entities.weapons.WeaponManager weaponManager;
     private MapCollisionDetector collisionDetector;
     private MovementValidator movementValidator;
     private AdaptivePathfinder adaptivePathfinder;
     private double enemySpawnAccumulator = 0.0;
-    private static final double ENEMY_SPAWN_INTERVAL = 0.5;
+    private static final double ENEMY_SPAWN_INTERVAL = 0.1;
     private static boolean INPUT_BOUND = false;
     private static final double TARGET_DT = 1.0 / 60.0; // 目标帧时长
     private int frameCount = 0; // 帧计数器，用于跳过不稳定的初始帧
@@ -55,13 +58,24 @@ public class GameApp extends GameApplication {
         settings.setWidth(1280);
         settings.setHeight(720);
         settings.setMainMenuEnabled(true);
-        settings.setGameMenuEnabled(true);
+        // 禁用 FXGL 默认游戏内菜单，改用自定义暂停菜单，便于控制音乐
+        settings.setGameMenuEnabled(false);
     }
+
+    @Override
+    protected void onPreInit() {
+        try { com.roguelike.ui.MusicService.playLobby(); } catch (Exception ignored) {}
+    }
+
+    // 暂无对 FXGL 默认菜单的覆盖；使用自定义 ESC 菜单控制音乐
 
     // 对应用户需求中的 init()
     @Override
     protected void initGame() {
         gameState = new GameState();
+        weaponManager = new com.roguelike.entities.weapons.WeaponManager();
+        // 暴露给全局，便于发射组件查询
+        com.almasb.fxgl.dsl.FXGL.set("weaponManager", weaponManager);
         getWorldProperties().setValue("score", 0);
         TimeService.reset();
         frameCount = 0;
@@ -202,6 +216,16 @@ public class GameApp extends GameApplication {
             }
         }, KeyCode.DOWN);
 
+        // ESC：显示自定义暂停菜单，并暂停音乐
+        getInput().addAction(new UserAction("PAUSE_MENU") {
+            @Override
+            protected void onActionBegin() {
+                com.roguelike.ui.Menus.showPauseMenu(() -> {
+                    // 恢复回调由菜单内部恢复音乐与时间
+                });
+            }
+        }, KeyCode.ESCAPE);
+
         // 旧的空格攻击移除，采用自动发射
         INPUT_BOUND = true;
     }
@@ -231,6 +255,8 @@ public class GameApp extends GameApplication {
             if (gameHUD != null) {
                 gameHUD.resumeTime();
             }
+            // 确保战斗音乐播放（若从菜单进入，已切换；此处兜底）
+            try { com.roguelike.ui.MusicService.playBattle(); } catch (Exception ignored) {}
             gameReady = true;
         });
     }
@@ -240,6 +266,9 @@ public class GameApp extends GameApplication {
     protected void onUpdate(double tpf) {
         // 覆盖层阶段直接跳过逻辑更新，避免初始化期 tpf 异常导致的暴快
         if (!gameReady) {
+            return;
+        }
+        if (TimeService.isPaused()) {
             return;
         }
         if (mapRenderer != null) {
