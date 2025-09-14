@@ -76,6 +76,8 @@ public class GameApp extends GameApplication {
         weaponManager = new com.roguelike.entities.weapons.WeaponManager();
         // 暴露给全局，便于发射组件查询
         com.almasb.fxgl.dsl.FXGL.set("weaponManager", weaponManager);
+        // 暴露 gameState 给子弹等逻辑使用（如击杀加经验）
+        com.almasb.fxgl.dsl.FXGL.set("gameState", gameState);
         getWorldProperties().setValue("score", 0);
         TimeService.reset();
         frameCount = 0;

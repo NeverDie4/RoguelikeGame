@@ -78,7 +78,7 @@ public final class MusicService {
     }
 
     public static void playBattle() {
-        playLoop("battle1.mp3");
+        playLoop("battle1.wav");
     }
 
     public static void stop() {
