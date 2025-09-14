@@ -151,17 +151,24 @@ public final class LoadingOverlay {
             } catch (Exception ignored) {}
         });
 
-        // 预热常用纹理（若存在则会缓存，不存在则忽略）
-        tryLoadTexture("textures/bullets/1_000.png");
-        tryLoadTexture("textures/bullets/1_001.png");
+        // 预热常用纹理（仅通过类路径同步加载，且仅尝试首帧，避免噪音）
+        tryLoadTextureFromClasspath("assets/textures/bullets/01/1_000.png");
 
         // 模拟引擎循环预热：短暂空转，给 JIT 时间
         busyWait(120);
     }
 
-    private void tryLoadTexture(String name) {
+    private void tryLoadTextureFromClasspath(String cpPath) {
         try {
-            FXGL.getAssetLoader().loadTexture(name);
+            java.io.InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(cpPath);
+            if (is == null) {
+                is = getClass().getResourceAsStream("/" + cpPath);
+            }
+            if (is != null) {
+                // 仅验证能否读取，读后即关
+                is.readNBytes(16);
+                is.close();
+            }
         } catch (Exception ignored) {}
     }
 

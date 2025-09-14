@@ -120,6 +120,8 @@ public class GameApp extends GameApplication {
         System.out.println("游戏初始化：时间服务状态已重置");
 
         gameState = new GameState();
+        // 注入到全局，供 Bullet 等通过 FXGL.geto("gameState") 访问
+        com.almasb.fxgl.dsl.FXGL.set("gameState", gameState);
         weaponManager = new com.roguelike.entities.weapons.WeaponManager();
         // 暴露给全局，便于发射组件查询
         com.almasb.fxgl.dsl.FXGL.set("weaponManager", weaponManager);
@@ -289,6 +291,7 @@ public class GameApp extends GameApplication {
                 gameState.resetGameTime();
             }
             TimeService.reset();
+            TimeService.startGame();
             frameCount = 0;
             // 恢复输入
             getInput().setProcessInput(true);
@@ -340,6 +343,9 @@ public class GameApp extends GameApplication {
                 .filter(e -> e instanceof com.roguelike.entities.Enemy)
                 .forEach(e -> ((com.roguelike.entities.Enemy) e).updateAI(step));
 
+        // 简易碰撞检测：子弹 vs 敌人（用于伤害与经验结算）
+        checkBulletEnemyCollisions();
+
         // 基于受控时间的刷怪逻辑
         enemySpawnAccumulator += realDt;
         while (enemySpawnAccumulator >= ENEMY_SPAWN_INTERVAL) {
@@ -350,6 +356,35 @@ public class GameApp extends GameApplication {
                 ((com.roguelike.entities.Enemy) newEnemy).setAdaptivePathfinder(adaptivePathfinder);
             }
             enemySpawnAccumulator -= ENEMY_SPAWN_INTERVAL;
+        }
+    }
+
+    private void checkBulletEnemyCollisions() {
+        java.util.List<com.almasb.fxgl.entity.Entity> bullets = getGameWorld().getEntitiesByType().stream()
+                .filter(e -> e instanceof com.roguelike.entities.Bullet)
+                .toList();
+        if (bullets.isEmpty()) return;
+        java.util.List<com.almasb.fxgl.entity.Entity> enemies = getGameWorld().getEntitiesByType().stream()
+                .filter(e -> e instanceof com.roguelike.entities.Enemy)
+                .toList();
+        if (enemies.isEmpty()) return;
+
+        for (com.almasb.fxgl.entity.Entity b : bullets) {
+            com.roguelike.entities.Bullet bullet = (com.roguelike.entities.Bullet) b;
+            if (!b.isActive()) continue;
+            javafx.geometry.Rectangle2D boxB = ((com.roguelike.entities.EntityBase) b).getCollisionBox();
+            for (com.almasb.fxgl.entity.Entity e : enemies) {
+                if (!e.isActive()) continue;
+                if (!bullet.shouldCollideWith(e)) continue;
+                javafx.geometry.Rectangle2D boxE = ((com.roguelike.entities.EntityBase) e).getCollisionBox();
+                if (boxB.intersects(boxE)) {
+                    bullet.onCollisionBegin(e);
+                    // 子弹可能在命中时被移除（非穿透），此时不应再对其进行后续处理
+                    if (!b.isActive()) {
+                        break;
+                    }
+                }
+            }
         }
     }
 

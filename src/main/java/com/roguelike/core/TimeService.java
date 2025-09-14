@@ -17,6 +17,7 @@ public final class TimeService {
     public static void reset() {
         accumulatedSeconds = 0.0;
         isPaused = false;
+        paused = false;
         isLoading = true; // 重置时设为加载状态
         pauseStartTime = 0.0;
         totalPausedTime = 0.0;
@@ -62,7 +63,7 @@ public final class TimeService {
      * 检查游戏是否暂停
      */
     public static boolean isPaused() {
-        return isPaused;
+        return isPaused || paused;
     }
 
     /**
@@ -95,6 +96,7 @@ public final class TimeService {
         }
     public static void setPaused(boolean value) {
         paused = value;
+        isPaused = value;
     }
 
     /**
