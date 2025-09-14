@@ -51,6 +51,9 @@ public class ReboundDrillComponent extends Component {
             entity.setY(ny);
             bounced = true;
         }
+        if (bounced) {
+            try { com.roguelike.ui.SoundService.playBounce(); } catch (Exception ignored) {}
+        }
         // 保持速度恒定，直到寿命结束（不再衰减）
     }
 }

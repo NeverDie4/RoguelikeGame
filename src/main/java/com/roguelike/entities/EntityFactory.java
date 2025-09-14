@@ -61,7 +61,12 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
         enemy.setX(base.getX() + Math.cos(angle) * radius);
         enemy.setY(base.getY() + Math.sin(angle) * radius);
 
-        // 移除固定寿命定时，避免暂停时仍继续；敌人由战斗中逻辑自然消亡
+        // 恢复最初的“自动死亡给经验”行为：15秒后触发一次死亡与经验结算
+        com.almasb.fxgl.dsl.FXGL.runOnce(() -> {
+            if (enemy.isActive()) {
+                enemy.onDeath(gameState);
+            }
+        }, javafx.util.Duration.seconds(15));
         return enemy;
     }
 }

@@ -14,8 +14,6 @@ import static com.almasb.fxgl.dsl.FXGL.*;
 
 public class GameEntityFactory implements EntityFactory {
 
-    private final GameState gameState = new GameState();
-
     @Spawns("player")
     public Entity newPlayer(SpawnData data) {
         Player player = new Player();
@@ -35,8 +33,7 @@ public class GameEntityFactory implements EntityFactory {
         enemy.setX(base.getX() + Math.cos(angle) * radius);
         enemy.setY(base.getY() + Math.sin(angle) * radius);
 
-        // 被子弹击中时死亡的简单碰撞在 FXGL 中通常通过层次/碰撞处理，这里简化：寿命到时自删并加分
-        runOnce(() -> enemy.onDeath(gameState), javafx.util.Duration.seconds(15));
+        // 移除自动定时死亡（保留在 EntityFactory 中的受控时间回退）
         return enemy;
     }
 }

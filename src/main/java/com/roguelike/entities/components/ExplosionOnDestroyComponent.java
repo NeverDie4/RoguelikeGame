@@ -41,6 +41,9 @@ public class ExplosionOnDestroyComponent extends Component {
                 .filter(en -> en.getCenter().distance(cx, cy) <= radius)
                 .forEach(en -> en.takeDamage(damage));
 
+        // 播放爆炸音效（一次）
+        try { com.roguelike.ui.SoundService.playExplosion(); } catch (Exception ignored) {}
+
         // 爆炸动画实体
         com.almasb.fxgl.entity.Entity explosion = new com.roguelike.entities.EntityBase();
         explosion.getTransformComponent().setPosition(cx, cy);

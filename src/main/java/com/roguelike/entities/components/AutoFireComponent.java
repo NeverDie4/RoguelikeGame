@@ -93,6 +93,12 @@ public class AutoFireComponent extends Component {
             String currentId = ids.get(idx);
             AttackSpec spec = AttackRegistry.get(currentId);
             if (spec != null) {
+                // 播放发射音效：W01/W03/W05/W07/W08
+                if ("weapon01".equals(currentId) || "weapon03".equals(currentId) ||
+                    "weapon05".equals(currentId) || "weapon07".equals(currentId) ||
+                    "weapon08".equals(currentId)) {
+                    com.roguelike.ui.SoundService.playFire();
+                }
                 fire(spec);
             }
 
