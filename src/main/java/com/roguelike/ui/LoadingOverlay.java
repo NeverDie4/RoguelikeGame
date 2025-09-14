@@ -152,10 +152,8 @@ public final class LoadingOverlay {
         });
 
         // 预热常用纹理（若存在则会缓存，不存在则忽略）
-//        for (int i = 0; i < 10; i++) {
-//            String name = String.format("bullets/1_%03d.png", i);
-//            tryLoadTexture(name);
-//        }
+        tryLoadTexture("textures/bullets/1_000.png");
+        tryLoadTexture("textures/bullets/1_001.png");
 
         // 模拟引擎循环预热：短暂空转，给 JIT 时间
         busyWait(120);

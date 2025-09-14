@@ -1,0 +1,218 @@
+/* FXGL默认菜单系统专用美化样式 */
+
+/* FXGL主菜单背景 */
+.fxgl-main-menu {
+    -fx-background-color: linear-gradient(to bottom right, 
+        rgba(12, 76, 76, 0.95), 
+        rgba(20, 99, 99, 0.9), 
+        rgba(30, 132, 132, 0.95), 
+        rgba(12, 76, 76, 0.98));
+}
+
+/* FXGL游戏菜单背景 */
+.fxgl-game-menu {
+    -fx-background-color: linear-gradient(to bottom right, 
+        rgba(12, 76, 76, 0.95), 
+        rgba(20, 99, 99, 0.9), 
+        rgba(30, 132, 132, 0.95), 
+        rgba(12, 76, 76, 0.98));
+}
+
+/* FXGL菜单容器 */
+.fxgl-menu-container {
+    -fx-background-color: linear-gradient(to bottom right, 
+        rgba(12, 76, 76, 0.9), 
+        rgba(20, 99, 99, 0.85), 
+        rgba(30, 132, 132, 0.9), 
+        rgba(12, 76, 76, 0.95));
+    -fx-background-radius: 20;
+    -fx-border-color: linear-gradient(to bottom right, 
+        rgba(45, 212, 191, 0.7), 
+        rgba(16, 185, 129, 0.5), 
+        rgba(45, 212, 191, 0.7));
+    -fx-border-width: 3;
+    -fx-border-radius: 20;
+    -fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.3), 20, 0, 0, 10);
+}
+
+/* FXGL菜单面板 */
+.fxgl-menu-pane {
+    -fx-background-color: linear-gradient(to bottom right, 
+        rgba(12, 76, 76, 0.9), 
+        rgba(20, 99, 99, 0.85), 
+        rgba(30, 132, 132, 0.9), 
+        rgba(12, 76, 76, 0.95));
+    -fx-background-radius: 20;
+    -fx-border-color: linear-gradient(to bottom right, 
+        rgba(45, 212, 191, 0.7), 
+        rgba(16, 185, 129, 0.5), 
+        rgba(45, 212, 191, 0.7));
+    -fx-border-width: 3;
+    -fx-border-radius: 20;
+    -fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.3), 20, 0, 0, 10);
+}
+
+/* FXGL菜单中的按钮样式 */
+.fxgl-menu-container .button,
+.fxgl-menu-pane .button {
+    -fx-background-color: linear-gradient(to bottom, 
+        rgba(45, 212, 191, 0.8), 
+        rgba(16, 185, 129, 0.6));
+    -fx-background-radius: 15;
+    -fx-border-color: rgba(45, 212, 191, 0.9);
+    -fx-border-width: 2;
+    -fx-border-radius: 15;
+    -fx-text-fill: white;
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 12 24 12 24;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 5, 0, 0, 2);
+    -fx-cursor: hand;
+    -fx-background-insets: 0;
+    -fx-border-insets: 0;
+}
+
+/* FXGL菜单按钮悬停效果 */
+.fxgl-menu-container .button:hover,
+.fxgl-menu-pane .button:hover {
+    -fx-background-color: linear-gradient(to bottom, 
+        rgba(45, 212, 191, 1.0), 
+        rgba(16, 185, 129, 0.8));
+    -fx-border-color: rgba(45, 212, 191, 1.0);
+    -fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.6), 10, 0, 0, 5);
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+/* FXGL菜单按钮按下效果 */
+.fxgl-menu-container .button:pressed,
+.fxgl-menu-pane .button:pressed {
+    -fx-background-color: linear-gradient(to bottom, 
+        rgba(16, 185, 129, 0.8), 
+        rgba(45, 212, 191, 0.6));
+    -fx-scale-x: 0.95;
+    -fx-scale-y: 0.95;
+}
+
+/* FXGL菜单按钮焦点效果 */
+.fxgl-menu-container .button:focused,
+.fxgl-menu-pane .button:focused {
+    -fx-background-color: linear-gradient(to bottom, 
+        rgba(45, 212, 191, 0.9), 
+        rgba(16, 185, 129, 0.7));
+    -fx-border-color: rgba(45, 212, 191, 1.0);
+}
+
+/* FXGL菜单中的标签样式 */
+.fxgl-menu-container .label,
+.fxgl-menu-pane .label {
+    -fx-text-fill: white;
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 14px;
+}
+
+/* FXGL菜单中的标题样式 */
+.fxgl-menu-container .title,
+.fxgl-menu-pane .title {
+    -fx-text-fill: white;
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 36px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(45, 212, 191, 0.5), 15, 0, 0, 8);
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+}
+
+/* FXGL菜单中的滑块样式 */
+.fxgl-menu-container .slider,
+.fxgl-menu-pane .slider {
+    -fx-control-inner-background: rgba(45, 212, 191, 0.3);
+    -fx-control-inner-background-alt: rgba(16, 185, 129, 0.5);
+}
+
+.fxgl-menu-container .slider .thumb,
+.fxgl-menu-pane .slider .thumb {
+    -fx-background-color: rgba(45, 212, 191, 0.9);
+    -fx-background-radius: 8;
+    -fx-border-color: white;
+    -fx-border-width: 2;
+    -fx-border-radius: 8;
+}
+
+.fxgl-menu-container .slider .track,
+.fxgl-menu-pane .slider .track {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-background-radius: 4;
+}
+
+/* FXGL菜单中的复选框样式 */
+.fxgl-menu-container .check-box,
+.fxgl-menu-pane .check-box {
+    -fx-text-fill: white;
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 14px;
+}
+
+.fxgl-menu-container .check-box .box,
+.fxgl-menu-pane .check-box .box {
+    -fx-background-color: rgba(45, 212, 191, 0.8);
+    -fx-background-radius: 4;
+    -fx-border-color: rgba(45, 212, 191, 0.9);
+    -fx-border-width: 2;
+    -fx-border-radius: 4;
+}
+
+.fxgl-menu-container .check-box:selected .box,
+.fxgl-menu-pane .check-box:selected .box {
+    -fx-background-color: rgba(16, 185, 129, 0.9);
+}
+
+.fxgl-menu-container .check-box:selected .mark,
+.fxgl-menu-pane .check-box:selected .mark {
+    -fx-background-color: white;
+}
+
+/* FXGL菜单中的下拉菜单样式 */
+.fxgl-menu-container .combo-box,
+.fxgl-menu-pane .combo-box {
+    -fx-background-color: rgba(45, 212, 191, 0.8);
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(45, 212, 191, 0.9);
+    -fx-border-width: 2;
+    -fx-border-radius: 8;
+    -fx-text-fill: white;
+}
+
+.fxgl-menu-container .combo-box .list-cell,
+.fxgl-menu-pane .combo-box .list-cell {
+    -fx-background-color: rgba(45, 212, 191, 0.8);
+    -fx-text-fill: white;
+}
+
+.fxgl-menu-container .combo-box .list-view,
+.fxgl-menu-pane .combo-box .list-view {
+    -fx-background-color: rgba(12, 76, 76, 0.9);
+    -fx-border-color: rgba(45, 212, 191, 0.7);
+    -fx-border-width: 2;
+    -fx-border-radius: 8;
+}
+
+/* FXGL菜单中的滚动条样式 */
+.fxgl-menu-container .scroll-bar,
+.fxgl-menu-pane .scroll-bar {
+    -fx-background-color: rgba(45, 212, 191, 0.3);
+    -fx-background-radius: 8;
+}
+
+.fxgl-menu-container .scroll-bar .thumb,
+.fxgl-menu-pane .scroll-bar .thumb {
+    -fx-background-color: rgba(45, 212, 191, 0.8);
+    -fx-background-radius: 8;
+}
+
+.fxgl-menu-container .scroll-bar .thumb:hover,
+.fxgl-menu-pane .scroll-bar .thumb:hover {
+    -fx-background-color: rgba(45, 212, 191, 1.0);
+}
+

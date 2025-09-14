@@ -11,10 +11,7 @@ import javafx.scene.control.Label;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.Glow;
 import javafx.scene.effect.InnerShadow;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
@@ -173,6 +170,12 @@ public class GameHUD {
         expBarContainer.setTranslateY(currentScreenHeight * 0.02);// 距离顶部屏幕高度的2%
         expBarContainer.setTranslateX(currentScreenWidth * 0.1);
 
+        // 关键修复：设置经验条从左端对齐，确保从左向右增长
+        StackPane.setAlignment(expBar, Pos.CENTER_LEFT);
+        
+        // 设置背景和外框居中对齐
+        StackPane.setAlignment(expBarBackground, Pos.CENTER);
+        StackPane.setAlignment(outerFrame, Pos.CENTER);
 
         // 设置等级标签位置（右侧）
         StackPane.setAlignment(levelLabel, Pos.CENTER_RIGHT);
@@ -202,6 +205,7 @@ public class GameHUD {
 
     // 初始化金币显示（时间右侧）
     private void initCoinDisplay() {
+       
         coinLabel = new Label("金币: " + gameState.getCoins());
         coinLabel.setTextFill(Color.WHITE);
         coinLabel.setFont(Font.font("Arial", Math.max(12, currentScreenHeight * 0.02))); // 字体大小根据屏幕高度调整
@@ -256,12 +260,23 @@ public class GameHUD {
 
     private void updateTime() {
         if (timeLabel != null) {
-            // 时间保持动态更新
-            long elapsed = System.currentTimeMillis() - gameState.getGameStartTime();
-            long seconds = elapsed / 1000;
+            // 使用TimeService获取游戏时间
+            double gameTime = com.roguelike.core.TimeService.getSeconds();
+            long seconds = (long) gameTime;
             long minutes = seconds / 60;
             seconds = seconds % 60;
-            timeLabel.setText(String.format("%02d:%02d", minutes, seconds));
+            
+            // 根据游戏状态显示不同的时间格式
+            String timeText;
+            if (com.roguelike.core.TimeService.isLoading()) {
+                timeText = "加载中...";
+            } else if (com.roguelike.core.TimeService.isPaused()) {
+                timeText = String.format("暂停 %02d:%02d", minutes, seconds);
+            } else {
+                timeText = String.format("%02d:%02d", minutes, seconds);
+            }
+            
+            timeLabel.setText(timeText);
         }
     }
 
@@ -402,6 +417,9 @@ public class GameHUD {
                 expBar.setHeight(expBarHeight);
                 expBar.setArcWidth(expBarHeight * 0.5);
                 expBar.setArcHeight(expBarHeight * 0.5);
+                
+                // 重新设置对齐方式，确保从左端增长
+                StackPane.setAlignment(expBar, Pos.CENTER_LEFT);
             }
 
             // 重新定位经验条
