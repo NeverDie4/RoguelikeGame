@@ -101,7 +101,7 @@ public class GameApp extends GameApplication {
 
     private static int TARGET_FPS = 60;
             // 使用固定移动距离，避免 tpf() 异常值导致的移动问题
-    private static double moveDistance = 10.0; // 固定移动距离，提高移动速度
+    private static double moveDistance = 2.0; // 固定移动距离，提高移动速度
 
     @Override
     protected void initSettings(GameSettings settings) {
@@ -118,6 +118,24 @@ public class GameApp extends GameApplication {
         // 使用自定义场景工厂来应用美化后的菜单系统
         settings.setSceneFactory(new CustomSceneFactory());
         System.out.println("已设置自定义场景工厂，使用美化后的菜单系统");
+    }
+
+    @Override
+    protected void onPreInit() {
+        try { com.roguelike.ui.MusicService.playLobby(); } catch (Exception ignored) {}
+        
+        // 添加窗口关闭事件处理，确保程序能正确退出
+        getPrimaryStage().setOnCloseRequest(event -> {
+            System.out.println("窗口关闭事件触发，开始清理资源...");
+            
+            // 清理游戏资源
+            cleanup();
+            
+            // 强制退出程序
+            System.exit(0);
+        });
+        
+        System.out.println("已设置窗口关闭事件处理");
     }
 
     /**
@@ -137,10 +155,6 @@ public class GameApp extends GameApplication {
         }
     }
 
-    @Override
-    protected void onPreInit() {
-        try { com.roguelike.ui.MusicService.playLobby(); } catch (Exception ignored) {}
-    }
 
     // 暂无对 FXGL 默认菜单的覆盖；使用自定义 ESC 菜单控制音乐
 

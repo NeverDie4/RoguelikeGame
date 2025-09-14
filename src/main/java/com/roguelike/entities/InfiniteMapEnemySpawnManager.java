@@ -43,7 +43,11 @@ public class InfiniteMapEnemySpawnManager {
     
     public InfiniteMapEnemySpawnManager(InfiniteMapManager infiniteMapManager) {
         this.infiniteMapManager = infiniteMapManager;
-        this.backgroundExecutor = Executors.newFixedThreadPool(2);
+        this.backgroundExecutor = Executors.newFixedThreadPool(2, r -> {
+            Thread t = new Thread(r, "InfiniteMapEnemySpawnWorker");
+            t.setDaemon(true);
+            return t;
+        });
         
         System.out.println("🎯 无限地图敌人生成管理器初始化完成");
         System.out.println("   预计算范围: " + PRECOMPUTE_RANGE + " 像素");

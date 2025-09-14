@@ -31,8 +31,7 @@ public class GameEvent {
         MOVEMENT_SLIDING,
         // 暂停/恢复
         GAME_PAUSED,
-        GAME_RESUMED
-        MOVEMENT_SLIDING,
+        GAME_RESUMED,
         // 实体碰撞事件
         PLAYER_ENEMY_COLLISION,
         BULLET_ENEMY_COLLISION,
