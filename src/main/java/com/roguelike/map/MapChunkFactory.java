@@ -13,10 +13,13 @@ public class MapChunkFactory {
     private static final Map<String, int[]> MAP_DIMENSIONS = Map.of(
         "test", new int[]{96, 54},      // test地图：96x54
         "square", new int[]{50, 50},    // square地图：50x50
+        "dungeon", new int[]{50, 50},   // dungeon地图：50x50
         "test_door", new int[]{96, 54}, // test_door地图：96x54
         "test_boss", new int[]{96, 54}, // test_boss地图：96x54
         "square_door", new int[]{50, 50}, // square_door地图：50x50
-        "square_boss", new int[]{50, 50}  // square_boss地图：30x30（实际文件尺寸）
+        "square_boss", new int[]{50, 50}, // square_boss地图：50x50
+        "dungeon_door", new int[]{50, 50}, // dungeon_door地图：50x50
+        "dungeon_boss", new int[]{30, 30}  // dungeon_boss地图：30x30
     );
     
     /**

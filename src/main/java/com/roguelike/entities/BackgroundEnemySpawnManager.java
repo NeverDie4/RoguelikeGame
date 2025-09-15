@@ -25,13 +25,13 @@ public class BackgroundEnemySpawnManager {
     
     // 生成配置（使用SpawnConfig中的配置）
     private static final int MAX_CONCURRENT_SPAWNS = SpawnConfig.MAX_CONCURRENT_SPAWNS;
-    private static final long SPAWN_INTERVAL_MS = 2000; // 生成间隔（毫秒）
+    private static final long SPAWN_INTERVAL_MS = 20; // 生成间隔（毫秒）
     private static final int MAX_ENEMIES_PER_BATCH = SpawnConfig.MAX_ENEMIES_PER_BATCH;
     
     // 生成参数（使用SpawnConfig中的默认值）
     private double minSpawnDistance = SpawnConfig.SCREEN_OUT_MIN;
     private double maxSpawnDistance = SpawnConfig.SCREEN_OUT_MAX;
-    private int maxEnemiesInWorld = 50; // 世界中最大敌人数
+    private int maxEnemiesInWorld = 500; // 世界中最大敌人数
     
     // 依赖组件
     private InfiniteMapEnemySpawnManager infiniteMapSpawnManager;

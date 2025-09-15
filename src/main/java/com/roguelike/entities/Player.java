@@ -37,13 +37,13 @@ public class Player extends EntityBase {
         addComponent(new CollidableComponent(true));
 
         // 设置实体大小（根据GIF动画帧大小调整）
-        setSize(32, 32);
+        setSize(16, 16);
         
         // 吸血鬼幸存者风格：设置更小的碰撞箱
         // 视觉大小32x32，但碰撞箱只有16x16，让玩家感觉更灵活
         getBoundingBoxComponent().clearHitBoxes();
         getBoundingBoxComponent().addHitBox(new com.almasb.fxgl.physics.HitBox(
-            com.almasb.fxgl.physics.BoundingShape.box(32, 32)
+            com.almasb.fxgl.physics.BoundingShape.box(16, 16)
         ));
 
         // 初始化动画

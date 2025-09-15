@@ -1,0 +1,2153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="50" height="50" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="1">
+ <tileset firstgid="1" name="dungeon1" tilewidth="32" tileheight="32" tilecount="256" columns="16">
+  <image source="hyptosis_tile-art-batch-1.png" width="512" height="512"/>
+  <tile id="7">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="8">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="23">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="24">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="25">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="26">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="32">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="33">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="41">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="42">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="48">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="49">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="153">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="154">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="155">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="156">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="157">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="158">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="159">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="169">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="170">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="171">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="172">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="173">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="174">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="175">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="176">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="177">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="192">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="193">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+ </tileset>
+ <tileset firstgid="257" name="dungeon2" tilewidth="32" tileheight="32" tilecount="360" columns="20">
+  <image source="hyptosis_tile-art-batch-2.png" width="640" height="576"/>
+ </tileset>
+ <tileset firstgid="617" name="dungeon3" tilewidth="32" tileheight="32" tilecount="256" columns="16">
+  <image source="hyptosis_tile-art-batch-3.png" width="512" height="512"/>
+  <tile id="0">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="1">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="2">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="3">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="4">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="5">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="6">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="7">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="8">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="9">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="10">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="11">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="12">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="13">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="14">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="15">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="16">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="17">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="18">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="19">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="20">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="21">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="22">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="23">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="24">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="25">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="26">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="27">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="28">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="29">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="30">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="31">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="32">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="33">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="34">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="35">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="36">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="37">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="38">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="39">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="40">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="41">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="42">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="43">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="44">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="45">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="46">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="47">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="48">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="49">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="50">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="51">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="52">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="53">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="54">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="55">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="56">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="57">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="58">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="59">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="60">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="61">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="62">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="63">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="64">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="65">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="66">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="67">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="68">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="69">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="70">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="71">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="72">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="73">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="74">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="75">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="76">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="77">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="78">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="79">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="80">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="81">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="82">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="83">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="84">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="85">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="86">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="87">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="88">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="89">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="90">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="91">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="92">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="93">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="94">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="95">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="96">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="97">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="98">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="99">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="100">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="101">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="102">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="103">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="104">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="105">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="106">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="107">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="108">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="109">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="110">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="111">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="112">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="113">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="114">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="115">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="116">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="117">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="118">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="119">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="120">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="121">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="122">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="123">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="124">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="125">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="126">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="127">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="128">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="129">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="130">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="131">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="132">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="133">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="134">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="135">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="136">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="137">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="138">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="139">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="140">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="141">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="142">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="143">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="144">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="145">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="146">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="147">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="148">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="149">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="150">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="151">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="152">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="153">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="154">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="155">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="156">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="157">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="158">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="159">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="160">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="161">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="162">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="163">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="164">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="165">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="166">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="167">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="168">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="169">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="170">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="171">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="172">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="173">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="174">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="175">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="176">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="177">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="178">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="179">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="180">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="181">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="182">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="183">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="184">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="185">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="186">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="187">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="188">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="189">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="190">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="191">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="192">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="193">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="194">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="195">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="196">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="197">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="198">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="199">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="200">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="201">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="202">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="203">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="204">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="205">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="206">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="207">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="208">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="209">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="210">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="211">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="212">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="213">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="214">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="215">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="216">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="217">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="218">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="219">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="220">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="221">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="222">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="223">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="224">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="225">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="226">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="227">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="228">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="229">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="230">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="231">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="232">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="233">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="234">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="235">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="236">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="237">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="238">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="239">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="240">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="241">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="242">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="243">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="244">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="245">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="246">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="247">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="248">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="249">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="250">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="251">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="252">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="253">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="254">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="255">
+   <properties>
+    <property name="unaccessible" type="bool" value="false"/>
+   </properties>
+  </tile>
+ </tileset>
+ <tileset firstgid="873" name="dungeon4" tilewidth="32" tileheight="32" tilecount="256" columns="16">
+  <image source="hyptosis_tile-art-batch-4.png" width="512" height="512"/>
+ </tileset>
+ <tileset firstgid="1129" name="dungeon5" tilewidth="32" tileheight="32" tilecount="256" columns="16">
+  <image source="hyptosis_tile-art-batch-5.png" width="512" height="512"/>
+  <tile id="25">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="26">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="27">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="38">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="39">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="40">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="41">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="42">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="43">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="44">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="45">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="46">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="54">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="55">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="56">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="57">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="58">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="59">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="60">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="61">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="62">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="73">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="74">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="75">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="76">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="77">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="78">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="89">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="90">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="91">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="92">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="93">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="94">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="105">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="106">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="107">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="108">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="109">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="110">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="148">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="149">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="164">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="165">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="180">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="181">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="196">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="197">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+ </tileset>
+ <tileset firstgid="1385" name="dungeon6" tilewidth="32" tileheight="32" tilecount="256" columns="16">
+  <image source="hyptosis_tile-art-batch-7.png" width="512" height="512"/>
+ </tileset>
+ <tileset firstgid="1641" name="dungeon7" tilewidth="32" tileheight="32" tilecount="360" columns="20">
+  <image source="hyptosis_tile-art-batch-8.png" width="640" height="576"/>
+  <tile id="0">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+   <animation>
+    <frame tileid="0" duration="400"/>
+    <frame tileid="2" duration="400"/>
+    <frame tileid="4" duration="400"/>
+   </animation>
+  </tile>
+  <tile id="1">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="2">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="3">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="4">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="5">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="20">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+   <animation>
+    <frame tileid="20" duration="400"/>
+    <frame tileid="22" duration="400"/>
+    <frame tileid="24" duration="400"/>
+   </animation>
+  </tile>
+  <tile id="21">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="22">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="23">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="24">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="25">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="40">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+   <animation>
+    <frame tileid="40" duration="400"/>
+    <frame tileid="42" duration="400"/>
+    <frame tileid="44" duration="400"/>
+   </animation>
+  </tile>
+  <tile id="41">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+   <animation>
+    <frame tileid="41" duration="100"/>
+    <frame tileid="43" duration="100"/>
+    <frame tileid="45" duration="100"/>
+   </animation>
+  </tile>
+  <tile id="42">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="43">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="44">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="45">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="60">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+   <animation>
+    <frame tileid="60" duration="100"/>
+    <frame tileid="62" duration="100"/>
+    <frame tileid="64" duration="100"/>
+   </animation>
+  </tile>
+  <tile id="61">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="62">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="63">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="64">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="65">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="80">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+   <animation>
+    <frame tileid="80" duration="100"/>
+    <frame tileid="82" duration="100"/>
+    <frame tileid="84" duration="100"/>
+   </animation>
+  </tile>
+  <tile id="81">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="82">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="83">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="84">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="85">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+   <animation>
+    <frame tileid="81" duration="100"/>
+    <frame tileid="83" duration="100"/>
+    <frame tileid="85" duration="100"/>
+   </animation>
+  </tile>
+  <tile id="100">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+   <animation>
+    <frame tileid="100" duration="100"/>
+    <frame tileid="102" duration="100"/>
+    <frame tileid="104" duration="100"/>
+   </animation>
+  </tile>
+  <tile id="101">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+   <animation>
+    <frame tileid="101" duration="100"/>
+    <frame tileid="103" duration="100"/>
+    <frame tileid="105" duration="100"/>
+   </animation>
+  </tile>
+  <tile id="102">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="103">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="104">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="105">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+ </tileset>
+ <tileset firstgid="2001" name="dungeon8" tilewidth="32" tileheight="32" tilecount="192" columns="12">
+  <image source="hyptosis_tile-art-batch-6.png" width="384" height="512"/>
+  <tile id="66">
+   <animation>
+    <frame tileid="66" duration="400"/>
+    <frame tileid="67" duration="400"/>
+    <frame tileid="68" duration="400"/>
+   </animation>
+  </tile>
+  <tile id="72">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+   <animation>
+    <frame tileid="72" duration="400"/>
+    <frame tileid="73" duration="400"/>
+    <frame tileid="74" duration="400"/>
+   </animation>
+  </tile>
+  <tile id="73">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="74">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="84">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="85">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="86">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="96">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+   <animation>
+    <frame tileid="96" duration="400"/>
+    <frame tileid="97" duration="400"/>
+    <frame tileid="98" duration="400"/>
+   </animation>
+  </tile>
+  <tile id="108">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="120">
+   <animation>
+    <frame tileid="120" duration="400"/>
+    <frame tileid="121" duration="400"/>
+    <frame tileid="121" duration="400"/>
+   </animation>
+  </tile>
+  <tile id="132">
+   <animation>
+    <frame tileid="132" duration="400"/>
+    <frame tileid="133" duration="400"/>
+    <frame tileid="134" duration="400"/>
+   </animation>
+  </tile>
+ </tileset>
+ <tileset firstgid="2193" name="dungeon" tilewidth="32" tileheight="32" tilecount="256" columns="16">
+  <image source="hyptosis_tile-art-batch-1.png" width="512" height="512"/>
+ </tileset>
+ <layer id="1" name="back" width="50" height="50">
+  <data encoding="csv">
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,782,478,478,478,478,781,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,782,478,478,478,478,478,478,781,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,782,478,478,478,478,478,478,478,478,781,478,478,478,478,478,478,478,478,782,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,621,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,637,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,653,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,618,619,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,652,617,617,617,652,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,440,478,478,478,478,478,478,478,478,478,478,478,478,478,636,617,617,617,636,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,719,720,720,721,634,617,617,652,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,618,619,652,636,478,478,478,478,478,478,478,478,735,722,723,737,478,634,635,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,618,617,617,617,617,478,478,478,478,478,478,478,478,735,738,739,737,478,478,478,478,478,478,478,478,478,478,478,478,478,478,621,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,617,617,617,617,617,721,478,478,478,478,478,478,478,751,752,752,753,478,478,478,478,478,478,478,478,478,478,478,478,478,478,637,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,634,617,617,617,617,619,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,653,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,634,617,617,617,652,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,1661,1661,1661,1661,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,652,634,635,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,1641,1641,1641,1641,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,1641,1641,1641,1641,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,440,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,439,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,439,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,440,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,1146,1146,1146,1146,1146,1146,1146,1146,1146,1146,1146,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,766,782,478,478,478,478,478,478,478,478,478,478,478,478,478,478,698,698,698,698,698,698,
+478,478,478,478,478,478,478,478,478,1146,1146,1146,1146,1146,1146,1146,478,478,478,478,698,698,698,698,698,698,698,698,782,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,698,698,698,698,698,698,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,438,438,438,478,478,478,478,621,478,478,478,438,438,438,438,438,438,438,478,478,478,478,478,478,478,478,478,478,698,698,698,698,698,698,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,438,438,438,478,478,478,478,637,478,478,478,438,438,438,438,438,438,1661,1661,1661,1661,478,478,478,478,478,478,478,698,698,698,698,698,698,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,438,438,438,478,478,478,478,653,478,478,478,438,438,438,438,438,438,1641,1641,1641,1641,478,478,478,478,478,478,478,698,698,698,698,698,698,
+478,478,478,478,478,478,478,478,478,478,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,1641,1641,1641,1641,478,478,478,478,478,478,478,698,698,698,698,698,698,
+478,478,478,478,478,478,478,478,478,478,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,1641,1641,1641,1641,478,478,478,478,478,478,478,698,698,698,698,698,698,
+478,478,478,478,478,478,478,478,478,478,438,438,438,438,459,460,438,438,438,438,438,438,438,438,438,438,438,438,438,439,438,438,438,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+669,669,669,669,669,669,669,669,669,669,438,438,438,438,479,480,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+701,701,701,701,701,701,701,701,701,701,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,458,458,458,458,458,458,458,458,458,438,438,438,438,438,438,438,439,438,438,438,438,438,438,438,438,438,438,438,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,458,458,458,458,458,458,458,458,458,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,458,458,458,458,458,458,458,458,458,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,438,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,458,458,458,458,458,458,458,458,458,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,458,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,1641,1641,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,
+478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478,478
+</data>
+ </layer>
+ <layer id="2" name="item" width="50" height="50" opacity="0.9">
+  <data encoding="csv">
+698,698,698,698,698,698,698,698,698,698,699,0,0,0,0,697,698,698,698,698,766,761,669,621,622,669,762,765,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,
+714,714,714,714,714,714,714,730,698,698,699,0,0,0,0,697,698,698,698,766,761,777,685,637,638,685,778,762,765,698,698,698,698,698,698,698,698,766,714,714,714,714,714,714,714,714,714,714,714,714,
+669,621,669,669,669,622,669,697,698,698,699,0,0,0,0,713,714,714,714,761,777,793,701,653,654,701,794,778,762,714,714,714,714,714,714,714,714,761,669,669,669,669,669,669,669,669,669,669,669,622,
+685,637,685,685,685,638,685,697,698,698,699,0,0,0,0,622,669,669,669,777,793,809,0,0,0,0,810,794,778,669,669,669,621,669,669,669,669,777,685,685,685,685,685,685,685,685,685,685,685,638,
+701,653,701,701,701,654,701,697,698,698,699,0,0,0,0,638,685,685,685,793,809,0,0,0,0,0,0,810,794,685,685,685,637,685,685,685,685,793,701,701,701,701,701,701,701,701,701,701,701,654,
+0,0,0,0,0,0,0,697,698,698,699,0,0,0,0,654,701,701,701,809,0,0,0,0,0,0,0,0,810,701,701,701,653,701,701,701,701,809,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,697,698,698,745,682,683,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,681,682,682,682,682,746,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,681,682,682,682,682,682,682,682,682,682,682,682,683,0,
+0,0,697,698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2073,0,0,0,697,698,698,698,698,698,698,698,698,698,698,698,699,0,
+0,0,697,698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2085,0,0,0,697,698,698,698,698,698,698,698,698,698,698,698,699,0,
+0,0,697,698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,698,698,698,698,698,698,698,698,698,699,0,
+0,0,697,698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,698,698,698,698,698,698,698,698,698,699,0,
+0,0,697,698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,698,698,698,698,698,698,698,698,698,699,0,
+0,0,713,714,714,714,714,714,714,714,730,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,33,34,0,0,0,0,0,0,697,698,698,729,714,714,714,714,714,714,714,714,715,0,
+0,0,669,669,669,669,622,669,669,669,697,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,49,50,0,0,0,0,0,0,697,698,698,699,669,669,669,669,669,622,669,621,669,0,
+0,0,685,685,685,685,638,685,685,685,697,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,699,685,685,685,685,685,638,685,637,685,0,
+0,0,701,701,701,701,654,701,701,701,697,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,699,701,701,701,701,701,654,701,653,701,0,
+0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,699,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,699,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,0,2073,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,699,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,0,2085,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,699,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,699,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,699,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,699,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,697,698,745,682,682,683,0,0,0,681,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,746,698,698,699,0,0,0,0,0,0,0,0,0,0,
+0,0,8,9,0,0,0,0,0,0,697,698,698,698,698,699,0,0,0,697,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,
+0,0,24,25,0,0,0,0,0,0,697,698,698,698,698,699,0,0,0,697,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,697,698,698,698,698,699,0,0,0,697,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,697,698,698,698,698,699,0,0,0,697,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,697,698,698,698,698,699,0,0,0,697,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,697,698,698,698,698,699,0,0,0,697,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,
+682,682,682,682,682,682,682,682,682,682,746,698,698,698,698,699,0,0,0,697,698,698,698,698,698,698,698,698,698,766,1278,1277,1278,1277,1278,1277,1278,730,698,699,0,0,0,681,682,682,682,682,682,682,
+698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,699,0,0,0,697,698,698,698,698,698,698,698,698,766,761,1294,1293,1294,1293,1294,1293,1294,697,698,699,0,0,0,697,0,0,0,0,0,0,
+698,698,698,698,698,698,698,698,698,729,1278,1277,1278,1277,1278,715,0,0,0,713,1278,1277,1278,1277,1278,1277,1278,1278,761,777,1310,1309,1310,1309,1310,1309,1310,697,698,699,0,0,0,697,0,0,0,0,0,0,
+698,698,698,698,698,698,698,698,698,699,1294,1293,1294,1293,1294,670,0,0,0,669,1294,1293,1294,1293,1294,1293,1294,669,777,793,1326,1325,1326,1325,1326,1325,1326,697,698,699,0,0,0,697,0,0,0,0,0,0,
+698,698,698,698,698,698,698,698,698,699,1310,1309,1310,1309,1310,686,0,0,0,685,1310,1309,1310,1309,1310,1309,1310,685,793,809,1342,0,1342,0,1342,0,1342,697,698,699,0,0,0,697,0,0,0,0,0,0,
+698,698,698,698,698,698,698,698,698,699,1326,1325,1326,1325,1326,702,0,0,0,701,1326,1325,1326,1325,1326,1325,1326,701,809,0,0,0,0,0,0,0,0,697,698,699,0,0,0,697,0,0,0,0,0,0,
+698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,0,697,0,0,0,0,0,0,
+698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,0,697,0,0,0,0,0,0,
+714,714,714,714,714,714,714,714,714,715,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,0,713,714,714,714,714,714,714,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,0,669,669,669,669,669,669,669,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,11,0,0,0,0,0,0,0,697,698,699,0,0,0,701,701,701,701,701,701,701,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,26,27,0,0,0,0,0,0,0,697,698,699,0,0,0,0,0,0,0,0,0,0,
+682,682,682,682,683,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,42,43,0,0,0,0,0,0,0,697,698,699,0,0,0,0,0,0,0,0,681,682,
+698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,59,0,0,0,0,0,0,0,697,698,699,0,0,0,0,0,0,0,0,697,698,
+698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,713,714,715,0,0,0,0,0,0,0,0,697,698,
+698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1266,0,1267,0,0,0,0,0,0,0,0,697,698,
+698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1266,0,1267,0,0,0,0,0,0,0,0,697,698,
+698,698,698,698,745,682,682,682,682,682,683,0,0,0,0,681,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,746,698,
+698,698,698,698,698,698,698,698,698,698,699,0,0,0,0,697,698,698,698,698,698,766,714,714,714,714,765,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698
+</data>
+ </layer>
+ <layer id="3" name="leaf" width="50" height="50">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,108,109,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2097,0,124,125,0,2097,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2109,0,140,141,0,2109,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,108,109,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,107,0,0,0,0,0,177,178,0,0,0,0,0,107,0,0,0,0,0,0,0,1154,1155,1156,0,0,0,0,124,125,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,123,0,0,0,0,0,193,194,0,0,0,0,0,123,0,0,0,0,0,0,0,1173,1174,1175,0,0,0,0,140,141,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,139,0,0,0,0,0,0,0,0,0,0,0,0,139,0,0,0,0,0,0,0,1189,1190,1191,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,649,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,154,155,156,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,170,171,172,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,650,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,107,0,0,2097,0,
+0,0,0,0,0,1154,1155,1156,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,123,0,0,2109,0,
+0,0,0,0,0,1167,1168,1169,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2121,0,2121,0,139,0,0,0,0,
+0,0,0,0,0,1183,1184,1185,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2133,0,2133,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,157,158,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2067,173,174,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+1207,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,649,0,0,0,0,0,0,0,0,0,0,650,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1205,1206,
+1223,0,0,0,2073,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1221,1222,
+1239,0,0,0,2085,0,0,0,2067,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1237,1238,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,107,0,107,0,0,0,0,0,0,0,107,0,107,0,107,0,0,0,0,0,0,0,0,2121,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,123,0,123,0,0,0,0,0,0,0,123,0,123,0,123,0,0,0,0,0,0,0,0,2133,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,139,0,139,0,0,0,0,0,0,0,139,0,139,0,139,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2067,0,0,0,0,0,0,0,0,0,2097,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,1270,1254,1255,1256,1254,1255,1256,1254,1255,1256,1254,1254,1254,1254,1254,1254,1254,1255,1256,1255,1271,0,0,0,0,0,0,0,0,0,0,0,2109,0,0,0,0,
+1254,1255,1256,1256,1256,1256,1256,1256,1256,1256,1256,1256,1256,1287,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1288,0,0,0,0,0,0,0,0,0,1270,1254,1255,1256,1254,1255,1256,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1272,0,0,0,0,0,0,0,0,0,1272,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1288,0,0,0,0,0,0,0,0,0,1288,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1304,0,0,0,0,0,0,0,0,0,1304,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1286,1254,1255,1256,1255,1256,1255,1256,1254,1255,1256,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+</map>

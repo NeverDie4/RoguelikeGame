@@ -14,7 +14,6 @@ public class TeleportManager {
     
     // Boss房区块配置
     private static final String BOSS_CHUNK_1 = "3,0";
-    private static final String BOSS_CHUNK_2 = "0,3";
     private static final String BOSS_MAP_NAME = "square_boss";
     
     // 记录Boss房是否已被传送门激活
@@ -191,15 +190,21 @@ public class TeleportManager {
     
     /**
      * 根据地图ID获取目标区块X坐标
-     * 根据命名规范：test.tmx, test_door.tmx, test_boss.tmx
+     * 根据命名规范：test.tmx, test_door.tmx, test_boss.tmx, dungeon.tmx, dungeon_door.tmx, dungeon_boss.tmx
      */
     private int getTargetChunkX(String mapId) {
         switch (mapId) {
             case "test":
+            case "square":
+            case "dungeon":
                 return 0; // 普通地图在区块0
             case "test_door":
+            case "square_door":
+            case "dungeon_door":
                 return 2; // 门地图在区块2
             case "test_boss":
+            case "square_boss":
+            case "dungeon_boss":
             case "maphole": // 兼容旧的地图ID
                 return 3; // Boss地图在区块3
             default:
@@ -221,9 +226,6 @@ public class TeleportManager {
         return BOSS_CHUNK_1;
     }
     
-    public static String getBossChunk2() {
-        return BOSS_CHUNK_2;
-    }
     
     /**
      * 获取Boss房地图名称
@@ -243,21 +245,11 @@ public class TeleportManager {
         String baseMapName = infiniteMapManager.getMapName();
         boolean isHorizontalInfinite = infiniteMapManager.isHorizontalInfinite();
         
-        // 特殊区块地图配置
-        if (isHorizontalInfinite) {
-            // 横向无限地图：只配置X方向的特殊区块
-            if ("2,0".equals(chunkKey)) {
-                return baseMapName + "_door";
-            } else if ("3,0".equals(chunkKey)) {
-                return baseMapName + "_boss";
-            }
-        } else {
-            // 四向无限地图：配置四个方向的特殊区块
-            if ("2,0".equals(chunkKey) || "0,2".equals(chunkKey)) {
-                return baseMapName + "_door";
-            } else if ("3,0".equals(chunkKey) || "0,3".equals(chunkKey)) {
-                return baseMapName + "_boss";
-            }
+        // 特殊区块地图配置 - 所有地图都只有X方向的特殊区块
+        if ("2,0".equals(chunkKey)) {
+            return baseMapName + "_door";
+        } else if ("3,0".equals(chunkKey)) {
+            return baseMapName + "_boss";
         }
         
         return baseMapName; // 默认地图

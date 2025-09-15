@@ -51,7 +51,6 @@ public class InfiniteMapManager {
     
     // Boss房区块配置：2D坐标
     private static final String BOSS_CHUNK_1 = "3,0";
-    private static final String BOSS_CHUNK_2 = "0,3";
     private String bossMapName;
     
     // 传送门管理器引用
@@ -74,6 +73,9 @@ public class InfiniteMapManager {
         this.lastUpdateTime = System.currentTimeMillis();
         this.mapName = mapName;
         
+        // 判断地图类型：test地图使用横向无限地图，square和dungeon地图使用四向无限地图
+        this.isHorizontalInfinite = "test".equals(mapName);
+        
         // 根据基础地图名称动态生成特殊地图配置
         this.specialChunkMaps = new HashMap<>();
         if (isHorizontalInfinite) {
@@ -81,16 +83,11 @@ public class InfiniteMapManager {
             this.specialChunkMaps.put("2,0", mapName + "_door");    // 传送门地图 (2,0)
             this.specialChunkMaps.put("3,0", mapName + "_boss");    // Boss房 (3,0)
         } else {
-            // 四向无限地图：配置四个方向的特殊区块
+            // 四向无限地图：只有X方向的特殊区块（每张地图只有一个传送门和一个boss房）
             this.specialChunkMaps.put("2,0", mapName + "_door");    // 传送门地图 (2,0)
-            this.specialChunkMaps.put("0,2", mapName + "_door");    // 传送门地图 (0,2)
             this.specialChunkMaps.put("3,0", mapName + "_boss");    // Boss房 (3,0)
-            this.specialChunkMaps.put("0,3", mapName + "_boss");    // Boss房 (0,3)
         }
         this.bossMapName = mapName + "_boss";
-        
-        // 判断地图类型：test地图使用横向无限地图，square地图使用四向无限地图
-        this.isHorizontalInfinite = "test".equals(mapName);
         
         // 初始化状态管理器
         this.stateManager = new ChunkStateManager();
@@ -206,17 +203,9 @@ public class InfiniteMapManager {
             return; // 玩家仍在同一区块
         }
         
-        // 检查是否尝试进入Boss房区块
+        // 检查是否尝试进入Boss房区块 - 所有地图都只有X方向的boss区块
         String newChunkKey = chunkToKey(newPlayerChunkX, newPlayerChunkY);
-        boolean isBossChunk = false;
-        
-        if (isHorizontalInfinite) {
-            // 横向无限地图：只有(3,0)是Boss房区块
-            isBossChunk = "3,0".equals(newChunkKey);
-        } else {
-            // 四向无限地图：(3,0)和(0,3)都是Boss房区块
-            isBossChunk = newChunkKey.equals(BOSS_CHUNK_1) || newChunkKey.equals(BOSS_CHUNK_2);
-        }
+        boolean isBossChunk = "3,0".equals(newChunkKey);
         
         if (isBossChunk && teleportManager != null && !teleportManager.isBossChunkActivated()) {
             System.out.println("🚫 玩家尝试进入Boss房区块，但Boss房未被激活，阻止进入");
@@ -450,6 +439,13 @@ public class InfiniteMapManager {
         
         System.out.println("🗺️ 区块 (" + chunkX + "," + chunkY + ") 使用地图: " + chunkMapName);
         
+        // 调试信息：显示特殊区块的加载情况
+        if ("2,0".equals(chunkKey)) {
+            System.out.println("🚪 传送门区块 (" + chunkX + "," + chunkY + ") 加载完成，使用地图: " + chunkMapName);
+        } else if ("3,0".equals(chunkKey)) {
+            System.out.println("👹 Boss房区块 (" + chunkX + "," + chunkY + ") 加载完成，使用地图: " + chunkMapName);
+        }
+        
         // 调试信息：显示横向无限地图的区块加载情况
         if (isHorizontalInfinite && chunkX > 3) {
             System.out.println("🔍 横向无限地图加载区块 (" + chunkX + "," + chunkY + ") -> " + chunkMapName);
@@ -481,6 +477,13 @@ public class InfiniteMapManager {
                         }
                         
                         System.out.println("✅ 区块 (" + chunkX + "," + chunkY + ") 异步加载完成并添加到场景 (地图: " + chunkMapName + ")");
+                        
+                        // 调试信息：显示特殊区块的异步加载情况
+                        if ("2,0".equals(chunkKey)) {
+                            System.out.println("🚪 传送门区块 (" + chunkX + "," + chunkY + ") 异步加载完成，使用地图: " + chunkMapName);
+                        } else if ("3,0".equals(chunkKey)) {
+                            System.out.println("👹 Boss房区块 (" + chunkX + "," + chunkY + ") 异步加载完成，使用地图: " + chunkMapName);
+                        }
                         
                         // 调试信息：显示横向无限地图的异步加载情况
                         if (isHorizontalInfinite && chunkX > 3) {
@@ -792,8 +795,10 @@ public class InfiniteMapManager {
      */
     public void printStatus() {
         String mapType = isHorizontalInfinite ? "横向无限地图" : "四向无限地图";
-        System.out.println("🌍 " + mapType + "状态:");
+        String mapTypeDescription = isHorizontalInfinite ? "test地图" : (mapName.equals("square") ? "square地图" : "dungeon地图");
+        System.out.println("🌍 " + mapType + "状态 (" + mapTypeDescription + "):");
         System.out.println("   地图类型: " + mapType);
+        System.out.println("   基础地图: " + mapName);
         System.out.println("   玩家区块: (" + playerChunkX + "," + playerChunkY + ")");
         System.out.println("   加载半径: " + loadRadius + " (3x3区块)");
         System.out.println("   预加载半径: " + preloadRadius);
@@ -913,10 +918,6 @@ public class InfiniteMapManager {
      */
     public static String getBossChunk1() {
         return BOSS_CHUNK_1;
-    }
-    
-    public static String getBossChunk2() {
-        return BOSS_CHUNK_2;
     }
     
     /**

@@ -48,8 +48,12 @@ public class MapChunk {
         this.chunkX = chunkX;
         this.chunkY = chunkY;
         this.mapName = mapName;
-        this.chunkWidth = 96;   // 默认值，将在loadBaseMap中更新
-        this.chunkHeight = 54;  // 默认值，将在loadBaseMap中更新
+        
+        // 使用MapChunkFactory获取正确的地图尺寸
+        int[] dimensions = MapChunkFactory.getMapDimensions(mapName);
+        this.chunkWidth = dimensions[0];
+        this.chunkHeight = dimensions[1];
+        
         this.worldOffsetX = chunkX * chunkWidth * TILE_SIZE;
         this.worldOffsetY = chunkY * chunkHeight * TILE_SIZE;
         this.isLoaded = false;
@@ -75,9 +79,16 @@ public class MapChunk {
             
         isLoaded = true;
         System.out.println("🗺️ 区块 (" + chunkX + "," + chunkY + ") 加载完成 (偏移: " + worldOffsetX + "," + worldOffsetY + ")");
+        System.out.println("   地图名称: " + mapName);
+        System.out.println("   区块尺寸: " + chunkWidth + "x" + chunkHeight);
         System.out.println("   瓦片集数量: " + tiledMap.getTilesets().size());
         System.out.println("   图层数量: " + tiledMap.getLayers().size());
         System.out.println("   图像缓存: " + tilesetImages.size() + " 个");
+        
+        // 打印瓦片集信息
+        for (Tileset tileset : tiledMap.getTilesets()) {
+            System.out.println("   瓦片集: " + tileset.getName() + " (GID: " + tileset.getFirstgid() + "-" + (tileset.getFirstgid() + tileset.getTilecount() - 1) + ")");
+        }
             
         } catch (Exception e) {
             System.err.println("❌ 区块 " + chunkX + " 加载失败: " + e.getMessage());
@@ -222,15 +233,26 @@ public class MapChunk {
      */
     private void loadTilesetImage(String tilesetName, String imageSource) {
         try {
-            String imagePath = "assets/maps/" + mapName + "/" + imageSource;
+            String imagePath;
+            
+            // 处理相对路径（如 ../dungeon/hyptosis_tile-art-batch-1.png）
+            if (imageSource.startsWith("../")) {
+                // 相对路径：从当前地图目录的上级目录开始
+                String relativePath = imageSource.substring(3); // 移除 "../"
+                imagePath = "assets/maps/" + relativePath;
+            } else {
+                // 绝对路径：在当前地图目录中
+                imagePath = "assets/maps/" + mapName + "/" + imageSource;
+            }
+            
             InputStream imageStream = getClass().getResourceAsStream("/" + imagePath);
             
             if (imageStream != null) {
                 Image image = new Image(imageStream);
                 tilesetImages.put(tilesetName, image);
-                System.out.println("✅ 成功加载瓦片集图像: " + imageSource);
+                System.out.println("✅ 成功加载瓦片集图像: " + imageSource + " -> " + imagePath);
             } else {
-                System.err.println("❌ 无法找到瓦片集图像: " + imagePath);
+                System.err.println("❌ 无法找到瓦片集图像: " + imagePath + " (原始路径: " + imageSource + ")");
             }
         } catch (Exception e) {
             System.err.println("❌ 加载瓦片集图像失败: " + imageSource + " - " + e.getMessage());
@@ -656,28 +678,36 @@ public class MapChunk {
     
     /**
      * 世界坐标转区块坐标（使用默认尺寸）
+     * @deprecated 使用MapChunkFactory.worldToChunkX(worldX, mapName)替代
      */
+    @Deprecated
     public static int worldToChunkX(double worldX) {
         return (int) Math.floor(worldX / (96 * TILE_SIZE)); // 默认96x54
     }
     
     /**
      * 区块坐标转世界坐标（使用默认尺寸）
+     * @deprecated 使用MapChunkFactory.chunkToWorldX(chunkX, mapName)替代
      */
+    @Deprecated
     public static double chunkToWorldX(int chunkX) {
         return chunkX * 96 * TILE_SIZE; // 默认96x54
     }
     
     /**
      * 世界坐标转区块Y坐标（使用默认尺寸）
+     * @deprecated 使用MapChunkFactory.worldToChunkY(worldY, mapName)替代
      */
+    @Deprecated
     public static int worldToChunkY(double worldY) {
         return (int) Math.floor(worldY / (54 * TILE_SIZE)); // 默认96x54
     }
     
     /**
      * 区块Y坐标转世界坐标（使用默认尺寸）
+     * @deprecated 使用MapChunkFactory.chunkToWorldY(chunkY, mapName)替代
      */
+    @Deprecated
     public static double chunkToWorldY(int chunkY) {
         return chunkY * 54 * TILE_SIZE; // 默认96x54
     }

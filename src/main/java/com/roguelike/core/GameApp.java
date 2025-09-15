@@ -291,7 +291,7 @@ public class GameApp extends GameApplication {
         double playerX, playerY;
         if (USE_INFINITE_MAP) {
             // 无限地图：玩家出生在区块(0,0)的中心
-            // test地图使用横向无限地图，square地图使用四向无限地图
+            // test地图使用横向无限地图，square和dungeon地图使用四向无限地图
             playerX = infiniteMapManager.getChunkWidthPixels() / 2.0; // 区块(0,0)的中心X
             playerY = infiniteMapManager.getChunkHeightPixels() / 2.0; // 区块(0,0)的中心Y
         } else {
@@ -1153,19 +1153,10 @@ public class GameApp extends GameApplication {
 
         // 特殊区块坐标（传送门地图和Boss房）
         final String DOOR_CHUNK_1 = "2,0";
-        final String DOOR_CHUNK_2 = "0,2";
         final String BOSS_CHUNK_1 = "3,0";
-        final String BOSS_CHUNK_2 = "0,3";
 
-        boolean isSpecialChunk = false;
-        if (infiniteMapManager.isHorizontalInfinite()) {
-            // 横向无限地图：只有X方向的特殊区块
-            isSpecialChunk = currentChunkKey.equals(DOOR_CHUNK_1) || currentChunkKey.equals(BOSS_CHUNK_1);
-        } else {
-            // 四向无限地图：四个方向的特殊区块
-            isSpecialChunk = currentChunkKey.equals(DOOR_CHUNK_1) || currentChunkKey.equals(DOOR_CHUNK_2) || 
-                            currentChunkKey.equals(BOSS_CHUNK_1) || currentChunkKey.equals(BOSS_CHUNK_2);
-        }
+        // 检查当前区块是否为特殊区块 - 所有地图都只有X方向的特殊区块
+        boolean isSpecialChunk = currentChunkKey.equals(DOOR_CHUNK_1) || currentChunkKey.equals(BOSS_CHUNK_1);
 
         if (isSpecialChunk) {
             // 玩家在特殊区块（传送门地图或Boss房），隐藏箭头
@@ -1200,14 +1191,8 @@ public class GameApp extends GameApplication {
      */
     private double[] findNearestDoorChunk(int currentChunkX, int currentChunkY) {
         // 传送门区块坐标
-        int[][] doorChunks;
-        if (infiniteMapManager.isHorizontalInfinite()) {
-            // 横向无限地图：只有X方向的传送门区块
-            doorChunks = new int[][]{{2, 0}};
-        } else {
-            // 四向无限地图：四个方向的传送门区块
-            doorChunks = new int[][]{{2, 0}, {0, 2}};
-        }
+        // 所有地图都只有X方向的传送门区块
+        int[][] doorChunks = new int[][]{{2, 0}};
         
         double minDistance = Double.MAX_VALUE;
         double[] nearestDoor = new double[2];
