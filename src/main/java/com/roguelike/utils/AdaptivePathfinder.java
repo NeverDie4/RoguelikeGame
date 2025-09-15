@@ -219,12 +219,14 @@ public class AdaptivePathfinder {
      */
     private List<Point2D> findPathInNeighboringChunks(double startX, double startY, double endX, double endY) {
         // 计算起点和终点所在的区块
-        // 区块大小：96瓦片 * 32像素 = 3072像素
+        // 区块大小：96瓦片 * 32像素 = 3072像素宽，54瓦片 * 32像素 = 1728像素高
         int startChunkX = (int) (startX / (96 * 32)); // 区块X坐标
+        int startChunkY = (int) (startY / (54 * 32)); // 区块Y坐标
         int endChunkX = (int) (endX / (96 * 32));     // 区块X坐标
+        int endChunkY = (int) (endY / (54 * 32));     // 区块Y坐标
         
-        // 检查是否在邻近区块内（左右相邻）
-        if (Math.abs(startChunkX - endChunkX) > 1) {
+        // 检查是否在邻近区块内（3x3区块范围）
+        if (Math.abs(startChunkX - endChunkX) > 1 || Math.abs(startChunkY - endChunkY) > 1) {
             // 超出邻近区块范围，使用简化寻路
             return generateDirectPath(startX, startY, endX, endY);
         }

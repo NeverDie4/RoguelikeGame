@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AsyncChunkLoader {
     
     private ExecutorService loadingExecutor;
-    private Map<Integer, CompletableFuture<MapChunk>> loadingTasks;
+    private Map<String, CompletableFuture<MapChunk>> loadingTasks;
     private ChunkStateManager stateManager;
     private AtomicInteger activeLoadingTasks;
     private String mapName;
@@ -57,27 +57,28 @@ public class AsyncChunkLoader {
     /**
      * 异步加载区块
      */
-    public CompletableFuture<MapChunk> loadChunkAsync(int chunkX) {
-        return loadChunkAsync(chunkX, mapName);
+    public CompletableFuture<MapChunk> loadChunkAsync(int chunkX, int chunkY) {
+        return loadChunkAsync(chunkX, chunkY, mapName);
     }
     
     /**
      * 异步加载区块（指定地图名称）
      */
-    public CompletableFuture<MapChunk> loadChunkAsync(int chunkX, String chunkMapName) {
+    public CompletableFuture<MapChunk> loadChunkAsync(int chunkX, int chunkY, String chunkMapName) {
+        String chunkKey = chunkX + "," + chunkY;
         // 检查是否已经在加载
-        if (loadingTasks.containsKey(chunkX)) {
-            return loadingTasks.get(chunkX);
+        if (loadingTasks.containsKey(chunkKey)) {
+            return loadingTasks.get(chunkKey);
         }
         
         // 检查并发限制
         if (activeLoadingTasks.get() >= maxConcurrentLoads) {
-            System.out.println("⚠️ 达到最大并发加载限制，区块 " + chunkX + " 加入等待队列");
+            System.out.println("⚠️ 达到最大并发加载限制，区块 (" + chunkX + "," + chunkY + ") 加入等待队列");
             return CompletableFuture.completedFuture(null);
         }
         
         // 设置状态为加载中
-        stateManager.transitionToState(chunkX, ChunkState.LOADING);
+        stateManager.transitionToState(chunkKey, ChunkState.LOADING);
         
         // 创建异步任务
         CompletableFuture<MapChunk> future = CompletableFuture.supplyAsync(() -> {
@@ -85,39 +86,39 @@ public class AsyncChunkLoader {
                 activeLoadingTasks.incrementAndGet();
                 long startTime = System.currentTimeMillis();
                 
-                System.out.println("🔄 开始异步加载区块 " + chunkX);
+                System.out.println("🔄 开始异步加载区块 (" + chunkX + "," + chunkY + ")");
                 
                 // 创建并加载区块
-                MapChunk chunk = new MapChunk(chunkX, chunkMapName);
+                MapChunk chunk = new MapChunk(chunkX, chunkY, chunkMapName);
                 chunk.load();
                 
                 long loadTime = System.currentTimeMillis() - startTime;
-                System.out.println("✅ 区块 " + chunkX + " 异步加载完成，耗时: " + loadTime + "ms");
+                System.out.println("✅ 区块 (" + chunkX + "," + chunkY + ") 异步加载完成，耗时: " + loadTime + "ms");
                 
                 // 设置状态为已加载
-                stateManager.transitionToState(chunkX, ChunkState.LOADED);
+                stateManager.transitionToState(chunkKey, ChunkState.LOADED);
                 
                 return chunk;
                 
             } catch (Exception e) {
-                System.err.println("❌ 区块 " + chunkX + " 异步加载失败: " + e.getMessage());
-                stateManager.transitionToState(chunkX, ChunkState.UNLOADED);
+                System.err.println("❌ 区块 (" + chunkX + "," + chunkY + ") 异步加载失败: " + e.getMessage());
+                stateManager.transitionToState(chunkKey, ChunkState.UNLOADED);
                 return null;
             } finally {
                 activeLoadingTasks.decrementAndGet();
-                loadingTasks.remove(chunkX);
+                loadingTasks.remove(chunkKey);
             }
         }, loadingExecutor)
         .orTimeout(maxLoadingTimeMs, TimeUnit.MILLISECONDS)
         .exceptionally(throwable -> {
-            System.err.println("⏰ 区块 " + chunkX + " 加载超时或异常: " + throwable.getMessage());
-            stateManager.transitionToState(chunkX, ChunkState.UNLOADED);
-            loadingTasks.remove(chunkX);
+            System.err.println("⏰ 区块 (" + chunkX + "," + chunkY + ") 加载超时或异常: " + throwable.getMessage());
+            stateManager.transitionToState(chunkKey, ChunkState.UNLOADED);
+            loadingTasks.remove(chunkKey);
             return null;
         });
         
         // 记录加载任务
-        loadingTasks.put(chunkX, future);
+        loadingTasks.put(chunkKey, future);
         
         return future;
     }
@@ -125,22 +126,26 @@ public class AsyncChunkLoader {
     /**
      * 批量预加载区块
      */
-    public void preloadChunksAsync(List<Integer> chunkCoordinates) {
-        if (chunkCoordinates == null || chunkCoordinates.isEmpty()) {
+    public void preloadChunksAsync(List<String> chunkKeys) {
+        if (chunkKeys == null || chunkKeys.isEmpty()) {
             return;
         }
         
-        //System.out.println("🚀 开始批量预加载 " + chunkCoordinates.size() + " 个区块: " + chunkCoordinates);
+        //System.out.println("🚀 开始批量预加载 " + chunkKeys.size() + " 个区块: " + chunkKeys);
         
         List<CompletableFuture<MapChunk>> futures = new ArrayList<>();
         
-        for (int chunkX : chunkCoordinates) {
+        for (String chunkKey : chunkKeys) {
             // 跳过已加载或正在加载的区块
-            if (stateManager.isLoaded(chunkX) || stateManager.isLoading(chunkX)) {
+            if (stateManager.isLoaded(chunkKey) || stateManager.isLoading(chunkKey)) {
                 continue;
             }
             
-            CompletableFuture<MapChunk> future = loadChunkAsync(chunkX);
+            String[] coords = chunkKey.split(",");
+            int chunkX = Integer.parseInt(coords[0]);
+            int chunkY = Integer.parseInt(coords[1]);
+            
+            CompletableFuture<MapChunk> future = loadChunkAsync(chunkX, chunkY);
             if (future != null) {
                 futures.add(future);
             }
@@ -155,13 +160,13 @@ public class AsyncChunkLoader {
     /**
      * 取消加载任务
      */
-    public void cancelLoading(int chunkX) {
-        CompletableFuture<MapChunk> future = loadingTasks.get(chunkX);
+    public void cancelLoading(String chunkKey) {
+        CompletableFuture<MapChunk> future = loadingTasks.get(chunkKey);
         if (future != null && !future.isDone()) {
             future.cancel(true);
-            loadingTasks.remove(chunkX);
-            stateManager.transitionToState(chunkX, ChunkState.UNLOADED);
-            System.out.println("🚫 取消区块 " + chunkX + " 的加载任务");
+            loadingTasks.remove(chunkKey);
+            stateManager.transitionToState(chunkKey, ChunkState.UNLOADED);
+            System.out.println("🚫 取消区块 " + chunkKey + " 的加载任务");
         }
     }
     
@@ -170,8 +175,8 @@ public class AsyncChunkLoader {
      */
     public void cancelAllLoading() {
         System.out.println("🚫 取消所有加载任务");
-        for (int chunkX : new ArrayList<>(loadingTasks.keySet())) {
-            cancelLoading(chunkX);
+        for (String chunkKey : new ArrayList<>(loadingTasks.keySet())) {
+            cancelLoading(chunkKey);
         }
     }
     
@@ -192,8 +197,8 @@ public class AsyncChunkLoader {
     /**
      * 检查是否正在加载指定区块
      */
-    public boolean isLoading(int chunkX) {
-        return loadingTasks.containsKey(chunkX) && !loadingTasks.get(chunkX).isDone();
+    public boolean isLoading(String chunkKey) {
+        return loadingTasks.containsKey(chunkKey) && !loadingTasks.get(chunkKey).isDone();
     }
     
     /**

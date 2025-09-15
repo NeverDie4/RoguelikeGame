@@ -70,7 +70,8 @@ public class MapCollisionDetector {
                 double worldX = tileX * 32.0;
                 double worldY = tileY * 32.0;
                 
-                if (infiniteMapManager.isUnaccessible(worldX, worldY)) {
+                // 使用isPassable方法进行碰撞检测，它正确处理世界坐标
+                if (!infiniteMapManager.isPassable(worldX, worldY)) {
                     return false; // 发现不可通行的瓦片
                 }
             }
@@ -213,7 +214,7 @@ public class MapCollisionDetector {
         
         if (infiniteMapManager != null) {
             // 无限地图：只检查Y轴边界（上下封死）
-            double mapHeight = InfiniteMapManager.getChunkHeightPixels();
+            double mapHeight = infiniteMapManager.getChunkHeightPixels();
             return entityBounds.getMinY() >= 0 && entityBounds.getMaxY() <= mapHeight;
         } else if (mapRenderer != null) {
             // 传统地图：检查完整边界

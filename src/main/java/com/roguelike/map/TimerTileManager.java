@@ -181,11 +181,14 @@ public class TimerTileManager {
     /**
      * 清理指定区块的所有定时器瓦片
      */
-    public void clearChunkTimerTiles(int chunkX) {
-        timerTiles.entrySet().removeIf(entry -> 
-            entry.getValue().chunk.getChunkX() == chunkX);
+    public void clearChunkTimerTiles(String chunkKey) {
+        timerTiles.entrySet().removeIf(entry -> {
+            MapChunk chunk = entry.getValue().chunk;
+            String chunkChunkKey = chunk.getChunkX() + "," + chunk.getChunkY();
+            return chunkChunkKey.equals(chunkKey);
+        });
         
-        System.out.println("🧹 清理区块 " + chunkX + " 的定时器瓦片");
+        System.out.println("🧹 清理区块 " + chunkKey + " 的定时器瓦片");
     }
     
     /**

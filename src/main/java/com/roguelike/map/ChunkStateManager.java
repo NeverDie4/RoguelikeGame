@@ -10,8 +10,8 @@ import java.util.List;
  */
 public class ChunkStateManager {
     
-    private Map<Integer, ChunkState> chunkStates;
-    private Map<Integer, Long> stateChangeTimes; // 状态变更时间戳
+    private Map<String, ChunkState> chunkStates;
+    private Map<String, Long> stateChangeTimes; // 状态变更时间戳
     
     public ChunkStateManager() {
         this.chunkStates = new HashMap<>();
@@ -21,58 +21,58 @@ public class ChunkStateManager {
     /**
      * 状态转换管理
      */
-    public void transitionToState(int chunkX, ChunkState newState) {
-        ChunkState oldState = chunkStates.get(chunkX);
-        chunkStates.put(chunkX, newState);
-        stateChangeTimes.put(chunkX, System.currentTimeMillis());
+    public void transitionToState(String chunkKey, ChunkState newState) {
+        ChunkState oldState = chunkStates.get(chunkKey);
+        chunkStates.put(chunkKey, newState);
+        stateChangeTimes.put(chunkKey, System.currentTimeMillis());
         
         if (oldState != null && oldState != newState) {
-            System.out.println("🔄 区块 " + chunkX + " 状态变更: " + oldState + " -> " + newState);
+            System.out.println("🔄 区块 " + chunkKey + " 状态变更: " + oldState + " -> " + newState);
         }
     }
     
     /**
      * 获取区块状态
      */
-    public ChunkState getChunkState(int chunkX) {
-        return chunkStates.getOrDefault(chunkX, ChunkState.UNLOADED);
+    public ChunkState getChunkState(String chunkKey) {
+        return chunkStates.getOrDefault(chunkKey, ChunkState.UNLOADED);
     }
     
     /**
      * 检查区块是否处于指定状态
      */
-    public boolean isInState(int chunkX, ChunkState state) {
-        return getChunkState(chunkX) == state;
+    public boolean isInState(String chunkKey, ChunkState state) {
+        return getChunkState(chunkKey) == state;
     }
     
     /**
      * 检查区块是否已加载（包括LOADED和CACHED状态）
      */
-    public boolean isLoaded(int chunkX) {
-        ChunkState state = getChunkState(chunkX);
+    public boolean isLoaded(String chunkKey) {
+        ChunkState state = getChunkState(chunkKey);
         return state == ChunkState.LOADED || state == ChunkState.CACHED;
     }
     
     /**
      * 检查区块是否正在加载
      */
-    public boolean isLoading(int chunkX) {
-        return isInState(chunkX, ChunkState.LOADING);
+    public boolean isLoading(String chunkKey) {
+        return isInState(chunkKey, ChunkState.LOADING);
     }
     
     /**
      * 检查区块是否正在卸载
      */
-    public boolean isUnloading(int chunkX) {
-        return isInState(chunkX, ChunkState.UNLOADING);
+    public boolean isUnloading(String chunkKey) {
+        return isInState(chunkKey, ChunkState.UNLOADING);
     }
     
     /**
      * 获取指定状态的所有区块
      */
-    public List<Integer> getChunksInState(ChunkState state) {
-        List<Integer> result = new ArrayList<>();
-        for (Map.Entry<Integer, ChunkState> entry : chunkStates.entrySet()) {
+    public List<String> getChunksInState(ChunkState state) {
+        List<String> result = new ArrayList<>();
+        for (Map.Entry<String, ChunkState> entry : chunkStates.entrySet()) {
             if (entry.getValue() == state) {
                 result.add(entry.getKey());
             }
@@ -83,16 +83,16 @@ public class ChunkStateManager {
     /**
      * 获取状态变更时间
      */
-    public long getStateChangeTime(int chunkX) {
-        return stateChangeTimes.getOrDefault(chunkX, 0L);
+    public long getStateChangeTime(String chunkKey) {
+        return stateChangeTimes.getOrDefault(chunkKey, 0L);
     }
     
     /**
      * 清理指定区块的状态
      */
-    public void clearChunkState(int chunkX) {
-        chunkStates.remove(chunkX);
-        stateChangeTimes.remove(chunkX);
+    public void clearChunkState(String chunkKey) {
+        chunkStates.remove(chunkKey);
+        stateChangeTimes.remove(chunkKey);
     }
     
     /**
@@ -135,7 +135,7 @@ public class ChunkStateManager {
     /**
      * 获取所有已跟踪的区块
      */
-    public List<Integer> getAllTrackedChunks() {
+    public List<String> getAllTrackedChunks() {
         return new ArrayList<>(chunkStates.keySet());
     }
 }

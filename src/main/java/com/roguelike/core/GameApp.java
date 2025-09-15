@@ -88,7 +88,7 @@ public class GameApp extends GameApplication {
     public static boolean COLLISION_POSITION_PUSH_ENABLED = true; // 是否启用位置推挤
 
     // 地图配置
-    private static final String MAP_NAME = "test"; // 当前使用的地图名称
+    private static final String MAP_NAME = "square"; // 当前使用的地图名称
     private static final boolean USE_INFINITE_MAP = true; // 是否使用无限地图
     
     // 路径寻找配置
@@ -101,7 +101,7 @@ public class GameApp extends GameApplication {
 
     private static int TARGET_FPS = 60;
             // 使用固定移动距离，避免 tpf() 异常值导致的移动问题
-    private static double moveDistance = 2.0; // 固定移动距离，提高移动速度
+    private static double moveDistance = 6.0; // 固定移动距离，提高移动速度
 
     @Override
     protected void initSettings(GameSettings settings) {
@@ -198,9 +198,23 @@ public class GameApp extends GameApplication {
 
         // 地图系统初始化
         if (USE_INFINITE_MAP) {
-            // 使用无限地图系统
-            infiniteMapManager = new InfiniteMapManager(MAP_NAME);
-            collisionDetector = new MapCollisionDetector(infiniteMapManager);
+            try {
+                // 使用无限地图系统
+                System.out.println("🔧 开始初始化无限地图系统...");
+                System.out.println("🔧 地图名称: " + MAP_NAME);
+                infiniteMapManager = new InfiniteMapManager(MAP_NAME);
+                System.out.println("✅ 无限地图管理器初始化成功");
+                
+                collisionDetector = new MapCollisionDetector(infiniteMapManager);
+                System.out.println("✅ 碰撞检测器初始化成功");
+            } catch (Exception e) {
+                System.err.println("❌ 无限地图系统初始化失败: " + e.getMessage());
+                e.printStackTrace();
+                System.err.println("❌ 异常类型: " + e.getClass().getSimpleName());
+                System.err.println("❌ 异常堆栈: ");
+                e.printStackTrace();
+                return; // 如果初始化失败，直接返回
+            }
 
             // 初始化传送门管理器
             teleportManager = new com.roguelike.map.TeleportManager(infiniteMapManager);
@@ -213,7 +227,7 @@ public class GameApp extends GameApplication {
             System.out.println("🚪 传送门系统已启用");
             System.out.println("⏰ 定时器瓦片系统已启用");
             System.out.println("🏰 Boss房区块限制已启用（只能通过传送门到达）");
-        System.out.println("   区块尺寸: " + InfiniteMapManager.getChunkWidthPixels() + "x" + InfiniteMapManager.getChunkHeightPixels() + " 像素");
+        System.out.println("   区块尺寸: " + infiniteMapManager.getChunkWidthPixels() + "x" + infiniteMapManager.getChunkHeightPixels() + " 像素");
         System.out.println("   瓦片尺寸: 32x32 像素");
         System.out.println("   加载半径: " + infiniteMapManager.getLoadRadius() + " 个区块");
         System.out.println("   预加载半径: " + infiniteMapManager.getPreloadRadius() + " 个区块");
@@ -276,9 +290,10 @@ public class GameApp extends GameApplication {
         // 玩家 - 根据地图系统设置初始位置
         double playerX, playerY;
         if (USE_INFINITE_MAP) {
-            // 无限地图：玩家出生在区块0的中心
-            playerX = InfiniteMapManager.getChunkWidthPixels() / 2.0; // 区块0的中心X
-            playerY = InfiniteMapManager.getChunkHeightPixels() / 2.0; // 区块0的中心Y
+            // 无限地图：玩家出生在区块(0,0)的中心
+            // test地图使用横向无限地图，square地图使用四向无限地图
+            playerX = infiniteMapManager.getChunkWidthPixels() / 2.0; // 区块(0,0)的中心X
+            playerY = infiniteMapManager.getChunkHeightPixels() / 2.0; // 区块(0,0)的中心Y
         } else {
             // 传统地图：根据地图尺寸调整初始位置
             playerX = mapRenderer.getMapWidth() > 0 ?
@@ -614,14 +629,13 @@ public class GameApp extends GameApplication {
         if (USE_INFINITE_MAP && infiniteMapManager != null) {
             // 使用缓存的玩家引用，避免每帧查找
             if (cachedPlayer != null && cachedPlayer.isActive()) {
-                int currentChunkX = InfiniteMapManager.worldToChunkX(cachedPlayer.getX());
-                if (currentChunkX != infiniteMapManager.getPlayerChunkX()) {
-                    System.out.println("🚶 玩家跨越区块边界: " + infiniteMapManager.getPlayerChunkX() + " -> " + currentChunkX);
+                int currentChunkX = infiniteMapManager.worldToChunkX(cachedPlayer.getX());
+                int currentChunkY = infiniteMapManager.worldToChunkY(cachedPlayer.getY());
+                if (currentChunkX != infiniteMapManager.getPlayerChunkX() || 
+                    currentChunkY != infiniteMapManager.getPlayerChunkY()) {
+                    System.out.println("🚶 玩家跨越区块边界: (" + infiniteMapManager.getPlayerChunkX() + "," + infiniteMapManager.getPlayerChunkY() + ") -> (" + currentChunkX + "," + currentChunkY + ")");
                     System.out.println("   世界坐标: " + String.format("%.1f", cachedPlayer.getX()) + ", " + String.format("%.1f", cachedPlayer.getY()));
-                    infiniteMapManager.updateChunks(currentChunkX);
-                } else {
-                    // 玩家在同一区块内移动时，基于视角进行智能预加载
-                    infiniteMapManager.viewportBasedPreload(cachedPlayer.getX(), cachedPlayer.getY());
+                    infiniteMapManager.updateChunks(currentChunkX, currentChunkY);
                 }
             } else {
                 // 如果缓存的玩家无效，重新查找
@@ -1133,38 +1147,89 @@ public class GameApp extends GameApplication {
         }
 
         // 获取玩家当前区块
-        int currentChunkX = InfiniteMapManager.worldToChunkX(cachedPlayer.getX());
+        int currentChunkX = infiniteMapManager.worldToChunkX(cachedPlayer.getX());
+        int currentChunkY = infiniteMapManager.worldToChunkY(cachedPlayer.getY());
+        String currentChunkKey = currentChunkX + "," + currentChunkY;
 
-        // 特殊区块编号（区块2 - 门地图，区块3 - Boss房）
-        final int DOOR_CHUNK_X = 2;
-        final int BOSS_CHUNK_X = 3;
+        // 特殊区块坐标（传送门地图和Boss房）
+        final String DOOR_CHUNK_1 = "2,0";
+        final String DOOR_CHUNK_2 = "0,2";
+        final String BOSS_CHUNK_1 = "3,0";
+        final String BOSS_CHUNK_2 = "0,3";
 
-        if (currentChunkX == DOOR_CHUNK_X || currentChunkX == BOSS_CHUNK_X) {
-            // 玩家在特殊区块（门地图或Boss房），隐藏箭头
+        boolean isSpecialChunk = false;
+        if (infiniteMapManager.isHorizontalInfinite()) {
+            // 横向无限地图：只有X方向的特殊区块
+            isSpecialChunk = currentChunkKey.equals(DOOR_CHUNK_1) || currentChunkKey.equals(BOSS_CHUNK_1);
+        } else {
+            // 四向无限地图：四个方向的特殊区块
+            isSpecialChunk = currentChunkKey.equals(DOOR_CHUNK_1) || currentChunkKey.equals(DOOR_CHUNK_2) || 
+                            currentChunkKey.equals(BOSS_CHUNK_1) || currentChunkKey.equals(BOSS_CHUNK_2);
+        }
+
+        if (isSpecialChunk) {
+            // 玩家在特殊区块（传送门地图或Boss房），隐藏箭头
             if (arrowIndicator.isVisible()) {
                 arrowIndicator.hideArrow();
             }
         } else {
-            // 玩家不在特殊区块，显示箭头指向门地图区块
+            // 玩家不在特殊区块，显示箭头指向最近的传送门区块
             if (!arrowIndicator.isVisible()) {
-                // 计算门地图区块的中心位置
-                double doorChunkCenterX = InfiniteMapManager.chunkToWorldX(DOOR_CHUNK_X) +
-                                        InfiniteMapManager.getChunkWidthPixels() / 2.0;
-                double doorChunkCenterY = InfiniteMapManager.getChunkHeightPixels() / 2.0;
+                // 计算最近的传送门区块位置
+                double[] nearestDoor = findNearestDoorChunk(currentChunkX, currentChunkY);
+                double doorChunkCenterX = nearestDoor[0];
+                double doorChunkCenterY = nearestDoor[1];
 
                 // 显示箭头
                 arrowIndicator.showArrow(doorChunkCenterX, doorChunkCenterY,
                                        cachedPlayer.getX(), cachedPlayer.getY());
             } else {
                 // 更新箭头位置和方向
-                double doorChunkCenterX = InfiniteMapManager.chunkToWorldX(DOOR_CHUNK_X) +
-                                        InfiniteMapManager.getChunkWidthPixels() / 2.0;
-                double doorChunkCenterY = InfiniteMapManager.getChunkHeightPixels() / 2.0;
+                double[] nearestDoor = findNearestDoorChunk(currentChunkX, currentChunkY);
+                double doorChunkCenterX = nearestDoor[0];
+                double doorChunkCenterY = nearestDoor[1];
 
                 arrowIndicator.updateArrow(doorChunkCenterX, doorChunkCenterY,
                                          cachedPlayer.getX(), cachedPlayer.getY());
             }
         }
+    }
+    
+    /**
+     * 找到最近的传送门区块位置
+     */
+    private double[] findNearestDoorChunk(int currentChunkX, int currentChunkY) {
+        // 传送门区块坐标
+        int[][] doorChunks;
+        if (infiniteMapManager.isHorizontalInfinite()) {
+            // 横向无限地图：只有X方向的传送门区块
+            doorChunks = new int[][]{{2, 0}};
+        } else {
+            // 四向无限地图：四个方向的传送门区块
+            doorChunks = new int[][]{{2, 0}, {0, 2}};
+        }
+        
+        double minDistance = Double.MAX_VALUE;
+        double[] nearestDoor = new double[2];
+        
+        for (int[] doorChunk : doorChunks) {
+            int doorX = doorChunk[0];
+            int doorY = doorChunk[1];
+            
+            // 计算距离（使用曼哈顿距离）
+            double distance = Math.abs(doorX - currentChunkX) + Math.abs(doorY - currentChunkY);
+            
+            if (distance < minDistance) {
+                minDistance = distance;
+                // 计算传送门区块的中心世界坐标
+                nearestDoor[0] = infiniteMapManager.chunkToWorldX(doorX) + 
+                                infiniteMapManager.getChunkWidthPixels() / 2.0;
+                nearestDoor[1] = infiniteMapManager.chunkToWorldY(doorY) + 
+                                infiniteMapManager.getChunkHeightPixels() / 2.0;
+            }
+        }
+        
+        return nearestDoor;
     }
 
     public static void main(String[] args) {

@@ -23,9 +23,7 @@ public class CustomGameMenu extends FXGLMenu {
     public CustomGameMenu() {
         super(MenuType.GAME_MENU);
         System.out.println("暂停菜单类已创建，等待用户按ESC键显示");
-        // 当暂停菜单创建时，暂停游戏时间
-        com.roguelike.core.TimeService.pause();
-        System.out.println("暂停菜单显示，游戏时间已暂停");
+        // 注意：不在构造函数中暂停游戏时间，只有在菜单真正显示时才暂停
         System.out.println("开始初始化自定义游戏菜单...");
         initCustomGameMenu();
         System.out.println("自定义游戏菜单初始化完成");

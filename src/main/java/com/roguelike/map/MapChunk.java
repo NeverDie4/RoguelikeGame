@@ -23,29 +23,35 @@ import org.w3c.dom.NodeList;
 public class MapChunk {
     
     private int chunkX;                    // 区块X坐标
+    private int chunkY;                    // 区块Y坐标
     private String mapName;                // 地图名称
     private TiledMap tiledMap;             // 区块的地图数据
     private CollisionMap collisionMap;     // 区块的碰撞数据
     private GameView mapView;              // 区块的渲染视图
     private boolean isLoaded;              // 是否已加载
-    private double worldOffsetX;           // 世界坐标偏移
+    private double worldOffsetX;           // 世界坐标X偏移
+    private double worldOffsetY;           // 世界坐标Y偏移
     private Map<String, Image> tilesetImages = new HashMap<>(); // 瓦片集图像缓存
     
     // 静态缓存，避免重复解析相同的地图文件
-    // 基于(chunkX, mapName)组合的缓存，支持不同区块使用不同地图
+    // 基于mapName的缓存，所有区块共享相同的地图数据，但独立计算世界偏移
     private static Map<String, TiledMap> cachedTiledMaps = new HashMap<>();
     private static Map<String, Map<String, Image>> cachedTilesetImagesMap = new HashMap<>();
     private static final Object cacheLock = new Object();
     
     // 地图常量
-    private static final int CHUNK_WIDTH = 96;   // 区块宽度（瓦片数）
-    private static final int CHUNK_HEIGHT = 54;  // 区块高度（瓦片数）
     private static final int TILE_SIZE = 32;     // 瓦片尺寸
+    private int chunkWidth;   // 区块宽度（瓦片数）- 动态获取
+    private int chunkHeight;  // 区块高度（瓦片数）- 动态获取
     
-    public MapChunk(int chunkX, String mapName) {
+    public MapChunk(int chunkX, int chunkY, String mapName) {
         this.chunkX = chunkX;
+        this.chunkY = chunkY;
         this.mapName = mapName;
-        this.worldOffsetX = chunkX * CHUNK_WIDTH * TILE_SIZE;
+        this.chunkWidth = 96;   // 默认值，将在loadBaseMap中更新
+        this.chunkHeight = 54;  // 默认值，将在loadBaseMap中更新
+        this.worldOffsetX = chunkX * chunkWidth * TILE_SIZE;
+        this.worldOffsetY = chunkY * chunkHeight * TILE_SIZE;
         this.isLoaded = false;
     }
     
@@ -68,7 +74,7 @@ public class MapChunk {
             buildCollisionMap();
             
         isLoaded = true;
-        System.out.println("🗺️ 区块 " + chunkX + " 加载完成 (偏移: " + worldOffsetX + ")");
+        System.out.println("🗺️ 区块 (" + chunkX + "," + chunkY + ") 加载完成 (偏移: " + worldOffsetX + "," + worldOffsetY + ")");
         System.out.println("   瓦片集数量: " + tiledMap.getTilesets().size());
         System.out.println("   图层数量: " + tiledMap.getLayers().size());
         System.out.println("   图像缓存: " + tilesetImages.size() + " 个");
@@ -98,21 +104,21 @@ public class MapChunk {
         mapView = null;
         isLoaded = false;
         
-        System.out.println("🗑️ 区块 " + chunkX + " 已卸载");
+        System.out.println("🗑️ 区块 (" + chunkX + "," + chunkY + ") 已卸载");
     }
     
     /**
      * 加载基础地图数据（使用缓存避免重复解析）
-     * 支持基于(chunkX, mapName)组合的缓存
+     * 支持基于mapName的缓存，每个区块独立计算世界偏移
      */
     private void loadBaseMap() throws Exception {
         synchronized (cacheLock) {
-            // 生成缓存键：chunkX_mapName
-            String cacheKey = chunkX + "_" + mapName;
+            // 生成缓存键：只基于mapName，因为所有区块使用相同的地图文件
+            String cacheKey = mapName;
             
-            // 如果该组合的缓存不存在，则解析地图文件
+            // 如果该地图的缓存不存在，则解析地图文件
             if (!cachedTiledMaps.containsKey(cacheKey)) {
-                System.out.println("📋 首次解析地图文件 " + mapName + " 用于区块 " + chunkX + "，创建缓存...");
+                System.out.println("📋 首次解析地图文件 " + mapName + "，创建缓存...");
                 
                 // 使用配置的地图名称
                 String resourcePath = "assets/maps/" + mapName + "/" + mapName + ".tmx";
@@ -163,6 +169,17 @@ public class MapChunk {
             // 使用缓存的地图数据
             tiledMap = cachedTiledMaps.get(cacheKey);
             tilesetImages = new HashMap<>(cachedTilesetImagesMap.get(cacheKey));
+            
+            // 更新区块尺寸（从缓存的地图数据获取）
+            this.chunkWidth = tiledMap.getWidth();
+            this.chunkHeight = tiledMap.getHeight();
+            
+            // 计算世界偏移（每个区块独立计算）
+            this.worldOffsetX = chunkX * chunkWidth * TILE_SIZE;
+            this.worldOffsetY = chunkY * chunkHeight * TILE_SIZE;
+            
+            System.out.println("🔧 MapChunk尺寸更新: " + mapName + " -> " + chunkWidth + "x" + chunkHeight + " 瓦片 (" + (chunkWidth * TILE_SIZE) + "x" + (chunkHeight * TILE_SIZE) + " 像素)");
+            System.out.println("   区块(" + chunkX + "," + chunkY + ") 世界偏移: (" + worldOffsetX + "," + worldOffsetY + ")");
         }
     }
     
@@ -340,6 +357,7 @@ public class MapChunk {
         
         // 设置Group的偏移
         layer.setTranslateX(worldOffsetX);
+        layer.setTranslateY(worldOffsetY);
         
         // 创建GameView，设置渲染层级为背景层（负值表示在背景）
         mapView = new GameView(layer, -1);
@@ -534,10 +552,10 @@ public class MapChunk {
         
         // 转换为区块内坐标
         int localX = (int) ((worldX - worldOffsetX) / TILE_SIZE);
-        int localY = (int) (worldY / TILE_SIZE);
+        int localY = (int) ((worldY - worldOffsetY) / TILE_SIZE);
         
         // 检查是否在区块范围内
-        if (localX < 0 || localX >= CHUNK_WIDTH || localY < 0 || localY >= CHUNK_HEIGHT) {
+        if (localX < 0 || localX >= chunkWidth || localY < 0 || localY >= chunkHeight) {
             return false; // 超出区块范围时默认为不可通行，防止越界移动
         }
         
@@ -555,10 +573,10 @@ public class MapChunk {
         
         // 转换为区块内坐标
         int localX = (int) ((worldX - worldOffsetX) / TILE_SIZE);
-        int localY = (int) (worldY / TILE_SIZE);
+        int localY = (int) ((worldY - worldOffsetY) / TILE_SIZE);
         
         // 检查是否在区块范围内
-        if (localX < 0 || localX >= CHUNK_WIDTH || localY < 0 || localY >= CHUNK_HEIGHT) {
+        if (localX < 0 || localX >= chunkWidth || localY < 0 || localY >= chunkHeight) {
             // 超出当前区块范围，检查是否在邻近区块内
             return infiniteMapManager.isPassable(worldX, worldY);
         }
@@ -626,38 +644,56 @@ public class MapChunk {
     
     // Getter方法
     public int getChunkX() { return chunkX; }
+    public int getChunkY() { return chunkY; }
+    public int getChunkWidth() { return chunkWidth; }
+    public int getChunkHeight() { return chunkHeight; }
     public TiledMap getTiledMap() { return tiledMap; }
     public CollisionMap getCollisionMap() { return collisionMap; }
     public GameView getMapView() { return mapView; }
     public boolean isLoaded() { return isLoaded; }
     public double getWorldOffsetX() { return worldOffsetX; }
+    public double getWorldOffsetY() { return worldOffsetY; }
     
     /**
-     * 世界坐标转区块坐标
+     * 世界坐标转区块坐标（使用默认尺寸）
      */
     public static int worldToChunkX(double worldX) {
-        return (int) Math.floor(worldX / (CHUNK_WIDTH * TILE_SIZE));
+        return (int) Math.floor(worldX / (96 * TILE_SIZE)); // 默认96x54
     }
     
     /**
-     * 区块坐标转世界坐标
+     * 区块坐标转世界坐标（使用默认尺寸）
      */
     public static double chunkToWorldX(int chunkX) {
-        return chunkX * CHUNK_WIDTH * TILE_SIZE;
+        return chunkX * 96 * TILE_SIZE; // 默认96x54
     }
     
     /**
-     * 获取区块宽度（像素）
+     * 世界坐标转区块Y坐标（使用默认尺寸）
      */
-    public static int getChunkWidthPixels() {
-        return CHUNK_WIDTH * TILE_SIZE;
+    public static int worldToChunkY(double worldY) {
+        return (int) Math.floor(worldY / (54 * TILE_SIZE)); // 默认96x54
     }
     
     /**
-     * 获取区块高度（像素）
+     * 区块Y坐标转世界坐标（使用默认尺寸）
      */
-    public static int getChunkHeightPixels() {
-        return CHUNK_HEIGHT * TILE_SIZE;
+    public static double chunkToWorldY(int chunkY) {
+        return chunkY * 54 * TILE_SIZE; // 默认96x54
+    }
+    
+    /**
+     * 获取区块宽度（像素）- 实例方法
+     */
+    public int getChunkWidthPixels() {
+        return chunkWidth * TILE_SIZE;
+    }
+    
+    /**
+     * 获取区块高度（像素）- 实例方法
+     */
+    public int getChunkHeightPixels() {
+        return chunkHeight * TILE_SIZE;
     }
     
     /**

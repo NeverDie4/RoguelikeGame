@@ -13,8 +13,9 @@ public class TeleportManager {
     private Player player;
     
     // Boss房区块配置
-    private static final int BOSS_CHUNK_X = 3;
-    private static final String BOSS_MAP_NAME = "test_boss";
+    private static final String BOSS_CHUNK_1 = "3,0";
+    private static final String BOSS_CHUNK_2 = "0,3";
+    private static final String BOSS_MAP_NAME = "square_boss";
     
     // 记录Boss房是否已被传送门激活
     private boolean bossChunkActivated = false;
@@ -42,8 +43,9 @@ public class TeleportManager {
         }
         
         // 获取玩家当前所在的区块
-        int chunkX = InfiniteMapManager.worldToChunkX(playerX);
-        MapChunk chunk = infiniteMapManager.getChunk(chunkX);
+        int chunkX = infiniteMapManager.worldToChunkX(playerX);
+        int chunkY = infiniteMapManager.worldToChunkY(playerY);
+        MapChunk chunk = infiniteMapManager.getChunk(chunkX, chunkY);
         
         if (chunk == null || !chunk.isLoaded()) {
             return false;
@@ -70,8 +72,9 @@ public class TeleportManager {
         
         // 转换为区块内坐标
         double localX = worldX - chunk.getWorldOffsetX();
+        double localY = worldY - chunk.getWorldOffsetY();
         int tileX = (int) (localX / 32); // 32是瓦片大小
-        int tileY = (int) (worldY / 32);
+        int tileY = (int) (localY / 32);
         
         // 检查所有图层
         for (Layer layer : chunk.getTiledMap().getLayers()) {
@@ -120,32 +123,45 @@ public class TeleportManager {
             return false;
         }
         
+        // 计算目标区块Y坐标（根据目标地图ID）
+        int targetChunkY = 0; // 默认Y坐标
+        if ("1".equals(targetMapId)) {
+            targetChunkY = 2; // 传送到(0,2)区块
+        } else if ("2".equals(targetMapId)) {
+            targetChunkY = 0; // 传送到(2,0)区块
+        } else if ("3".equals(targetMapId)) {
+            targetChunkY = 3; // 传送到(0,3)区块
+        } else if ("4".equals(targetMapId)) {
+            targetChunkY = 0; // 传送到(3,0)区块
+        }
+        
         // 如果是传送到Boss房，需要先激活Boss房区块
-        if (targetChunkX == BOSS_CHUNK_X) {
+        String targetChunkKey = targetChunkX + "," + targetChunkY;
+        if (targetChunkKey.equals("3,0") || targetChunkKey.equals("0,3")) {
             System.out.println("🏰 激活Boss房区块...");
             activateBossChunk();
         }
         
         // 计算目标世界坐标
-        // 使用地图左下角为原点，一个瓦片为单位长度
-        double targetWorldX = targetChunkX * InfiniteMapManager.getChunkWidthPixels() + (targetX * 32);
-        // 地图高度是54个瓦片，需要将Y坐标从左上角转换为左下角
-        double targetWorldY = (54 - 1 - targetY) * 32; // 54-1-targetY 将左上角坐标转换为左下角坐标
+        // 需要根据目标区块的地图类型使用正确的尺寸
+        String targetMapName = getMapNameForChunk(targetChunkX, targetChunkY);
+        double targetWorldX = targetChunkX * MapChunkFactory.getChunkWidthPixels(targetMapName) + (targetX * 32);
+        double targetWorldY = targetChunkY * MapChunkFactory.getChunkHeightPixels(targetMapName) + (targetY * 32);
         
         System.out.println("   目标世界坐标: (" + targetWorldX + ", " + targetWorldY + ")");
-        System.out.println("   目标区块: " + targetChunkX);
+        System.out.println("   目标区块: (" + targetChunkX + "," + targetChunkY + ")");
         
         // 确保目标区块已加载
-        if (!infiniteMapManager.getChunk(targetChunkX).isLoaded()) {
-            System.out.println("📦 加载目标区块: " + targetChunkX);
-            infiniteMapManager.loadChunkAsync(targetChunkX);
+        if (!infiniteMapManager.getChunk(targetChunkX, targetChunkY).isLoaded()) {
+            System.out.println("📦 加载目标区块: (" + targetChunkX + "," + targetChunkY + ")");
+            infiniteMapManager.loadChunkAsync(targetChunkX, targetChunkY);
         }
         
         // 传送玩家
         player.setPosition(targetWorldX, targetWorldY);
         
         // 更新无限地图管理器的玩家位置
-        infiniteMapManager.updateChunks(targetChunkX);
+        infiniteMapManager.updateChunks(targetChunkX, targetChunkY);
         
         // 更新摄像机跟随
         FXGL.getGameScene().getViewport().bindToEntity(player, 
@@ -185,13 +201,13 @@ public class TeleportManager {
                 return 2; // 门地图在区块2
             case "test_boss":
             case "maphole": // 兼容旧的地图ID
-                return BOSS_CHUNK_X; // Boss地图在区块3
+                return 3; // Boss地图在区块3
             default:
                 // 尝试解析地图名称，支持动态映射
                 if (mapId.endsWith("_door")) {
                     return 2; // 所有_door地图都在区块2
                 } else if (mapId.endsWith("_boss") || mapId.equals("maphole")) {
-                    return BOSS_CHUNK_X; // 所有_boss地图都在Boss房区块
+                    return 3; // 所有_boss地图都在Boss房区块
                 } else {
                     return 0; // 默认普通地图在区块0
                 }
@@ -199,16 +215,51 @@ public class TeleportManager {
     }
     
     /**
-     * 获取Boss房区块X坐标
+     * 获取Boss房区块坐标
      */
-    public static int getBossChunkX() {
-        return BOSS_CHUNK_X;
+    public static String getBossChunk1() {
+        return BOSS_CHUNK_1;
+    }
+    
+    public static String getBossChunk2() {
+        return BOSS_CHUNK_2;
     }
     
     /**
      * 获取Boss房地图名称
      */
-    public static String getBossMapName() {
-        return BOSS_MAP_NAME;
+    public String getBossMapName() {
+        return infiniteMapManager.getBossMapName();
+    }
+    
+    /**
+     * 获取指定区块对应的地图名称
+     * 如果区块有特殊配置则使用特殊地图，否则使用默认地图
+     */
+    private String getMapNameForChunk(int chunkX, int chunkY) {
+        String chunkKey = chunkX + "," + chunkY;
+        
+        // 获取基础地图名称
+        String baseMapName = infiniteMapManager.getMapName();
+        boolean isHorizontalInfinite = infiniteMapManager.isHorizontalInfinite();
+        
+        // 特殊区块地图配置
+        if (isHorizontalInfinite) {
+            // 横向无限地图：只配置X方向的特殊区块
+            if ("2,0".equals(chunkKey)) {
+                return baseMapName + "_door";
+            } else if ("3,0".equals(chunkKey)) {
+                return baseMapName + "_boss";
+            }
+        } else {
+            // 四向无限地图：配置四个方向的特殊区块
+            if ("2,0".equals(chunkKey) || "0,2".equals(chunkKey)) {
+                return baseMapName + "_door";
+            } else if ("3,0".equals(chunkKey) || "0,3".equals(chunkKey)) {
+                return baseMapName + "_boss";
+            }
+        }
+        
+        return baseMapName; // 默认地图
     }
 }
