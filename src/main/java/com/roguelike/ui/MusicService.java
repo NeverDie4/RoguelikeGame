@@ -15,8 +15,21 @@ public final class MusicService {
 
     private static MediaPlayer current;
     private static String currentId = "";
+    // 记录期望播放的曲目ID（lobby.mp3 / battle1.wav），在禁用期间也会被更新
+    private static String desiredId = "";
+    // 全局主音量与音乐分类音量（0.0~1.0）
+    private static double masterVolume = 1.0;
+    private static double musicVolume = 1.0;
+    private static boolean enabled = true;
 
     private MusicService() {}
+
+    private static void applyVolume(MediaPlayer player) {
+        if (player == null) return;
+        double v = enabled ? Math.max(0.0, Math.min(1.0, masterVolume * musicVolume)) : 0.0;
+        try { player.setVolume(v); } catch (Exception ignored) {}
+        try { player.setMute(v <= 0.0); } catch (Exception ignored) {}
+    }
 
     private static void playLoop(String assetId) {
         if (assetId == null || assetId.isEmpty()) return;
@@ -52,8 +65,7 @@ public final class MusicService {
                 Media media = new Media(source);
                 current = new MediaPlayer(media);
                 current.setCycleCount(MediaPlayer.INDEFINITE);
-                current.setVolume(1.0);
-                current.setMute(false);
+                applyVolume(current);
                 current.setOnError(() -> {
                     System.out.println("[MusicService] MediaPlayer error: " + current.getError());
                 });
@@ -62,9 +74,11 @@ public final class MusicService {
                 });
                 current.setOnReady(() -> {
                     System.out.println("[MusicService] Media ready: " + assetId);
+                    applyVolume(current);
                     try { current.play(); } catch (Exception ignored) {}
                 });
                 // 有些平台无需等待 READY，也尝试直接播放
+                applyVolume(current);
                 try { current.play(); } catch (Exception ignored) {}
                 currentId = assetId;
             } catch (Exception ex) {
@@ -74,11 +88,37 @@ public final class MusicService {
     }
 
     public static void playLobby() {
+        desiredId = "lobby.mp3";
+        if (!enabled) { stop(); return; }
         playLoop("lobby.mp3");
     }
 
     public static void playBattle() {
+        desiredId = "battle1.wav";
+        if (!enabled) { stop(); return; }
         playLoop("battle1.wav");
+    }
+
+    public static void setMasterVolume(double v) {
+        masterVolume = Math.max(0.0, Math.min(1.0, v));
+        if (current != null) applyVolume(current);
+    }
+
+    public static void setMusicVolume(double v) {
+        musicVolume = Math.max(0.0, Math.min(1.0, v));
+        if (current != null) applyVolume(current);
+    }
+
+    public static void setEnabled(boolean value) {
+        enabled = value;
+        if (!enabled) {
+            stop();
+        } else {
+            // 优先使用 desiredId 恢复播放；若为空则用 currentId
+            String toPlay = (desiredId != null && !desiredId.isEmpty()) ? desiredId : currentId;
+            if ("lobby.mp3".equals(toPlay)) playLobby();
+            else if ("battle1.wav".equals(toPlay)) playBattle();
+        }
     }
 
     public static void stop() {

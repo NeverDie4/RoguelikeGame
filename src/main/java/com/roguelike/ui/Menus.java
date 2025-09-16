@@ -40,6 +40,8 @@ public class Menus {
 
     public static void showStartMenu(Runnable onStart) {
         ensure();
+        // 确保进入主菜单时播放大厅音乐
+        try { MusicService.playLobby(); } catch (Exception ignored) {}
 
         // 创建主菜单面板
         VBox menuPanel = createMenuPanel();
@@ -93,6 +95,9 @@ public class Menus {
 
         VBox menuPanel = createMenuPanel();
         menuPanel.getStyleClass().add("game-menu");
+
+        // 播放点击音效（类路径加载）
+        try { com.roguelike.ui.SoundService.playOnce("clicks/click.mp3"); } catch (Throwable ignored) {}
 
         Label title = new Label("游戏暂停");
         title.getStyleClass().add("title");
@@ -227,7 +232,10 @@ public class Menus {
         button.getStyleClass().add("fxgl-button");
         button.setPrefWidth(200);
         button.setPrefHeight(50);
-        button.setOnAction(e -> action.run());
+        button.setOnAction(e -> {
+            try { com.roguelike.ui.SoundService.playOnce("clicks/click.mp3"); } catch (Throwable ignored) {}
+            action.run();
+        });
         return button;
     }
 

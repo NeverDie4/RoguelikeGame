@@ -2,9 +2,7 @@ package com.roguelike.entities;
 
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.Entity;
-import com.almasb.fxgl.entity.component.Component;
 import com.almasb.fxgl.entity.components.CollidableComponent;
-import com.almasb.fxgl.physics.PhysicsComponent;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
 import com.roguelike.entities.components.CharacterAnimationComponent;
@@ -12,6 +10,7 @@ import com.roguelike.physics.MovementValidator;
 import com.roguelike.physics.MovementValidator.MovementResult;
 import com.roguelike.physics.MovementValidator.MovementType;
 import com.roguelike.utils.AdaptivePathfinder;
+import com.roguelike.ui.HitSoundThrottle;
 import com.roguelike.utils.AdaptivePathfinder.PathfindingType;
 import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
@@ -282,6 +281,8 @@ public class Enemy extends EntityBase {
         try {
             com.roguelike.ui.DamageNumberService.spawn(getCenter().getX(), getCenter().getY(), damage);
         } catch (Throwable ignored) {}
+        // 播放受击音效（使用节流机制防止重叠）
+        try { HitSoundThrottle.tryPlayHitSound(); } catch (Throwable ignored) {}
         currentHP -= damage;
         GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_HP_CHANGED));
 

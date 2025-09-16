@@ -15,6 +15,18 @@
     </properties>
 
     <dependencies>
+        <!-- JavaFX Swing 模块（与 module-info.java: requires javafx.swing 对应） -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-swing</artifactId>
+            <version>21</version>
+        </dependency>
+        <!-- WebP 解码（仅类路径加载，避免使用 FXGL 资源加载） -->
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-webp</artifactId>
+            <version>3.10.1</version>
+        </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>

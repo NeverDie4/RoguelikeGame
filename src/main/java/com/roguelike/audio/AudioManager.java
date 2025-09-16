@@ -17,7 +17,7 @@ public class AudioManager {
     // 音频设置
     private double masterVolume = 0.5; // 主音量 (0.0 - 1.0)
     private double soundEffectsVolume = 0.7; // 音效音量 (0.0 - 1.0)
-    private double musicVolume = 0.6; // 背景音乐音量 (0.0 - 1.0)
+    private double musicVolume = 0.15; // 背景音乐音量 (0.0 - 1.0) - 进一步调低音乐音量
     
     // 开关状态
     private boolean soundEffectsEnabled = true;
@@ -131,6 +131,12 @@ public class AudioManager {
      */
     public void setMasterVolume(double volume) {
         this.masterVolume = Math.max(0.0, Math.min(1.0, volume));
+        try {
+            com.roguelike.ui.MusicService.setMasterVolume(this.masterVolume);
+        } catch (Throwable ignored) {}
+        try {
+            com.roguelike.ui.SoundService.setMasterVolume(this.masterVolume);
+        } catch (Throwable ignored) {}
         updateAllVolumes();
         System.out.println("主音量设置为: " + (this.masterVolume * 100) + "%");
     }
@@ -141,6 +147,9 @@ public class AudioManager {
      */
     public void setSoundEffectsVolume(double volume) {
         this.soundEffectsVolume = Math.max(0.0, Math.min(1.0, volume));
+        try {
+            com.roguelike.ui.SoundService.setSfxVolume(this.soundEffectsVolume);
+        } catch (Throwable ignored) {}
         updateAllVolumes();
         System.out.println("音效音量设置为: " + (this.soundEffectsVolume * 100) + "%");
     }
@@ -151,6 +160,9 @@ public class AudioManager {
      */
     public void setMusicVolume(double volume) {
         this.musicVolume = Math.max(0.0, Math.min(1.0, volume));
+        try {
+            com.roguelike.ui.MusicService.setMusicVolume(this.musicVolume);
+        } catch (Throwable ignored) {}
         updateAllVolumes();
         System.out.println("背景音乐音量设置为: " + (this.musicVolume * 100) + "%");
     }
@@ -161,6 +173,7 @@ public class AudioManager {
      */
     public void setSoundEffectsEnabled(boolean enabled) {
         this.soundEffectsEnabled = enabled;
+        try { com.roguelike.ui.SoundService.setEnabled(enabled); } catch (Throwable ignored) {}
         System.out.println("音效" + (enabled ? "已启用" : "已禁用"));
     }
     
@@ -170,11 +183,7 @@ public class AudioManager {
      */
     public void setMusicEnabled(boolean enabled) {
         this.musicEnabled = enabled;
-        if (!enabled) {
-            pauseBackgroundMusic();
-        } else {
-            resumeBackgroundMusic();
-        }
+        try { com.roguelike.ui.MusicService.setEnabled(enabled); } catch (Throwable ignored) {}
         System.out.println("背景音乐" + (enabled ? "已启用" : "已禁用"));
     }
     

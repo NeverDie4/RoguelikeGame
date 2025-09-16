@@ -17,7 +17,7 @@ public class AuraDamageComponent extends Component {
     private com.almasb.fxgl.entity.Entity target; // 目标（玩家）
     private Timeline animTimeline; // 循环播放光环动画
     private java.util.List<Image> frames;
-    private double frameDurationSec = 0.07;
+    private double frameDurationSec = 0.07; // 默认值，会被动态计算覆盖
     private javafx.scene.effect.ColorAdjust colorAdjust;
 
     @Override
@@ -35,6 +35,8 @@ public class AuraDamageComponent extends Component {
         }
         // 每帧更新尺寸与居中
         updateVisual();
+        // 动态更新动画播放速度（当武器等级变化时）
+        updateAnimationSpeed();
     }
 
     private void ensureView() {
@@ -45,13 +47,13 @@ public class AuraDamageComponent extends Component {
         // 加载 bullets/04 帧序列并启动循环动画
         loadFrames();
         startAnimation();
-        // 加深色彩：提升对比、降低亮度、提升饱和度
+        // 调整为红黄色调：提升对比、降低亮度、提升饱和度
         colorAdjust = new javafx.scene.effect.ColorAdjust();
-        colorAdjust.setContrast(0.25);
-        colorAdjust.setBrightness(-0.15);
-        colorAdjust.setSaturation(0.35);
-        // 偏冷色调
-        colorAdjust.setHue(-0.35);
+        colorAdjust.setContrast(0.3);
+        colorAdjust.setBrightness(-0.1);
+        colorAdjust.setSaturation(0.4);
+        // 调整为暖色调（红黄色）
+        colorAdjust.setHue(0.1);
         view.setEffect(colorAdjust);
         entity.getViewComponent().addChild(view);
         updateVisual();
@@ -70,9 +72,9 @@ public class AuraDamageComponent extends Component {
         // 居中到实体位置（假设实体绑定在玩家上）
         view.setTranslateX(-size / 2.0);
         view.setTranslateY(-size / 2.0);
-        // 透明度随等级轻微增强
+        // 提高可见度：更高透明度（不透明度）
         int lv = com.roguelike.entities.weapons.WeaponManager.getWeapon04Level();
-        view.setOpacity(Math.min(0.9, 0.5 + lv * 0.10));
+        view.setOpacity(Math.min(1.0, 0.75 + lv * 0.06));
     }
 
     private void ensureTimer() {
@@ -139,6 +141,10 @@ public class AuraDamageComponent extends Component {
             animTimeline.stop();
         }
         if (frames == null || frames.isEmpty()) return;
+        
+        // 动态计算帧间隔：与攻击频率成比例且更慢
+        updateFrameDuration();
+        
         animTimeline = new Timeline();
         animTimeline.setCycleCount(Timeline.INDEFINITE);
         // 使用依次递进的 KeyFrame 循环播放
@@ -150,6 +156,43 @@ public class AuraDamageComponent extends Component {
             ));
         }
         animTimeline.play();
+    }
+    
+    /**
+     * 动态计算帧间隔：让动画播放速度与攻击频率成比例且更慢
+     * 一个完整的动画循环时间 = 攻击间隔 × 2
+     * 帧间隔 = (攻击间隔 × 2) ÷ 帧数
+     */
+    private void updateFrameDuration() {
+        double attackInterval = com.roguelike.entities.weapons.WeaponManager.getWeapon04TickInterval();
+        int frameCount = frames != null ? frames.size() : 4; // 默认4帧
+        // 让动画播放更慢：完整循环时间 = 攻击间隔 × 2
+        frameDurationSec = (attackInterval * 2.0) / frameCount;
+    }
+    
+    /**
+     * 动态更新动画播放速度（当武器等级变化时）
+     */
+    private void updateAnimationSpeed() {
+        if (animTimeline == null || frames == null || frames.isEmpty()) return;
+        
+        // 计算新的帧间隔
+        double newFrameDuration = calculateNewFrameDuration();
+        
+        // 如果帧间隔发生变化，重新启动动画
+        if (Math.abs(newFrameDuration - frameDurationSec) > 0.001) {
+            frameDurationSec = newFrameDuration;
+            startAnimation(); // 重新启动动画以应用新的帧间隔
+        }
+    }
+    
+    /**
+     * 计算新的帧间隔
+     */
+    private double calculateNewFrameDuration() {
+        double attackInterval = com.roguelike.entities.weapons.WeaponManager.getWeapon04TickInterval();
+        int frameCount = frames != null ? frames.size() : 4;
+        return (attackInterval * 2.0) / frameCount;
     }
 
     @Override

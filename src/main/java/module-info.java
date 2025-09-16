@@ -2,6 +2,8 @@ module com.roguelike.main {
     requires javafx.controls;
     requires javafx.fxml;
     requires javafx.media;
+    requires javafx.swing;
+    requires java.desktop;
     requires java.xml;
     requires java.logging;
 

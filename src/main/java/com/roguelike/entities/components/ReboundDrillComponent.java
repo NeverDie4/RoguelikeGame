@@ -52,7 +52,7 @@ public class ReboundDrillComponent extends Component {
             bounced = true;
         }
         if (bounced) {
-            try { com.roguelike.ui.SoundService.playBounce(); } catch (Exception ignored) {}
+            try { com.roguelike.ui.BounceSoundThrottle.tryPlayBounceSound(); } catch (Exception ignored) {}
         }
         // 保持速度恒定，直到寿命结束（不再衰减）
     }

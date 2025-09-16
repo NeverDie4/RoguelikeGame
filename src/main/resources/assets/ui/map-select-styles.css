@@ -1,0 +1,194 @@
+/* 地图选择界面专用样式 - 金色主题 */
+
+/* 滚动条整体样式 */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+/* 滚动条轨道 */
+.scroll-pane .scroll-bar:vertical {
+    -fx-background-color: rgba(255, 215, 0, 0.2);
+    -fx-background-radius: 4;
+    -fx-border-color: #FFD700;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-pref-width: 8px; /* 进一步减小滚动条宽度 */
+    -fx-translate-x: 6px; /* 真正向右移动滚动条 */
+}
+
+/* 滚动条滑块 */
+.scroll-pane .scroll-bar:vertical .thumb {
+    -fx-background-color: #FFD700; /* 使用纯金色，更加明显 */
+    -fx-background-radius: 3;
+    -fx-border-color: #FFA500; /* 橙色边框，更加突出 */
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+    -fx-pref-width: 6px; /* 滑块宽度 */
+    -fx-min-height: 20px; /* 确保滑块有最小高度 */
+}
+
+/* 滚动条滑块悬停效果 */
+.scroll-pane .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: linear-gradient(to bottom, 
+        rgba(255, 215, 0, 1.0), 
+        rgba(255, 193, 7, 0.8));
+    -fx-border-color: #FFA500;
+}
+
+/* 滚动条滑块按下效果 */
+.scroll-pane .scroll-bar:vertical .thumb:pressed {
+    -fx-background-color: linear-gradient(to bottom, 
+        rgba(255, 193, 7, 0.8), 
+        rgba(255, 215, 0, 0.6));
+}
+
+/* 滚动条上下箭头 */
+.scroll-pane .scroll-bar:vertical .increment-button,
+.scroll-pane .scroll-bar:vertical .decrement-button {
+    -fx-background-color: rgba(255, 215, 0, 0.3);
+    -fx-border-color: #FFD700;
+    -fx-border-width: 1;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-pref-width: 8px; /* 箭头按钮宽度与轨道一致 */
+    -fx-pref-height: 12px; /* 设置箭头按钮高度 */
+    -fx-alignment: center; /* 居中对齐 */
+    -fx-padding: 0; /* 移除内边距 */
+    -fx-content-display: center; /* 内容居中显示 */
+}
+
+.scroll-pane .scroll-bar:vertical .increment-button:hover,
+.scroll-pane .scroll-bar:vertical .decrement-button:hover {
+    -fx-background-color: rgba(255, 215, 0, 0.5);
+    -fx-border-color: #FFA500;
+}
+
+/* 滚动条箭头图标 */
+.scroll-pane .scroll-bar:vertical .increment-arrow {
+    -fx-background-color: #FFD700;
+    -fx-shape: "M 0 4 L 4 0 L 8 4 Z"; /* 向下箭头 */
+    -fx-pref-width: 6px;
+    -fx-pref-height: 6px;
+    -fx-scale-shape: false;
+}
+
+.scroll-pane .scroll-bar:vertical .decrement-arrow {
+    -fx-background-color: #FFD700;
+    -fx-shape: "M 0 0 L 4 4 L 8 0 Z"; /* 向上箭头 */
+    -fx-pref-width: 6px;
+    -fx-pref-height: 6px;
+    -fx-scale-shape: false;
+}
+
+.scroll-pane .scroll-bar:vertical .increment-arrow:hover,
+.scroll-pane .scroll-bar:vertical .decrement-arrow:hover {
+    -fx-background-color: #FFA500;
+}
+
+/* 滚动条角落 */
+.scroll-pane .corner {
+    -fx-background-color: transparent;
+}
+
+/* 水平滚动条样式（如果需要） */
+.scroll-pane .scroll-bar:horizontal {
+    -fx-background-color: rgba(255, 215, 0, 0.2);
+    -fx-background-radius: 8;
+    -fx-border-color: #FFD700;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+}
+
+.scroll-pane .scroll-bar:horizontal .thumb {
+    -fx-background-color: linear-gradient(to right, 
+        rgba(255, 215, 0, 0.8), 
+        rgba(255, 193, 7, 0.6));
+    -fx-background-radius: 8;
+    -fx-border-color: #FFD700;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+}
+
+.scroll-pane .scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: linear-gradient(to right, 
+        rgba(255, 215, 0, 1.0), 
+        rgba(255, 193, 7, 0.8));
+    -fx-border-color: #FFA500;
+}
+
+/* 滚动条左右箭头 */
+.scroll-pane .scroll-bar:horizontal .increment-button,
+.scroll-pane .scroll-bar:horizontal .decrement-button {
+    -fx-background-color: rgba(255, 215, 0, 0.3);
+    -fx-border-color: #FFD700;
+    -fx-border-width: 1;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+}
+
+.scroll-pane .scroll-bar:horizontal .increment-arrow,
+.scroll-pane .scroll-bar:horizontal .decrement-arrow {
+    -fx-background-color: #FFD700;
+    -fx-shape: "M 0 0 L 4 4 L 0 8 Z";
+}
+
+/* 地图卡片样式 */
+.map-card {
+    -fx-background-color: rgba(40, 40, 50, 0.9);
+    -fx-border-color: #FFD700;
+    -fx-border-width: 3;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 10;
+}
+
+.map-card-hover {
+    -fx-background-color: rgba(55, 55, 65, 0.95);
+    -fx-border-color: #FFA500;
+    -fx-border-width: 3;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+
+/* 地图预览图容器 */
+.map-preview-container {
+    -fx-border-color: #FFD700;
+    -fx-border-width: 2;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 2;
+}
+
+/* 返回按钮样式 */
+.back-button {
+    -fx-background-color: linear-gradient(to bottom, 
+        rgba(255, 215, 0, 0.8), 
+        rgba(255, 193, 7, 0.6));
+    -fx-background-radius: 15;
+    -fx-border-color: #FFD700;
+    -fx-border-width: 2;
+    -fx-border-radius: 15;
+    -fx-text-fill: white;
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.back-button:hover {
+    -fx-background-color: linear-gradient(to bottom, 
+        rgba(255, 215, 0, 1.0), 
+        rgba(255, 193, 7, 0.8));
+    -fx-border-color: #FFA500;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+.back-button:pressed {
+    -fx-background-color: linear-gradient(to bottom, 
+        rgba(255, 193, 7, 0.8), 
+        rgba(255, 215, 0, 0.6));
+    -fx-scale-x: 0.95;
+    -fx-scale-y: 0.95;
+}

@@ -70,6 +70,12 @@ public class GameHUD {
 
         FXGL.getGameScene().addUINode(root);
 
+        // 左上角武器/被动面板
+        try {
+            WeaponPassivePanel panel = new WeaponPassivePanel();
+            panel.attachToScene();
+        } catch (Throwable ignored) {}
+
         // 添加窗口尺寸变化监听
         setupWindowResizeListener();
 
@@ -270,9 +276,8 @@ public class GameHUD {
             String timeText;
             if (com.roguelike.core.TimeService.isLoading()) {
                 timeText = "加载中...";
-            } else if (com.roguelike.core.TimeService.isPaused()) {
-                timeText = String.format("暂停 %02d:%02d", minutes, seconds);
             } else {
+                // 升级界面弹出时也保持时间数字不变，不显示"暂停"字样
                 timeText = String.format("%02d:%02d", minutes, seconds);
             }
             
@@ -589,6 +594,8 @@ public class GameHUD {
 
     // 播放升级动画效果
     private void playLevelUpAnimation() {
+        // 播放升级音效（类路径加载）
+        try { com.roguelike.ui.SoundService.playOnce("levelups/levelup.wav", 3.0); } catch (Throwable ignored) {} // 调高升级音效音量
         if (expBar != null) {
             // 缩放动画
             ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(300), expBar);

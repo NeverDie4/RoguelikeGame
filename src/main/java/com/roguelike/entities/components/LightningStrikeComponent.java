@@ -47,6 +47,8 @@ public class LightningStrikeComponent extends Component {
         view.setOpacity(0.95);
 
         entity.getViewComponent().addChild(view);
+        // 播放落雷音效（类路径加载）
+        try { com.roguelike.ui.SoundService.playOnce("lightnings/lightning.wav"); } catch (Throwable ignored) {}
         playOnce();
         applyDamageOnce();
     }

@@ -143,6 +143,17 @@ public class BulletFactory {
             }
         }
 
+        // 被动：伤害倍率（P05）
+        try {
+            Object pmObj = com.almasb.fxgl.dsl.FXGL.geto("passiveManager");
+            if (pmObj instanceof com.roguelike.ui.PassiveItemManager pm) {
+                double dmgMul = pm.getDamageMultiplier();
+                if (dmgMul > 0 && Math.abs(dmgMul - 1.0) > 1e-6) {
+                    bullet.setDamage((int) Math.round(bullet.getDamage() * dmgMul));
+                }
+            }
+        } catch (Throwable ignored) {}
+
         // 临时：将 straight_03 的寿命设为 1s，以便可见爆炸动画
         if ("straight_03".equals(spec.getId())) {
             bullet.applyLifetime(1.0);

@@ -14,7 +14,6 @@ import javafx.scene.shape.Shape;
 import javafx.util.Duration;
 import com.roguelike.entities.configs.BulletSpec;
 
-import static com.almasb.fxgl.dsl.FXGL.*;
 
 /**
  * 子弹基类，完全基于EntityBase的碰撞检测机制
@@ -33,6 +32,10 @@ public abstract class Bullet extends EntityBase {
     // 元数据
     protected String id = "unknown";
     protected String displayName = "Unknown Bullet";
+    
+    // 穿透子弹伤害判定时间间隔
+    private double lastDamageTime = 0.0;
+    private static final double PIERCING_DAMAGE_INTERVAL = 0.1; // 100ms间隔
 
     public Bullet(Faction faction, int damage, boolean piercing, double speed) {
         this.faction = faction;
@@ -99,11 +102,17 @@ public abstract class Bullet extends EntityBase {
     }
 
     private void handlePlayerBulletHitEnemy(Enemy enemy) {
-        // 使用Enemy现有的onDeath方法
-        enemy.onDeath(getGameState());
-
-        // 使用现有的GameEvent系统
-        GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_DEATH));
+        // 对于穿透子弹，检查伤害判定时间间隔
+        if (piercing) {
+            double currentTime = com.roguelike.core.TimeService.getSeconds();
+            if (currentTime - lastDamageTime < PIERCING_DAMAGE_INTERVAL) {
+                return; // 跳过这次伤害判定
+            }
+            lastDamageTime = currentTime;
+        }
+        
+        // 统一通过受伤入口处理伤害与死亡
+        enemy.takeDamage(damage);
 
         if (!piercing) {
             removeFromWorld();
@@ -111,6 +120,15 @@ public abstract class Bullet extends EntityBase {
     }
 
     private void handleEnemyBulletHitPlayer(Player player) {
+        // 对于穿透子弹，检查伤害判定时间间隔
+        if (piercing) {
+            double currentTime = com.roguelike.core.TimeService.getSeconds();
+            if (currentTime - lastDamageTime < PIERCING_DAMAGE_INTERVAL) {
+                return; // 跳过这次伤害判定
+            }
+            lastDamageTime = currentTime;
+        }
+        
         // 使用Player现有的damage方法
         getGameState().damagePlayer(damage);
 

@@ -24,9 +24,10 @@ public class WeaponManager {
 
         // 应用初始（LV1）配置，仅武器01
         try { applyWeapon01(1); } catch (Exception ignored) {}
+        // 广播一次武器获得事件（用于UI初始显示）
+        try { com.roguelike.core.GameEvent.post(new com.roguelike.core.GameEvent(com.roguelike.core.GameEvent.Type.WEAPON_UPGRADED, "01")); } catch (Exception ignored) {}
 
-        // 监听主角升级事件
-        GameEvent.listen(GameEvent.Type.LEVEL_UP, e -> upgradeRandomWeapon());
+        // 不再自动升级；升级完全由 UpgradeOverlay 触发
     }
 
     public int getLevel(WeaponId id) {
@@ -36,6 +37,20 @@ public class WeaponManager {
     public int getMaxLevel(WeaponId id) {
         WeaponSpec spec = WeaponRegistry.get(id);
         return spec != null ? spec.getMaxLevel() : 5;
+    }
+
+    /**
+     * 直接将指定武器升级1级（若未满级），并广播事件用于 UI 刷新。
+     */
+    public void upgradeSpecific(String idx2) {
+        WeaponId wid = WeaponId.valueOf("W" + idx2);
+        int cur = getLevel(wid);
+        int max = getMaxLevel(wid);
+        if (cur >= max) return;
+        int newLevel = Math.min(cur + 1, max);
+        weaponLevel.put(wid, newLevel);
+        applyUpgradeEffect(wid, newLevel);
+        com.roguelike.core.GameEvent.post(new com.roguelike.core.GameEvent(com.roguelike.core.GameEvent.Type.WEAPON_UPGRADED, idx2));
     }
 
     public boolean isMaxed(WeaponId id) {
@@ -51,6 +66,7 @@ public class WeaponManager {
             int lvl = Math.min(getLevel(WeaponId.W04) + 1, getMaxLevel(WeaponId.W04));
             weaponLevel.put(WeaponId.W04, lvl);
             applyUpgradeEffect(WeaponId.W04, lvl);
+            com.roguelike.core.GameEvent.post(new com.roguelike.core.GameEvent(com.roguelike.core.GameEvent.Type.WEAPON_UPGRADED, "04"));
             return;
         }
         // 其余按原先顺序（08 -> 07 -> 06 -> 05 -> 03 -> 02 -> 01）
@@ -58,42 +74,49 @@ public class WeaponManager {
             int lvl = Math.min(getLevel(WeaponId.W08) + 1, getMaxLevel(WeaponId.W08));
             weaponLevel.put(WeaponId.W08, lvl);
             applyUpgradeEffect(WeaponId.W08, lvl);
+            com.roguelike.core.GameEvent.post(new com.roguelike.core.GameEvent(com.roguelike.core.GameEvent.Type.WEAPON_UPGRADED, "08"));
             return;
         }
         if (!isMaxed(WeaponId.W07)) {
             int lvl = Math.min(getLevel(WeaponId.W07) + 1, getMaxLevel(WeaponId.W07));
             weaponLevel.put(WeaponId.W07, lvl);
             applyUpgradeEffect(WeaponId.W07, lvl);
+            com.roguelike.core.GameEvent.post(new com.roguelike.core.GameEvent(com.roguelike.core.GameEvent.Type.WEAPON_UPGRADED, "07"));
             return;
         }
         if (!isMaxed(WeaponId.W06)) {
             int lvl = Math.min(getLevel(WeaponId.W06) + 1, getMaxLevel(WeaponId.W06));
             weaponLevel.put(WeaponId.W06, lvl);
             applyUpgradeEffect(WeaponId.W06, lvl);
+            com.roguelike.core.GameEvent.post(new com.roguelike.core.GameEvent(com.roguelike.core.GameEvent.Type.WEAPON_UPGRADED, "06"));
             return;
         }
         if (!isMaxed(WeaponId.W05)) {
             int lvl = Math.min(getLevel(WeaponId.W05) + 1, getMaxLevel(WeaponId.W05));
             weaponLevel.put(WeaponId.W05, lvl);
             applyUpgradeEffect(WeaponId.W05, lvl);
+            com.roguelike.core.GameEvent.post(new com.roguelike.core.GameEvent(com.roguelike.core.GameEvent.Type.WEAPON_UPGRADED, "05"));
             return;
         }
         if (!isMaxed(WeaponId.W03)) {
             int lvl = Math.min(getLevel(WeaponId.W03) + 1, getMaxLevel(WeaponId.W03));
             weaponLevel.put(WeaponId.W03, lvl);
             applyUpgradeEffect(WeaponId.W03, lvl);
+            com.roguelike.core.GameEvent.post(new com.roguelike.core.GameEvent(com.roguelike.core.GameEvent.Type.WEAPON_UPGRADED, "03"));
             return;
         }
         if (!isMaxed(WeaponId.W02)) {
             int lvl = Math.min(getLevel(WeaponId.W02) + 1, getMaxLevel(WeaponId.W02));
             weaponLevel.put(WeaponId.W02, lvl);
             applyUpgradeEffect(WeaponId.W02, lvl);
+            com.roguelike.core.GameEvent.post(new com.roguelike.core.GameEvent(com.roguelike.core.GameEvent.Type.WEAPON_UPGRADED, "02"));
             return;
         }
         if (!isMaxed(WeaponId.W01)) {
             int lvl = Math.min(getLevel(WeaponId.W01) + 1, getMaxLevel(WeaponId.W01));
             weaponLevel.put(WeaponId.W01, lvl);
             applyUpgradeEffect(WeaponId.W01, lvl);
+            com.roguelike.core.GameEvent.post(new com.roguelike.core.GameEvent(com.roguelike.core.GameEvent.Type.WEAPON_UPGRADED, "01"));
             return;
         }
 
@@ -340,22 +363,22 @@ public class WeaponManager {
             default -> 128; // 紫色
         };
 
-        // 半径：适度增加（像素）
+        // 半径：缩小（像素）
         weapon04Radius = switch (lv) {
-            case 1 -> 110.0;
-            case 2 -> 130.0;
-            case 3 -> 150.0;
-            case 4 -> 170.0;
-            default -> 190.0;
+            case 1 -> 80.0;
+            case 2 -> 95.0;
+            case 3 -> 110.0;
+            case 4 -> 125.0;
+            default -> 140.0;
         };
 
-        // 增加tick间隔以降低DPS（原: 0.25/0.25/0.25/0.25/0.20）
+        // 适当降低频率
         weapon04TickInterval = switch (lv) {
-            case 1 -> 0.40;
-            case 2 -> 0.35;
+            case 1 -> 0.45;
+            case 2 -> 0.40;
             case 3 -> 0.35;
             case 4 -> 0.30;
-            default -> 0.25;
+            default -> 0.28;
         };
 
         // 注册 weapon04（作为触发标识）
@@ -600,12 +623,12 @@ public class WeaponManager {
             ));
         }
 
-        // 保存环绕个数（2/3/4/5/5）到全局，供 AutoFire 使用
+        // 保存环绕个数（1/2/3/4/5）到全局，供 AutoFire 使用
         int count = switch (Math.max(1, Math.min(level, 5))) {
-            case 1 -> 2;
-            case 2 -> 3;
-            case 3 -> 4;
-            case 4 -> 5;
+            case 1 -> 1;
+            case 2 -> 2;
+            case 3 -> 3;
+            case 4 -> 4;
             default -> 5;
         };
         setWeapon02OrbitCount(count);

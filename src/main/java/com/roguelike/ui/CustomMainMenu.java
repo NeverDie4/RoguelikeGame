@@ -11,6 +11,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -19,11 +20,17 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.util.Duration;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 自定义主菜单类
  */
 public class CustomMainMenu extends FXGLMenu {
+    
+    private List<Button> menuButtons;
+    private List<HBox> buttonContainers;
+    private int selectedIndex = 0;
 
     public CustomMainMenu() {
         super(MenuType.MAIN_MENU);
@@ -31,6 +38,8 @@ public class CustomMainMenu extends FXGLMenu {
     }
 
     private void initCustomMainMenu() {
+        // 进入主菜单时切换到大厅音乐
+        try { MusicService.playLobby(); } catch (Exception ignored) {}
         // 创建根节点StackPane，用于背景和菜单的层叠
         StackPane rootContainer = new StackPane();
         rootContainer.setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
@@ -118,8 +127,13 @@ public class CustomMainMenu extends FXGLMenu {
         buttonContainer.setAlignment(Pos.CENTER);
         buttonContainer.setPadding(new Insets(30));
 
+        // 初始化按钮列表
+        menuButtons = new ArrayList<>();
+        buttonContainers = new ArrayList<>();
+
         // 创建菜单按钮
         Button startButton = createStyledButton("开始游戏", () -> {
+            try { MusicService.playBattle(); } catch (Exception ignored) {}
             fireNewGame();
         });
 
@@ -137,7 +151,17 @@ public class CustomMainMenu extends FXGLMenu {
             }, null);
         });
 
-        buttonContainer.getChildren().addAll(startButton, optionsButton, exitButton);
+        // 将按钮添加到列表
+        menuButtons.add(startButton);
+        menuButtons.add(optionsButton);
+        menuButtons.add(exitButton);
+
+        // 为每个按钮创建带箭头的容器
+        for (Button button : menuButtons) {
+            HBox buttonWithArrows = createButtonWithArrows(button);
+            buttonContainers.add(buttonWithArrows);
+            buttonContainer.getChildren().add(buttonWithArrows);
+        }
 
         menuContainer.getChildren().addAll(title, subtitle, buttonContainer);
 
@@ -149,8 +173,19 @@ public class CustomMainMenu extends FXGLMenu {
         menuContainer.getStyleClass().add("main-menu");
         menuContainer.setId("main-menu-container");
         
+        // 加载键盘导航样式
+        try {
+            getContentRoot().getStylesheets().add(getClass().getResource("/assets/ui/keyboard-navigation.css").toExternalForm());
+        } catch (Exception ignored) {}
+        
         // 将根容器添加到FXGL的内容根节点
         getContentRoot().getChildren().add(rootContainer);
+        
+        // 添加键盘导航
+        setupKeyboardNavigation();
+        
+        // 设置初始选中状态
+        updateSelection();
         
         // 添加进入动画
         addEnterAnimation(menuContainer);
@@ -230,7 +265,10 @@ public class CustomMainMenu extends FXGLMenu {
             );
         });
 
-        button.setOnAction(e -> action.run());
+        button.setOnAction(e -> {
+            try { com.roguelike.ui.SoundService.playOnce("clicks/click.mp3"); } catch (Throwable ignored) {}
+            action.run();
+        });
         return button;
     }
 
@@ -249,6 +287,121 @@ public class CustomMainMenu extends FXGLMenu {
         
         fadeIn.play();
         scaleIn.play();
+    }
+    
+    /**
+     * 创建带箭头的按钮容器
+     */
+    private HBox createButtonWithArrows(Button button) {
+        HBox container = new HBox();
+        container.setAlignment(Pos.CENTER);
+        container.getStyleClass().add("menu-arrow-container");
+        
+        // 创建左右箭头
+        KeyboardArrow leftArrow = new KeyboardArrow(KeyboardArrow.ArrowDirection.LEFT);
+        KeyboardArrow rightArrow = new KeyboardArrow(KeyboardArrow.ArrowDirection.RIGHT);
+        
+        // 设置箭头大小
+        leftArrow.setSize(16);
+        rightArrow.setSize(16);
+        
+        // 添加样式类
+        leftArrow.getStyleClass().add("menu-arrow-left");
+        rightArrow.getStyleClass().add("menu-arrow-right");
+        
+        // 将箭头和按钮添加到容器
+        container.getChildren().addAll(leftArrow, button, rightArrow);
+        
+        // 存储箭头引用到按钮的用户数据中
+        button.getProperties().put("leftArrow", leftArrow);
+        button.getProperties().put("rightArrow", rightArrow);
+        
+        return container;
+    }
+    
+    /**
+     * 设置键盘导航
+     */
+    private void setupKeyboardNavigation() {
+        getContentRoot().setOnKeyPressed(event -> {
+            switch (event.getCode()) {
+                case UP, W -> {
+                    try { com.roguelike.ui.SoundService.playOnce("clicks/click.mp3"); } catch (Throwable ignored) {}
+                    selectPrevious();
+                }
+                case DOWN, S -> {
+                    try { com.roguelike.ui.SoundService.playOnce("clicks/click.mp3"); } catch (Throwable ignored) {}
+                    selectNext();
+                }
+                case ENTER -> {
+                    try { com.roguelike.ui.SoundService.playOnce("clicks/click.mp3"); } catch (Throwable ignored) {}
+                    activateSelectedButton();
+                }
+            }
+        });
+        
+        // 确保可以接收键盘事件
+        getContentRoot().setFocusTraversable(true);
+        getContentRoot().requestFocus();
+    }
+    
+    /**
+     * 选择上一个按钮
+     */
+    private void selectPrevious() {
+        if (selectedIndex > 0) {
+            selectedIndex--;
+        } else {
+            selectedIndex = menuButtons.size() - 1; // 循环到最后一个
+        }
+        updateSelection();
+    }
+    
+    /**
+     * 选择下一个按钮
+     */
+    private void selectNext() {
+        if (selectedIndex < menuButtons.size() - 1) {
+            selectedIndex++;
+        } else {
+            selectedIndex = 0; // 循环到第一个
+        }
+        updateSelection();
+    }
+    
+    /**
+     * 更新选中状态
+     */
+    private void updateSelection() {
+        // 清除所有按钮的选中状态
+        for (Button button : menuButtons) {
+            button.getStyleClass().remove("keyboard-selected");
+            KeyboardArrow leftArrow = (KeyboardArrow) button.getProperties().get("leftArrow");
+            KeyboardArrow rightArrow = (KeyboardArrow) button.getProperties().get("rightArrow");
+            if (leftArrow != null) leftArrow.hide();
+            if (rightArrow != null) rightArrow.hide();
+        }
+        
+        // 设置当前选中按钮的状态
+        if (selectedIndex >= 0 && selectedIndex < menuButtons.size()) {
+            Button selectedButton = menuButtons.get(selectedIndex);
+            selectedButton.getStyleClass().add("keyboard-selected");
+            
+            KeyboardArrow leftArrow = (KeyboardArrow) selectedButton.getProperties().get("leftArrow");
+            KeyboardArrow rightArrow = (KeyboardArrow) selectedButton.getProperties().get("rightArrow");
+            if (leftArrow != null) leftArrow.show();
+            if (rightArrow != null) rightArrow.show();
+        }
+    }
+    
+    /**
+     * 激活选中的按钮
+     */
+    private void activateSelectedButton() {
+        if (selectedIndex >= 0 && selectedIndex < menuButtons.size()) {
+            Button selectedButton = menuButtons.get(selectedIndex);
+            selectedButton.fire(); // 触发按钮的点击事件
+        }
     }
 
 }

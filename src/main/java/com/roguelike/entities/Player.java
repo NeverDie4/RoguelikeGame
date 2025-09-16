@@ -26,7 +26,7 @@ import static com.almasb.fxgl.dsl.FXGL.*;
 
 public class Player extends EntityBase {
 
-    private final double speed = 200;
+    private final double baseSpeed = 200;
     private Rectangle hpBar;
     private Rectangle hpBarBackground;
     private StackPane hpBarContainer;
@@ -189,9 +189,21 @@ public class Player extends EntityBase {
                 forwardY = dy / len;
             }
         }
+        // 应用被动：移动速度倍率（P06）
+        double speedMul = 1.0;
+        try {
+            Object pmObj = FXGL.geto("passiveManager");
+            if (pmObj instanceof com.roguelike.ui.PassiveItemManager pm) {
+                speedMul = Math.max(0.1, pm.getMoveSpeedMultiplier());
+            }
+        } catch (Throwable ignored) {}
+
+        double mx = dx * speedMul;
+        double my = dy * speedMul;
+
         if (movementValidator != null) {
             // 使用移动验证器进行碰撞检测
-            MovementResult result = movementValidator.validateAndMove(this, dx, dy);
+            MovementResult result = movementValidator.validateAndMove(this, mx, my);
 
             if (result.isSuccess()) {
                 // 移动成功
@@ -208,7 +220,7 @@ public class Player extends EntityBase {
             }
         } else {
             // 没有移动验证器时允许自由移动
-            translate(dx, dy);
+            translate(mx, my);
             GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_MOVE));
         }
 

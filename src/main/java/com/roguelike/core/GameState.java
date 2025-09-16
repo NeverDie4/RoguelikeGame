@@ -64,6 +64,7 @@ public class GameState {
         // 升级时恢复满血
         playerHP = playerMaxHP;
         GameEvent.post(new GameEvent(GameEvent.Type.LEVEL_UP));
+        try { com.roguelike.ui.SoundService.playOnce("levelups/levelup.wav", 3.0); } catch (Throwable ignored) {} // 调高升级音效音量
     }
 
     // 经验值相关方法
@@ -187,6 +188,7 @@ public class GameState {
         healPlayer(healAmount);
 
         GameEvent.post(new GameEvent(GameEvent.Type.LEVEL_UP));
+        try { com.roguelike.ui.SoundService.playOnce("levelups/levelup.wav", 3.0); } catch (Throwable ignored) {} // 调高升级音效音量
     }
 
     public void setLevel(int newLevel) {

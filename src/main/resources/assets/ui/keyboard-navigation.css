@@ -1,0 +1,103 @@
+/* 键盘导航样式 */
+
+/* 键盘选中状态 - 保留现有高亮效果，仅添加箭头显示 */
+.keyboard-selected {
+    /* 保留原有的高亮效果，这里不覆盖 */
+}
+
+/* 键盘箭头容器样式 */
+.keyboard-arrow-container {
+    -fx-spacing: 8px; /* 箭头与按钮之间的间距 */
+}
+
+/* 键盘箭头样式 */
+.keyboard-arrow {
+    -fx-opacity: 0.9;
+}
+
+.keyboard-arrow:hover {
+    -fx-opacity: 1.0;
+}
+
+/* 升级界面专用箭头样式 - 边框外显示 */
+.upgrade-arrow-container {
+    -fx-spacing: 12px; /* 升级界面箭头间距稍大 */
+}
+
+.upgrade-arrow-left {
+    -fx-translate-x: -15px; /* 向左偏移，显示在边框外 */
+}
+
+.upgrade-arrow-right {
+    -fx-translate-x: 15px; /* 向右偏移，显示在边框外 */
+}
+
+/* 地图选择界面专用箭头样式 - 仅左侧箭头 */
+.map-select-arrow-container {
+    -fx-spacing: 10px;
+}
+
+.map-select-arrow-left {
+    -fx-translate-x: -12px; /* 向左偏移 */
+}
+
+/* 主菜单和暂停菜单箭头样式 */
+.menu-arrow-container {
+    -fx-spacing: 8px;
+}
+
+.menu-arrow-left {
+    -fx-translate-x: -10px;
+}
+
+.menu-arrow-right {
+    -fx-translate-x: 10px;
+}
+
+/* 键盘导航提示样式 */
+.keyboard-nav-hint {
+    -fx-text-fill: rgba(218, 165, 32, 0.8);
+    -fx-font-size: 12px;
+    -fx-font-family: "Segoe UI";
+    -fx-font-style: italic;
+}
+
+/* 键盘选中时的按钮增强效果 - 应用与鼠标悬停相同的高亮效果 */
+.button.keyboard-selected {
+    /* 应用与鼠标悬停相同的样式 */
+    -fx-background-color: linear-gradient(to bottom, 
+        rgba(50, 50, 55, 1.0), 
+        rgba(35, 35, 40, 1.0)) !important;
+    -fx-background-radius: 0 !important;
+    -fx-border-color: rgba(80, 80, 85, 1.0) !important;
+    -fx-border-width: 3 !important;
+    -fx-border-radius: 0 !important;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 1.0), 12, 0, 0, 6) !important;
+    -fx-scale-x: 1.02 !important;
+    -fx-scale-y: 1.02 !important;
+    -fx-cursor: hand !important;
+}
+
+/* 升级选项卡片键盘选中效果 */
+.upgrade-card.keyboard-selected {
+    -fx-effect: dropshadow(gaussian, rgba(218, 165, 32, 0.4), 8, 0, 0, 3);
+}
+
+/* 地图卡片键盘选中效果 */
+.map-card.keyboard-selected {
+    -fx-effect: dropshadow(gaussian, rgba(218, 165, 32, 0.8), 12, 0, 0, 4);
+    -fx-border-color: rgba(255, 215, 0, 1.0) !important;
+    -fx-border-width: 3px !important;
+    -fx-border-radius: 8px !important;
+    -fx-background-color: rgba(255, 215, 0, 0.15) !important;
+}
+
+/* 返回按钮键盘选中效果 */
+.back-button.keyboard-selected {
+    -fx-effect: dropshadow(gaussian, rgba(218, 165, 32, 0.8), 12, 0, 0, 4);
+    -fx-border-color: rgba(255, 215, 0, 1.0) !important;
+    -fx-border-width: 3px !important;
+    -fx-border-radius: 8px !important;
+    -fx-background-color: rgba(255, 215, 0, 0.15) !important;
+    -fx-text-fill: rgba(255, 215, 0, 1.0) !important;
+}

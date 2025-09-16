@@ -32,6 +32,12 @@ public class AutoFireComponent extends Component {
     private int currentBulletIndex = 0;
     private static int lastWeapon02Count = 0; // 保留兼容字段
     private int currentSpawnedOrbiting = 0;
+    
+    // 每个武器的独立冷却时间管理
+    private final java.util.Map<String, Double> weaponLastFireTimes = new java.util.HashMap<>();
+    
+    // p02被动物品额外发射的独立冷却时间管理
+    private final java.util.Map<String, Double> p02AdditionalFireTimes = new java.util.HashMap<>();
 
     public AutoFireComponent() {}
 
@@ -54,56 +60,214 @@ public class AutoFireComponent extends Component {
     @Override
     public void onUpdate(double tpf) {
         if (com.roguelike.core.TimeService.isPaused()) return;
-        // 以 single_01 的配置为基准，适当减慢发射频率（例如放大为 0.8s）
-        // 动态决定可用的发射配置：始终包含 weapon01；当环绕数量>0时加入 weapon02
-        java.util.List<String> ids = new java.util.ArrayList<>();
-        ids.add("weapon01");
+        
+        double now = TimeService.getSeconds();
+        
+        // 为每个武器独立检查冷却时间并发射
+        checkAndFireWeapon("weapon01", now);
         if (com.roguelike.entities.weapons.WeaponManager.getWeapon02OrbitCount() > 0) {
-            ids.add("weapon02");
+            checkAndFireWeapon("weapon02", now);
         }
         if (com.roguelike.entities.weapons.WeaponManager.getWeapon03Level() > 0) {
-            ids.add("weapon03");
+            checkAndFireWeapon("weapon03", now);
         }
         if (com.roguelike.entities.weapons.WeaponManager.getWeapon04Level() > 0) {
-            ids.add("weapon04");
+            checkAndFireWeapon("weapon04", now);
         }
         if (com.roguelike.entities.weapons.WeaponManager.getWeapon05Level() > 0) {
-            ids.add("weapon05");
+            checkAndFireWeapon("weapon05", now);
         }
         if (com.roguelike.entities.weapons.WeaponManager.getWeapon06Level() > 0) {
-            ids.add("weapon06");
+            checkAndFireWeapon("weapon06", now);
         }
         if (com.roguelike.entities.weapons.WeaponManager.getWeapon07Level() > 0) {
-            ids.add("weapon07");
+            checkAndFireWeapon("weapon07", now);
         }
         if (com.roguelike.entities.weapons.WeaponManager.getWeapon08Level() > 0) {
-            ids.add("weapon08");
+            checkAndFireWeapon("weapon08", now);
         }
-        if (ids.isEmpty()) return;
-        int idx = currentBulletIndex % ids.size();
-        AttackSpec base = AttackRegistry.get(ids.get(idx));
-        if (base == null) return;
-
-        double now = TimeService.getSeconds();
-        double interval = Math.max(0.05, base.getFireIntervalSeconds());
-        if (now - lastFireSeconds >= interval) {
-            lastFireSeconds = now;
-
-            // 交替发射当前索引的子弹（基于动态可用列表）
-            String currentId = ids.get(idx);
-            AttackSpec spec = AttackRegistry.get(currentId);
-            if (spec != null) {
-                // 播放发射音效：W01/W03/W05/W07/W08
-                if ("weapon01".equals(currentId) || "weapon03".equals(currentId) ||
-                    "weapon05".equals(currentId) || "weapon07".equals(currentId) ||
-                    "weapon08".equals(currentId)) {
-                    com.roguelike.ui.SoundService.playFire();
-                }
-                fire(spec);
+        
+        // 检查p02被动物品的额外发射（独立冷却时间）
+        checkAndFireP02Additional("weapon01", now);
+        if (com.roguelike.entities.weapons.WeaponManager.getWeapon03Level() > 0) {
+            checkAndFireP02Additional("weapon03", now);
+        }
+        if (com.roguelike.entities.weapons.WeaponManager.getWeapon05Level() > 0) {
+            checkAndFireP02Additional("weapon05", now);
+        }
+        if (com.roguelike.entities.weapons.WeaponManager.getWeapon07Level() > 0) {
+            checkAndFireP02Additional("weapon07", now);
+        }
+        if (com.roguelike.entities.weapons.WeaponManager.getWeapon08Level() > 0) {
+            checkAndFireP02Additional("weapon08", now);
+        }
+    }
+    
+    /**
+     * 检查单个武器的冷却时间并发射
+     */
+    private void checkAndFireWeapon(String weaponId, double now) {
+        AttackSpec spec = AttackRegistry.get(weaponId);
+        if (spec == null) return;
+        
+        // 获取该武器的上次发射时间
+        double lastFireTime = weaponLastFireTimes.getOrDefault(weaponId, 0.0);
+        
+        // 计算该武器的冷却间隔
+        double interval = Math.max(0.05, spec.getFireIntervalSeconds());
+        
+        // 应用被动：攻速倍率与冷却缩放
+        try {
+            Object pmObj = FXGL.geto("passiveManager");
+            if (pmObj instanceof com.roguelike.ui.PassiveItemManager pm) {
+                double atkMul = pm.getAttackSpeedMultiplier(); // >1 更快
+                double cdScale = pm.getCooldownScale();        // <1 更快
+                if (atkMul > 0) interval = interval / atkMul;
+                if (cdScale > 0) interval = interval * cdScale;
             }
-
-            currentBulletIndex = (idx + 1) % ids.size();
+        } catch (Throwable ignored) {}
+        
+        // 检查是否冷却完成
+        if (now - lastFireTime >= interval) {
+            // 更新该武器的发射时间
+            weaponLastFireTimes.put(weaponId, now);
+            
+            // 播放发射音效：W01/W03/W05/W07/W08（使用节流机制防止重叠）
+            if ("weapon01".equals(weaponId) || "weapon03".equals(weaponId) ||
+                "weapon05".equals(weaponId) || "weapon07".equals(weaponId) ||
+                "weapon08".equals(weaponId)) {
+                com.roguelike.ui.FireSoundThrottle.tryPlayFireSound();
+            }
+            
+            // 发射该武器
+            fire(spec);
         }
+    }
+    
+    /**
+     * 检查p02被动物品的额外发射（独立冷却时间，比武器冷却慢0.3秒）
+     */
+    private void checkAndFireP02Additional(String weaponId, double now) {
+        // 排除特殊武器：weapon02、weapon04、weapon06
+        if ("weapon02".equals(weaponId) || "weapon04".equals(weaponId) || "weapon06".equals(weaponId)) {
+            return;
+        }
+        
+        AttackSpec spec = AttackRegistry.get(weaponId);
+        if (spec == null) return;
+        
+        // 获取p02被动物品的额外发射数量
+        int extra = 0;
+        try {
+            Object pmObj = FXGL.geto("passiveManager");
+            if (pmObj instanceof com.roguelike.ui.PassiveItemManager pm) {
+                extra = Math.max(0, pm.getAdditionalProjectiles());
+            }
+        } catch (Throwable ignored) {}
+        
+        if (extra <= 0) return;
+        
+        // 获取该武器的上次发射时间
+        double lastFireTime = weaponLastFireTimes.getOrDefault(weaponId, 0.0);
+        
+        // 计算该武器的冷却间隔
+        double interval = Math.max(0.05, spec.getFireIntervalSeconds());
+        
+        // 应用被动：攻速倍率与冷却缩放
+        try {
+            Object pmObj = FXGL.geto("passiveManager");
+            if (pmObj instanceof com.roguelike.ui.PassiveItemManager pm) {
+                double atkMul = pm.getAttackSpeedMultiplier(); // >1 更快
+                double cdScale = pm.getCooldownScale();        // <1 更快
+                if (atkMul > 0) interval = interval / atkMul;
+                if (cdScale > 0) interval = interval * cdScale;
+            }
+        } catch (Throwable ignored) {}
+        
+        // p02额外发射的冷却时间 = 武器冷却时间 + 0.3秒
+        double additionalInterval = interval + 0.3;
+        
+        // 检查是否冷却完成（基于武器上次发射时间 + 额外间隔）
+        // P02额外发射应该在武器发射后0.3秒触发
+        if (now - lastFireTime >= additionalInterval) {
+            // 更新p02额外发射的时间
+            p02AdditionalFireTimes.put(weaponId, now);
+            
+            // 发射p02额外子弹
+            fireP02AdditionalProjectiles(spec, extra);
+        }
+    }
+    
+    /**
+     * 发射p02被动物品的额外子弹（固定方向模式）
+     */
+    private void fireP02AdditionalProjectiles(AttackSpec spec, int extra) {
+        BulletSpec bulletSpec = BulletRegistry.get(spec.getBulletSpecId());
+        if (bulletSpec == null) return;
+        
+        double cx = entity.getCenter().getX();
+        double cy = entity.getCenter().getY();
+        
+        // 根据p02等级确定固定发射方向
+        java.util.List<Point2D> additionalDirs = getP02AdditionalDirections(extra);
+        
+        for (Point2D dir : additionalDirs) {
+            Bullet bullet = BulletFactory.create(Bullet.Faction.PLAYER, dir, bulletSpec);
+            if (bullet != null) {
+                FXGL.getGameWorld().addEntity(bullet);
+                Point2D nd = dir.normalize();
+                // 偏移：确保子弹出生不与玩家重叠
+                double offset = Math.max(entity.getWidth(), entity.getHeight()) * 0.8 + Math.max(bullet.getWidth(), bullet.getHeight()) * 0.8 + 20.0;
+                double sx = cx + nd.getX() * offset - bullet.getWidth() / 2.0;
+                double sy = cy + nd.getY() * offset - bullet.getHeight() / 2.0;
+                bullet.getTransformComponent().setPosition(sx, sy);
+            }
+        }
+    }
+    
+    /**
+     * 获取p02被动物品的固定发射方向
+     * +1个：右边多发射1个
+     * +2个：左右分别多发射1个  
+     * +3个：左右上分别多发射1个
+     * +4个：上下左右分别多发射1个
+     */
+    private java.util.List<Point2D> getP02AdditionalDirections(int extra) {
+        java.util.List<Point2D> dirs = new java.util.ArrayList<>();
+        
+        switch (extra) {
+            case 1 -> {
+                // 右边多发射1个
+                dirs.add(new Point2D(1, 0));
+            }
+            case 2 -> {
+                // 左右分别多发射1个
+                dirs.add(new Point2D(-1, 0)); // 左
+                dirs.add(new Point2D(1, 0));  // 右
+            }
+            case 3 -> {
+                // 左右上分别多发射1个
+                dirs.add(new Point2D(-1, 0)); // 左
+                dirs.add(new Point2D(1, 0));  // 右
+                dirs.add(new Point2D(0, -1)); // 上
+            }
+            case 4 -> {
+                // 上下左右分别多发射1个
+                dirs.add(new Point2D(0, -1)); // 上
+                dirs.add(new Point2D(0, 1));  // 下
+                dirs.add(new Point2D(-1, 0)); // 左
+                dirs.add(new Point2D(1, 0));  // 右
+            }
+            default -> {
+                // 超过4个时，按4个处理
+                dirs.add(new Point2D(0, -1)); // 上
+                dirs.add(new Point2D(0, 1));  // 下
+                dirs.add(new Point2D(-1, 0)); // 左
+                dirs.add(new Point2D(1, 0));  // 右
+            }
+        }
+        
+        return dirs;
     }
 
     private void fire(AttackSpec spec) {
@@ -198,6 +362,7 @@ public class AutoFireComponent extends Component {
         double cx = entity.getCenter().getX();
         double cy = entity.getCenter().getY();
 
+        // 发射武器本身的子弹（不包含p02额外发射）
         for (Point2D dir : dirs) {
             Bullet bullet = BulletFactory.create(Bullet.Faction.PLAYER, dir, bulletSpec);
             if (bullet != null) {
@@ -207,7 +372,7 @@ public class AutoFireComponent extends Component {
                 double offset = Math.max(entity.getWidth(), entity.getHeight()) * 0.8 + Math.max(bullet.getWidth(), bullet.getHeight()) * 0.8 + 20.0;
                 double sx = cx + nd.getX() * offset - bullet.getWidth() / 2.0;
                 double sy = cy + nd.getY() * offset - bullet.getHeight() / 2.0;
-                // 对 02 子弹额外上移，修正“偏下”问题（再次上调）
+                // 对 02 子弹额外上移，修正"偏下"问题（再次上调）
                 if ("straight_02".equals(bulletSpec.getId())) {
                     sy -= 20.0;
                 }

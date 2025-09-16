@@ -24,6 +24,10 @@ public class GameEvent {
         TIME_CHANGED,
         EXPERIENCE_CHANGED,
         LEVEL_UP,
+        // 武器/被动升级获得
+        WEAPON_UPGRADED,
+        PASSIVE_ACQUIRED,
+        PASSIVE_UPGRADED,
         // 碰撞相关事件
         PLAYER_HIT_WALL,
         ENEMY_HIT_WALL,
@@ -43,14 +47,20 @@ public class GameEvent {
     }
 
     private final Type type;
+    private final Object data;
 
-    public GameEvent(Type type) {
+    public GameEvent(Type type) { this(type, null); }
+
+    public GameEvent(Type type, Object data) {
         this.type = type;
+        this.data = data;
     }
 
     public Type getType() {
         return type;
     }
+
+    public Object getData() { return data; }
 
     public static void post(GameEvent event) {
         List<Consumer<GameEvent>> handlers = LISTENERS.get(event.getType());

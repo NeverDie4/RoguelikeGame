@@ -83,8 +83,23 @@ public class MapRenderer {
             InputStream inputStream = getClass().getResourceAsStream("/" + resourcePath);
 
             if (inputStream == null) {
-                System.err.println("❌ 无法找到TMX文件: /" + resourcePath);
-                return false;
+                System.err.println("❌ 无法找到TMX文件: /" + resourcePath + "，尝试目录内回退查找 .tmx 文件");
+                // 回退1：开发环境路径扫描 src/main/resources
+                java.io.File devDir = new java.io.File("src/main/resources/assets/maps/" + mapName);
+                java.io.File fsDir = new java.io.File("assets/maps/" + mapName);
+                java.io.File dirToUse = devDir.exists() ? devDir : (fsDir.exists() ? fsDir : null);
+                if (dirToUse != null && dirToUse.isDirectory()) {
+                    java.io.File[] tmx = dirToUse.listFiles((d, name) -> name.toLowerCase().endsWith(".tmx"));
+                    if (tmx != null && tmx.length > 0) {
+                        java.util.Arrays.sort(tmx, java.util.Comparator.comparing(java.io.File::getName));
+                        System.out.println("🔎 回退使用TMX文件: " + tmx[0].getAbsolutePath());
+                        inputStream = new java.io.FileInputStream(tmx[0]);
+                    }
+                }
+                if (inputStream == null) {
+                    System.err.println("❌ 目录内未找到任何 .tmx 文件");
+                    return false;
+                }
             }
 
             System.out.println("✅ 找到TMX文件: /" + resourcePath);
@@ -92,6 +107,7 @@ public class MapRenderer {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document document = builder.parse(inputStream);
+            try { inputStream.close(); } catch (Exception ignored) {}
 
             Element mapElement = document.getDocumentElement();
 
@@ -499,8 +515,8 @@ public class MapRenderer {
         Group layer = new Group();
 
         // 生成一个多样化的草地背景，模拟grass.tmx的尺寸
-        int cols = 30; // 根据grass.tmx的宽度
-        int rows = 30; // 根据grass.tmx的高度
+        int cols = 30; // 默认宽度（列）
+        int rows = 30; // 默认高度（行）
 
         // 定义多种草地颜色，增加视觉多样性
         Color[] grassColors = {
@@ -532,6 +548,16 @@ public class MapRenderer {
         mapView = new GameView(layer, 0);
         getGameScene().addGameView(mapView);
         System.out.println("✅ 优化的草地背景创建完成");
+
+        // 确保在回退场景下也提供非零的地图与瓦片尺寸，供路径/碰撞等系统使用
+        try {
+            if (tiledMap != null) {
+                tiledMap.setWidth(cols);
+                tiledMap.setHeight(rows);
+                tiledMap.setTilewidth(32);
+                tiledMap.setTileheight(32);
+            }
+        } catch (Exception ignored) {}
     }
 
     public void onUpdate(double tpf) {

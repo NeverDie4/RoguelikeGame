@@ -7,6 +7,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -15,6 +16,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 美化的确认对话框类
@@ -23,6 +26,9 @@ public class ConfirmationDialog {
     
     private static StackPane overlay;
     private static boolean isShowing = false;
+    private static List<Button> dialogButtons;
+    private static List<HBox> buttonContainers;
+    private static int selectedIndex = 0;
 
     /**
      * 显示确认对话框
@@ -190,6 +196,11 @@ public class ConfirmationDialog {
         buttonContainer.setAlignment(Pos.CENTER);
         buttonContainer.setPadding(new Insets(20));
 
+        // 初始化按钮列表
+        dialogButtons = new ArrayList<>();
+        buttonContainers = new ArrayList<>();
+        selectedIndex = 0;
+
         // 确认按钮
         Button confirmButton = createStyledButton(confirmText, () -> {
             hide();
@@ -206,7 +217,17 @@ public class ConfirmationDialog {
             }
         });
 
-        buttonContainer.getChildren().addAll(confirmButton, cancelButton);
+        // 创建带箭头的按钮容器
+        HBox confirmContainer = createButtonWithArrows(confirmButton);
+        HBox cancelContainer = createButtonWithArrows(cancelButton);
+
+        // 添加到列表
+        dialogButtons.add(confirmButton);
+        dialogButtons.add(cancelButton);
+        buttonContainers.add(confirmContainer);
+        buttonContainers.add(cancelContainer);
+
+        buttonContainer.getChildren().addAll(confirmContainer, cancelContainer);
         dialogContainer.getChildren().addAll(titleLabel, messageLabel, buttonContainer);
         overlay.getChildren().add(dialogContainer);
 
@@ -236,6 +257,17 @@ public class ConfirmationDialog {
         overlay.setViewOrder(-2000);
         overlay.toFront();
         
+        // 加载键盘导航样式
+        try {
+            overlay.getStylesheets().add(ConfirmationDialog.class.getResource("/assets/ui/keyboard-navigation.css").toExternalForm());
+        } catch (Exception ignored) {}
+        
+        // 设置键盘导航
+        setupKeyboardNavigation();
+        
+        // 初始化选中状态
+        updateSelection();
+        
         // 添加进入动画
         addEnterAnimation(dialogContainer);
     }
@@ -259,6 +291,150 @@ public class ConfirmationDialog {
      */
     public static void showReturnToMainMenuConfirmation(Runnable onConfirm) {
         show("返回主菜单", "确定要返回主菜单吗？\n当前游戏进度将会丢失。", "返回", "取消", onConfirm, null);
+    }
+
+    /**
+     * 创建带箭头的按钮容器
+     */
+    private static HBox createButtonWithArrows(Button button) {
+        HBox container = new HBox();
+        container.setAlignment(Pos.CENTER);
+        container.getStyleClass().add("menu-arrow-container");
+        
+        // 创建左右箭头
+        KeyboardArrow leftArrow = new KeyboardArrow(KeyboardArrow.ArrowDirection.LEFT);
+        KeyboardArrow rightArrow = new KeyboardArrow(KeyboardArrow.ArrowDirection.RIGHT);
+        
+        // 设置箭头大小
+        leftArrow.setSize(16);
+        rightArrow.setSize(16);
+        
+        // 添加样式类
+        leftArrow.getStyleClass().add("menu-arrow-left");
+        rightArrow.getStyleClass().add("menu-arrow-right");
+        
+        // 将箭头和按钮添加到容器
+        container.getChildren().addAll(leftArrow, button, rightArrow);
+        
+        // 存储箭头引用到按钮的用户数据中
+        button.getProperties().put("leftArrow", leftArrow);
+        button.getProperties().put("rightArrow", rightArrow);
+        
+        return container;
+    }
+    
+    /**
+     * 设置键盘导航
+     */
+    private static void setupKeyboardNavigation() {
+        overlay.setOnKeyPressed(event -> {
+            switch (event.getCode()) {
+                case UP, W -> {
+                    try { com.roguelike.ui.SoundService.playOnce("clicks/click.mp3"); } catch (Throwable ignored) {}
+                    selectPrevious();
+                }
+                case DOWN, S -> {
+                    try { com.roguelike.ui.SoundService.playOnce("clicks/click.mp3"); } catch (Throwable ignored) {}
+                    selectNext();
+                }
+                case ENTER -> {
+                    try { com.roguelike.ui.SoundService.playOnce("clicks/click.mp3"); } catch (Throwable ignored) {}
+                    activateSelectedButton();
+                }
+                default -> {
+                    // 忽略其他按键
+                }
+            }
+        });
+        
+        // 确保可以接收键盘事件
+        overlay.setFocusTraversable(true);
+        overlay.requestFocus();
+    }
+    
+    /**
+     * 选择上一个按钮
+     */
+    private static void selectPrevious() {
+        if (selectedIndex > 0) {
+            selectedIndex--;
+        } else {
+            selectedIndex = dialogButtons.size() - 1; // 循环到最后一个
+        }
+        updateSelection();
+    }
+    
+    /**
+     * 选择下一个按钮
+     */
+    private static void selectNext() {
+        if (selectedIndex < dialogButtons.size() - 1) {
+            selectedIndex++;
+        } else {
+            selectedIndex = 0; // 循环到第一个
+        }
+        updateSelection();
+    }
+    
+    /**
+     * 更新选中状态
+     */
+    private static void updateSelection() {
+        // 清除所有按钮的选中状态
+        for (Button button : dialogButtons) {
+            button.getStyleClass().remove("keyboard-selected");
+            // 恢复默认样式
+            button.setStyle(
+                "-fx-background-color: linear-gradient(to bottom, " +
+                "rgba(30, 30, 35, 0.95), " +
+                "rgba(15, 15, 20, 1.0)); " +
+                "-fx-background-radius: 0; " +
+                "-fx-border-color: rgba(60, 60, 65, 1.0); " +
+                "-fx-border-width: 3; " +
+                "-fx-border-radius: 0; " +
+                "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.9), 8, 0, 0, 4); " +
+                "-fx-cursor: hand;"
+            );
+            KeyboardArrow leftArrow = (KeyboardArrow) button.getProperties().get("leftArrow");
+            KeyboardArrow rightArrow = (KeyboardArrow) button.getProperties().get("rightArrow");
+            if (leftArrow != null) leftArrow.hide();
+            if (rightArrow != null) rightArrow.hide();
+        }
+        
+        // 设置当前选中按钮的状态
+        if (selectedIndex >= 0 && selectedIndex < dialogButtons.size()) {
+            Button selectedButton = dialogButtons.get(selectedIndex);
+            selectedButton.getStyleClass().add("keyboard-selected");
+            // 应用悬停效果样式
+            selectedButton.setStyle(
+                "-fx-background-color: linear-gradient(to bottom, " +
+                "rgba(50, 50, 55, 1.0), " +
+                "rgba(35, 35, 40, 1.0)); " +
+                "-fx-background-radius: 0; " +
+                "-fx-border-color: rgba(80, 80, 85, 1.0); " +
+                "-fx-border-width: 3; " +
+                "-fx-border-radius: 0; " +
+                "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 1.0), 12, 0, 0, 6); " +
+                "-fx-scale-x: 1.02; " +
+                "-fx-scale-y: 1.02; " +
+                "-fx-cursor: hand;"
+            );
+            
+            KeyboardArrow leftArrow = (KeyboardArrow) selectedButton.getProperties().get("leftArrow");
+            KeyboardArrow rightArrow = (KeyboardArrow) selectedButton.getProperties().get("rightArrow");
+            if (leftArrow != null) leftArrow.show();
+            if (rightArrow != null) rightArrow.show();
+        }
+    }
+    
+    /**
+     * 激活选中的按钮
+     */
+    private static void activateSelectedButton() {
+        if (selectedIndex >= 0 && selectedIndex < dialogButtons.size()) {
+            Button selectedButton = dialogButtons.get(selectedIndex);
+            selectedButton.fire();
+        }
     }
 
     /**
@@ -391,7 +567,10 @@ public class ConfirmationDialog {
             );
         });
 
-        button.setOnAction(e -> action.run());
+        button.setOnAction(e -> {
+            try { com.roguelike.ui.SoundService.playOnce("clicks/click.mp3"); } catch (Throwable ignored) {}
+            action.run();
+        });
         return button;
     }
 
