@@ -90,7 +90,7 @@ public class GameApp extends GameApplication {
     public static boolean COLLISION_POSITION_PUSH_ENABLED = true; // 是否启用位置推挤
 
     // 地图配置（由关卡选择界面赋值）
-    private static String selectedMapName = "map1"; // 默认地图
+    private static String selectedMapName = "square"; // 默认地图
     private static final boolean USE_INFINITE_MAP = true; // 是否使用无限地图
     
     // 路径寻找配置
@@ -294,24 +294,6 @@ public class GameApp extends GameApplication {
         System.out.println("   - 路径优化: " + ENABLE_PATH_OPTIMIZATION);
         System.out.println("   - 路径平滑: " + ENABLE_PATH_SMOOTHING);
 
-
-        Player player = (Player) getGameWorld().spawn("player", new SpawnData(playerX, playerY));
-
-        // 为玩家设置移动验证器（防止与敌人重叠）
-        player.setMovementValidator(collisionManager.getMovementValidator());
-
-        FXGL.getGameScene().getViewport().bindToEntity(player, getAppWidth() / 2.0, getAppHeight() / 2.0);
-
-        // 输入
-        initInput(player);
-
-        // HUD
-        gameHUD = new GameHUD(gameState);
-        gameHUD.mount();
-
-        // 缓存玩家引用，避免每帧查找
-        cachedPlayer = player;
-
         // 事件示例
         GameEvent.listen(GameEvent.Type.MAP_LOADED, e -> {
             // 地图加载完成事件
@@ -406,7 +388,10 @@ public class GameApp extends GameApplication {
             teleportManager.setPlayer(player);
             player.setTeleportManager(teleportManager);
         }
-        
+
+        // 缓存玩家引用，避免每帧查找
+        cachedPlayer = player;
+
         FXGL.getGameScene().getViewport().bindToEntity(player, getAppWidth() / 2.0, getAppHeight() / 2.0);
 
         // 输入

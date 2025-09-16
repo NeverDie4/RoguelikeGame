@@ -47,6 +47,40 @@ public class MapRenderer {
         this.tiledMap = new TiledMap();
     }
 
+    /**
+     * 将地图名称映射到实际的目录名称
+     * test -> map1, square -> map2, dungeon -> map3
+     * 支持特殊地图：test_door -> map1, square_door -> map2, dungeon_door -> map3
+     */
+    private String getMapDirectoryName(String mapName) {
+        // 处理特殊地图名称（_door, _boss）
+        if (mapName.endsWith("_door") || mapName.endsWith("_boss")) {
+            String baseName = mapName.substring(0, mapName.lastIndexOf("_"));
+            switch (baseName) {
+                case "test":
+                    return "map1";
+                case "square":
+                    return "map2";
+                case "dungeon":
+                    return "map3";
+                default:
+                    return baseName; // 如果不在映射中，使用原名称
+            }
+        }
+        
+        // 处理基础地图名称
+        switch (mapName) {
+            case "test":
+                return "map1";
+            case "square":
+                return "map2";
+            case "dungeon":
+                return "map3";
+            default:
+                return mapName; // 如果不在映射中，使用原名称
+        }
+    }
+
     public void init() {
         System.out.println("🎮 初始化地图渲染器");
         System.out.println("📁 尝试解析地图: " + mapName);
@@ -78,15 +112,16 @@ public class MapRenderer {
      */
     private boolean parseTMXFile() {
         try {
-            // 从assets/maps/{mapName}/目录加载TMX文件
-            String resourcePath = "assets/maps/" + mapName + "/" + mapName + ".tmx";
+            // 从assets/maps/{实际目录名}/目录加载TMX文件
+            String actualDirName = getMapDirectoryName(mapName);
+            String resourcePath = "assets/maps/" + actualDirName + "/" + mapName + ".tmx";
             InputStream inputStream = getClass().getResourceAsStream("/" + resourcePath);
 
             if (inputStream == null) {
                 System.err.println("❌ 无法找到TMX文件: /" + resourcePath + "，尝试目录内回退查找 .tmx 文件");
                 // 回退1：开发环境路径扫描 src/main/resources
-                java.io.File devDir = new java.io.File("src/main/resources/assets/maps/" + mapName);
-                java.io.File fsDir = new java.io.File("assets/maps/" + mapName);
+                java.io.File devDir = new java.io.File("src/main/resources/assets/maps/" + actualDirName);
+                java.io.File fsDir = new java.io.File("assets/maps/" + actualDirName);
                 java.io.File dirToUse = devDir.exists() ? devDir : (fsDir.exists() ? fsDir : null);
                 if (dirToUse != null && dirToUse.isDirectory()) {
                     java.io.File[] tmx = dirToUse.listFiles((d, name) -> name.toLowerCase().endsWith(".tmx"));

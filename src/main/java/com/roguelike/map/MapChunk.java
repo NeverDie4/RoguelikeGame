@@ -58,6 +58,40 @@ public class MapChunk {
         this.worldOffsetY = chunkY * chunkHeight * TILE_SIZE;
         this.isLoaded = false;
     }
+
+    /**
+     * 将地图名称映射到实际的目录名称
+     * test -> map1, square -> map2, dungeon -> map3
+     * 支持特殊地图：test_door -> map1, square_door -> map2, dungeon_door -> map3
+     */
+    private String getMapDirectoryName(String mapName) {
+        // 处理特殊地图名称（_door, _boss）
+        if (mapName.endsWith("_door") || mapName.endsWith("_boss")) {
+            String baseName = mapName.substring(0, mapName.lastIndexOf("_"));
+            switch (baseName) {
+                case "test":
+                    return "map1";
+                case "square":
+                    return "map2";
+                case "dungeon":
+                    return "map3";
+                default:
+                    return baseName; // 如果不在映射中，使用原名称
+            }
+        }
+        
+        // 处理基础地图名称
+        switch (mapName) {
+            case "test":
+                return "map1";
+            case "square":
+                return "map2";
+            case "dungeon":
+                return "map3";
+            default:
+                return mapName; // 如果不在映射中，使用原名称
+        }
+    }
     
     /**
      * 加载区块
@@ -131,8 +165,9 @@ public class MapChunk {
             if (!cachedTiledMaps.containsKey(cacheKey)) {
                 System.out.println("📋 首次解析地图文件 " + mapName + "，创建缓存...");
                 
-                // 使用配置的地图名称
-                String resourcePath = "assets/maps/" + mapName + "/" + mapName + ".tmx";
+                // 使用配置的地图名称，映射到实际目录
+                String actualDirName = getMapDirectoryName(mapName);
+                String resourcePath = "assets/maps/" + actualDirName + "/" + mapName + ".tmx";
                 InputStream inputStream = getClass().getResourceAsStream("/" + resourcePath);
                 
                 if (inputStream == null) {
@@ -242,7 +277,8 @@ public class MapChunk {
                 imagePath = "assets/maps/" + relativePath;
             } else {
                 // 绝对路径：在当前地图目录中
-                imagePath = "assets/maps/" + mapName + "/" + imageSource;
+                String actualDirName = getMapDirectoryName(mapName);
+                imagePath = "assets/maps/" + actualDirName + "/" + imageSource;
             }
             
             InputStream imageStream = getClass().getResourceAsStream("/" + imagePath);

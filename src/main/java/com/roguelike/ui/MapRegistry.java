@@ -33,21 +33,21 @@ public final class MapRegistry {
     static {
         List<MapInfo> list = new ArrayList<>();
         list.add(new MapInfo(
-                "map1",
+                "test",
                 "疯狂森林",
                 "Stage-1",
                 "魔堡是一个谎言，但这里有免费的烤鸡，所以也挺好。",
                 "assets/maps/map1/preview.png"
         ));
         list.add(new MapInfo(
-                "map2",
+                "square",
                 "锦锻书库",
                 "Stage-2",
                 "这个安静的长条形图书馆适合休息，冥想和寻找烤鸡，但这里为什么会有石面具？",
                 "assets/maps/map2/preview.png"
         ));
         list.add(new MapInfo(
-                "map3",
+                "dungeon",
                 "乳品厂",
                 "Stage-3",
                 "在这个隐秘的神奇地图上，我们可能会找到关于吸血鬼的线索，或者至少找到更多的烤鸡。",
