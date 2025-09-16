@@ -51,6 +51,14 @@ public class FlowField {
         }
     }
     
+    public int getTargetX() {
+        return targetX;
+    }
+    
+    public int getTargetY() {
+        return targetY;
+    }
+    
     public void setTargetFromWorldPos(double worldX, double worldY) {
         int x = (int) (worldX / cellSize);
         int y = (int) (worldY / cellSize);
@@ -166,6 +174,17 @@ public class FlowField {
         if (isValidCell(x, y)) {
             return flowField[y][x];
         }
+        
+        // 如果超出范围，返回朝向目标的方向
+        if (targetX >= 0 && targetY >= 0) {
+            double dx = targetX - x;
+            double dy = targetY - y;
+            double length = Math.sqrt(dx * dx + dy * dy);
+            if (length > 0) {
+                return new Vector2D(dx / length, dy / length);
+            }
+        }
+        
         return new Vector2D(0, 0);
     }
     

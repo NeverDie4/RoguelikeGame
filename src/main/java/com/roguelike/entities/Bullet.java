@@ -14,6 +14,7 @@ import javafx.scene.shape.Shape;
 import javafx.util.Duration;
 import com.roguelike.entities.configs.BulletSpec;
 
+import static com.almasb.fxgl.dsl.FXGL.*;
 
 /**
  * 子弹基类，完全基于EntityBase的碰撞检测机制
@@ -32,7 +33,7 @@ public abstract class Bullet extends EntityBase {
     // 元数据
     protected String id = "unknown";
     protected String displayName = "Unknown Bullet";
-    
+
     // 穿透子弹伤害判定时间间隔
     private double lastDamageTime = 0.0;
     private static final double PIERCING_DAMAGE_INTERVAL = 0.1; // 100ms间隔
@@ -110,7 +111,7 @@ public abstract class Bullet extends EntityBase {
             }
             lastDamageTime = currentTime;
         }
-        
+
         // 统一通过受伤入口处理伤害与死亡
         enemy.takeDamage(damage);
 
@@ -128,7 +129,7 @@ public abstract class Bullet extends EntityBase {
             }
             lastDamageTime = currentTime;
         }
-        
+
         // 使用Player现有的damage方法
         getGameState().damagePlayer(damage);
 
@@ -233,6 +234,15 @@ public abstract class Bullet extends EntityBase {
      */
     public void destroy() {
         if (isActive()) {
+            removeFromWorld();
+        }
+    }
+
+    /**
+     * 设置子弹的激活状态
+     */
+    public void setActive(boolean active) {
+        if (!active && isActive()) {
             removeFromWorld();
         }
     }

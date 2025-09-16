@@ -35,11 +35,10 @@ public class CharacterAnimationComponent extends Component {
     private String basePath = "";
     private String filenamePattern = "";
     private int frameCount = 0;
+    private double animationWidth = 32;
+    private double animationHeight = 32;
     
-    // 死亡动画相关
-    private List<Texture> deathAnimationFrames = new ArrayList<>();
-    private boolean isPlayingDeathAnimation = false;
-    private boolean deathAnimationCompleted = false;
+    // 死亡动画相关已移除，改用粒子效果
     
     public enum AnimationType {
         GIF,    // GIF动画（玩家）
@@ -122,11 +121,26 @@ public class CharacterAnimationComponent extends Component {
      * @param filenamePattern 文件名模式，如 "enemy_walk_%02d.png"
      */
     public void loadPngAnimationFrames(String basePath, int frameCount, String filenamePattern) {
+        loadPngAnimationFrames(basePath, frameCount, filenamePattern, 32, 32);
+    }
+    
+    /**
+     * 加载PNG动画帧（用于敌人等，支持自定义动画大小）
+     * @param basePath 基础路径
+     * @param frameCount 帧数
+     * @param filenamePattern 文件名模式，如 "enemy_walk_%02d.png"
+     * @param animationWidth 动画宽度
+     * @param animationHeight 动画高度
+     */
+    public void loadPngAnimationFrames(String basePath, int frameCount, String filenamePattern, 
+                                     double animationWidth, double animationHeight) {
         // 设置动画类型和参数
         this.animationType = AnimationType.PNG;
         this.basePath = basePath;
         this.filenamePattern = filenamePattern;
         this.frameCount = frameCount;
+        this.animationWidth = animationWidth;
+        this.animationHeight = animationHeight;
         
         rightAnimationFrames.clear();
         leftAnimationFrames.clear();
@@ -168,42 +182,7 @@ public class CharacterAnimationComponent extends Component {
         }
     }
     
-    /**
-     * 加载死亡动画帧（PNG格式）
-     * @param basePath 基础路径
-     * @param frameCount 帧数
-     * @param filenamePattern 文件名模式，如 "die_%04d.png"
-     */
-    public void loadDeathAnimationFrames(String basePath, int frameCount, String filenamePattern) {
-        deathAnimationFrames.clear();
-        
-        for (int i = 0; i < frameCount; i++) {
-            String filename = String.format(filenamePattern, i);
-            String resourcePath = basePath + "/" + filename;
-            
-            try {
-                java.io.InputStream inputStream = getClass().getResourceAsStream("/" + resourcePath);
-                if (inputStream != null) {
-                    byte[] imageData = inputStream.readAllBytes();
-                    inputStream.close();
-                    
-                    Image image = new Image(new java.io.ByteArrayInputStream(imageData));
-                    if (image != null && !image.isError()) {
-                        Texture frame = new Texture(image);
-                        if (frame != null && frame.getImage() != null) {
-                            deathAnimationFrames.add(frame);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                System.err.println("❌ 死亡动画加载失败: " + filename);
-            }
-        }
-        
-        if (deathAnimationFrames.isEmpty()) {
-            System.err.println("❌ 死亡动画加载失败！");
-        }
-    }
+    // 死亡动画加载方法已移除，改用粒子效果
     
     /**
      * 加载向左方向的GIF动画帧
@@ -320,6 +299,13 @@ public class CharacterAnimationComponent extends Component {
             
             if (currentTexture != null && currentTexture.getImage() != null) {
                 if (getEntity() != null && getEntity().getViewComponent() != null) {
+                    // 保存血条等UI元素
+                    javafx.scene.Node healthBar = null;
+                    if (getEntity() instanceof com.roguelike.entities.Player) {
+                        com.roguelike.entities.Player player = (com.roguelike.entities.Player) getEntity();
+                        healthBar = player.getHealthBarContainer();
+                    }
+                    
                     getEntity().getViewComponent().clearChildren();
                     
                     // 对于PNG动画（敌人），根据方向动态设置翻转
@@ -330,15 +316,15 @@ public class CharacterAnimationComponent extends Component {
                             currentTexture.setScaleX(1);  // 向右时正常显示
                         }
                         
-                        // 确保行走动画居中显示，与死亡动画位置一致
+                        // 确保行走动画居中显示，使用配置的动画大小
                         Image image = currentTexture.getImage();
                         if (image != null) {
                             double imageWidth = image.getWidth();
                             double imageHeight = image.getHeight();
                             
                             // 计算偏移量，使动画居中显示
-                            double offsetX = (64 - imageWidth) / 2.0; // 64是敌人实体大小
-                            double offsetY = (64 - imageHeight) / 2.0;
+                            double offsetX = (animationWidth - imageWidth) / 2.0;
+                            double offsetY = (animationHeight - imageHeight) / 2.0;
                             
                             currentTexture.setTranslateX(offsetX);
                             currentTexture.setTranslateY(offsetY);
@@ -346,6 +332,11 @@ public class CharacterAnimationComponent extends Component {
                     }
                     
                     getEntity().getViewComponent().addChild(currentTexture);
+                    
+                    // 重新添加血条等UI元素
+                    if (healthBar != null) {
+                        getEntity().getViewComponent().addChild(healthBar);
+                    }
                 }
             } else {
                 // 尝试重新加载这一帧
@@ -461,110 +452,5 @@ public class CharacterAnimationComponent extends Component {
         this.isLooping = looping;
     }
     
-    /**
-     * 播放死亡动画
-     * @param onComplete 动画完成后的回调
-     */
-    public void playDeathAnimation(Runnable onComplete) {
-        if (deathAnimationFrames.isEmpty()) {
-            System.err.println("❌ 死亡动画帧为空，无法播放");
-            if (onComplete != null) {
-                onComplete.run();
-            }
-            return;
-        }
-        
-        if (isPlayingDeathAnimation) {
-            return; // 已经在播放死亡动画
-        }
-        
-        isPlayingDeathAnimation = true;
-        deathAnimationCompleted = false;
-        
-        // 停止当前动画
-        if (animationTimeline != null) {
-            animationTimeline.stop();
-        }
-        
-        // 创建死亡动画时间线
-        animationTimeline = new Timeline();
-        currentFrameIndex = 0;
-        
-        // 设置死亡动画帧持续时间（比行走动画稍慢）
-        double deathFrameDuration = 0.2; // 200毫秒每帧
-        
-        KeyFrame keyFrame = new KeyFrame(
-            Duration.seconds(deathFrameDuration),
-            e -> {
-                if (currentFrameIndex < deathAnimationFrames.size()) {
-                    // 显示当前死亡动画帧
-                    Texture currentTexture = deathAnimationFrames.get(currentFrameIndex);
-                    
-                    if (currentTexture != null && currentTexture.getImage() != null) {
-                        if (getEntity() != null && getEntity().getViewComponent() != null) {
-                            getEntity().getViewComponent().clearChildren();
-                            
-                            // 根据当前方向设置翻转
-                            if (currentDirection == Direction.LEFT) {
-                                currentTexture.setScaleX(-1); // 向左时水平翻转
-                            } else {
-                                currentTexture.setScaleX(1);  // 向右时正常显示
-                            }
-                            
-                            // 确保死亡动画居中显示，与行走动画位置一致
-                            // 假设死亡动画图片可能比行走动画大，需要调整位置
-                            Image image = currentTexture.getImage();
-                            if (image != null) {
-                                double imageWidth = image.getWidth();
-                                double imageHeight = image.getHeight();
-                                
-                                // 计算偏移量，使动画居中显示
-                                double offsetX = (64 - imageWidth) / 2.0; // 64是敌人实体大小
-                                double offsetY = (64 - imageHeight) / 2.0;
-                                
-                                currentTexture.setTranslateX(offsetX);
-                                currentTexture.setTranslateY(offsetY);
-                            }
-                            
-                            getEntity().getViewComponent().addChild(currentTexture);
-                        }
-                    }
-                    
-                    currentFrameIndex++;
-                    
-                    // 检查是否播放完成
-                    if (currentFrameIndex >= deathAnimationFrames.size()) {
-                        deathAnimationCompleted = true;
-                        isPlayingDeathAnimation = false;
-                        animationTimeline.stop();
-                        
-                        // 执行完成回调
-                        if (onComplete != null) {
-                            onComplete.run();
-                        }
-                    }
-                }
-            }
-        );
-        
-        animationTimeline.getKeyFrames().add(keyFrame);
-        animationTimeline.setCycleCount(Timeline.INDEFINITE);
-        
-        //System.out.println("✅ 开始播放死亡动画: " + deathAnimationFrames.size() + "帧 (方向: " + currentDirection + ")");
-        animationTimeline.play();
-    }
-    
-    /**
-     * 检查是否正在播放死亡动画
-     */
-    public boolean isPlayingDeathAnimation() {
-        return isPlayingDeathAnimation;
-    }
-    
-    /**
-     * 检查死亡动画是否已完成
-     */
-    public boolean isDeathAnimationCompleted() {
-        return deathAnimationCompleted;
-    }
+    // 死亡动画相关方法已移除，改用粒子效果
 }

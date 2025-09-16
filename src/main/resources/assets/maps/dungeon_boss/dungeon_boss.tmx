@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="30" tilewidth="32" tileheight="32" infinite="0" nextlayerid="4" nextobjectid="1">
+ <tileset firstgid="1" name="dungeon1" tilewidth="32" tileheight="32" tilecount="256" columns="16">
+  <image source="../dungeon/hyptosis_tile-art-batch-1.png" width="512" height="512"/>
+  <tile id="112">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="113">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="114">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="115">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="128">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="129">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="130">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="131">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="146">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="147">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="162">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="163">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+ </tileset>
+ <tileset firstgid="257" name="dungeon2" tilewidth="32" tileheight="32" tilecount="360" columns="20">
+  <image source="../dungeon/hyptosis_tile-art-batch-2.png" width="640" height="576"/>
+ </tileset>
+ <tileset firstgid="617" name="dungeon3" tilewidth="32" tileheight="32" tilecount="256" columns="16">
+  <image source="../dungeon/hyptosis_tile-art-batch-3.png" width="512" height="512"/>
+  <tile id="64">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="65">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="66">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="80">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="81">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="82">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="96">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="97">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="98">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="112">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="113">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="114">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="115">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="116">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="117">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="128">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="129">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="130">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="131">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="132">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="133">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="144">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="145">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="146">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="147">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="148">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="149">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="160">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="161">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="162">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="163">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="164">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="165">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="176">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="177">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="178">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="179">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="180">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="181">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="192">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="193">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="194">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="195">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="196">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="197">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="208">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="209">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="210">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="211">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="212">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="213">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="224">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="225">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="226">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="227">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="228">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="229">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="240">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="241">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="242">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="243">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="244">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="245">
+   <properties>
+    <property name="unaccessible" type="bool" value="true"/>
+   </properties>
+  </tile>
+ </tileset>
+ <tileset firstgid="873" name="dungeon4" tilewidth="32" tileheight="32" tilecount="256" columns="16">
+  <image source="../dungeon/hyptosis_tile-art-batch-4.png" width="512" height="512"/>
+ </tileset>
+ <tileset firstgid="1129" name="dungeon5" tilewidth="32" tileheight="32" tilecount="256" columns="16">
+  <image source="../dungeon/hyptosis_tile-art-batch-5.png" width="512" height="512"/>
+ </tileset>
+ <layer id="1" name="back" width="30" height="30">
+  <data encoding="csv">
+662,630,630,646,660,646,630,646,630,661,630,628,630,660,646,660,662,660,630,660,662,629,645,646,645,661,629,630,629,660,
+662,645,662,645,645,661,662,661,661,660,646,646,645,661,645,629,646,661,629,646,628,662,662,628,628,630,646,661,662,646,
+644,645,628,661,646,660,645,661,660,646,660,644,644,630,645,630,645,628,645,630,660,646,661,644,630,660,645,629,660,644,
+630,630,628,660,661,629,660,629,662,646,644,630,662,629,644,645,662,662,644,662,629,645,646,662,630,646,645,629,629,646,
+629,645,644,644,646,645,644,628,644,628,630,645,660,661,629,645,662,629,646,646,630,661,629,662,660,628,646,660,629,629,
+630,660,646,662,660,646,662,628,630,661,644,660,628,662,660,662,629,628,628,629,628,646,630,628,629,644,661,629,660,630,
+628,662,629,646,630,660,662,644,629,628,629,630,379,380,628,629,660,646,644,644,630,661,646,660,645,630,644,628,644,629,
+628,644,646,644,630,628,629,630,661,646,645,662,399,400,644,628,644,646,661,660,645,630,662,660,661,645,645,630,630,630,
+662,628,660,645,629,645,646,644,646,629,660,630,419,420,629,646,644,662,644,629,662,646,628,646,645,630,644,628,660,660,
+662,644,629,646,646,646,646,644,630,629,630,630,629,661,662,644,629,662,661,644,644,628,662,644,646,646,662,628,630,645,
+646,645,630,661,646,645,644,628,646,660,644,660,646,645,661,662,630,644,628,629,661,644,645,629,628,660,662,644,646,661,
+661,660,629,645,662,630,646,645,660,662,662,629,629,629,644,662,661,629,630,661,628,628,662,630,660,629,644,630,661,630,
+661,662,661,661,645,661,629,630,660,628,628,644,630,644,662,645,660,629,629,630,644,662,662,630,629,662,628,646,645,630,
+662,629,660,661,629,660,628,646,660,661,660,630,662,660,630,629,645,629,662,662,644,644,628,645,661,630,630,660,628,644,
+630,630,644,662,644,646,644,645,630,661,644,662,662,661,660,630,660,646,645,660,662,646,644,646,644,645,644,644,662,660,
+645,645,645,630,645,630,644,660,646,646,660,644,660,661,660,660,630,646,661,629,662,628,661,644,630,628,628,660,662,661,
+644,630,629,660,645,661,630,662,629,660,660,645,646,628,645,660,630,645,661,661,646,628,646,644,644,645,630,646,630,645,
+644,660,662,644,646,629,646,661,660,630,629,661,630,661,644,661,629,630,628,628,628,646,662,660,630,660,646,645,660,630,
+630,645,660,646,662,645,630,646,646,628,646,660,630,661,662,644,628,660,628,645,661,662,645,661,644,645,661,646,660,630,
+630,644,644,644,646,630,644,630,630,646,662,645,646,629,646,660,628,629,661,645,628,662,629,660,660,644,629,630,660,645,
+646,645,646,645,630,661,661,645,628,629,645,660,645,662,630,646,644,660,646,645,646,644,644,628,661,629,660,644,645,646,
+662,630,660,629,646,628,662,644,644,646,662,661,628,661,660,629,662,645,629,645,630,646,630,644,766,662,646,660,662,661,
+662,630,644,644,662,646,644,661,630,646,644,646,630,660,660,662,660,660,630,645,628,660,660,661,782,644,644,781,646,628,
+629,630,660,661,644,644,629,644,630,646,644,662,645,660,646,644,629,661,661,628,646,629,644,629,630,645,660,645,628,645,
+646,661,662,661,661,660,629,660,644,661,661,628,661,662,646,629,645,660,645,645,644,630,660,661,645,662,645,628,660,646,
+644,645,661,644,628,646,629,628,644,628,660,660,628,630,660,646,628,660,630,646,646,661,645,629,660,662,645,646,662,628,
+645,662,628,660,645,661,660,660,629,644,661,646,660,662,662,645,628,662,662,662,662,662,646,629,629,628,646,628,662,661,
+630,645,628,628,646,644,644,661,662,628,628,644,628,629,662,644,660,630,629,644,629,661,629,630,629,644,646,644,661,645,
+660,662,645,628,628,660,662,646,646,662,646,628,645,629,644,628,644,629,629,662,628,630,629,662,662,628,629,646,630,628,
+660,646,630,661,645,660,630,645,660,630,662,660,628,662,628,630,662,629,661,630,630,644,630,628,645,646,662,646,644,645
+</data>
+ </layer>
+ <layer id="2" name="item" width="30" height="30">
+  <data encoding="csv">
+698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,
+698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,
+698,729,714,714,714,714,714,714,714,714,714,714,714,714,714,714,714,714,714,714,714,714,714,714,714,730,698,698,698,698,
+698,699,1296,1295,1296,1295,1296,1295,1296,1295,1296,1257,1258,1259,1260,1295,1296,1295,1296,1295,1296,1295,1296,1295,1296,697,698,698,698,698,
+698,699,1312,1311,1312,1311,1312,1311,1312,1311,1312,1273,1274,1275,1276,1311,1312,1311,1312,1311,1312,1311,1312,1311,1312,697,698,698,698,698,
+698,699,1328,1327,1328,1327,1328,1327,1328,1327,1328,1289,1290,1291,1292,1327,1328,1327,1328,1327,1328,1327,1328,1327,1328,697,698,698,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,713,714,730,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,681,682,683,0,0,697,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,697,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,697,698,698,
+698,699,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,697,698,699,0,0,697,698,698,
+698,745,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,682,746,698,699,0,0,697,698,698,
+698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,699,0,0,697,698,698,
+698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,729,714,714,714,714,714,714,714,714,763,0,0,764,730,698,
+698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,699,826,826,826,826,826,826,826,826,779,0,0,780,697,698,
+698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,699,842,842,842,842,842,842,842,842,795,0,0,796,697,698,
+698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,699,858,858,858,858,858,858,858,858,811,0,0,812,697,698,
+698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,697,698,
+698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,699,0,0,0,0,0,0,0,0,0,0,0,0,697,698,
+698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,745,682,682,682,682,682,682,682,682,682,682,682,682,746,698,
+698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698,698
+</data>
+ </layer>
+ <layer id="3" name="leaf" width="30" height="30">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,101,102,103,104,0,107,0,0,105,106,0,107,0,0,0,0,0,0,0,120,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,123,0,0,121,122,0,123,0,0,101,102,103,0,0,136,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,139,0,0,0,0,0,139,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,168,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,152,0,0,0,0,0,0,0,0,0,0,0,0,0,115,116,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,131,132,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,113,114,0,0,0,0,0,0,0,0,147,148,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,129,130,0,0,0,0,0,0,0,0,163,164,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+</map>

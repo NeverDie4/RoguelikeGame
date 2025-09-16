@@ -2,6 +2,7 @@ package com.roguelike.utils;
 
 import com.roguelike.map.MapRenderer;
 import com.roguelike.map.CollisionMap;
+import com.roguelike.map.InfiniteMapManager;
 import javafx.geometry.Point2D;
 import java.util.List;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class AdaptivePathfinder {
         private double pathfindingUpdateInterval = 0.1; // 路径寻找更新间隔（秒）
         private boolean enablePathOptimization = true; // 是否启用路径优化
         private boolean enableSmoothing = true; // 是否启用路径平滑
+        private boolean ignorePlayerAsObstacle = true; // 吸血鬼幸存者风格：不把玩家当作障碍物
         
         // Getters and Setters
         public int getEnemyCountThreshold() { return enemyCountThreshold; }
@@ -48,36 +50,31 @@ public class AdaptivePathfinder {
         
         public boolean isEnableSmoothing() { return enableSmoothing; }
         public void setEnableSmoothing(boolean enable) { this.enableSmoothing = enable; }
+        
+        public boolean isIgnorePlayerAsObstacle() { return ignorePlayerAsObstacle; }
+        public void setIgnorePlayerAsObstacle(boolean ignore) { this.ignorePlayerAsObstacle = ignore; }
     }
     
     private final MapRenderer mapRenderer;
+    private final InfiniteMapManager infiniteMapManager;
     private final AStarPathfinder aStarPathfinder;
-    private final FlowField flowField;
     private final PathfindingConfig config;
     
     private int currentEnemyCount = 0;
     private PathfindingType currentAlgorithm = PathfindingType.ASTAR;
-    private double lastUpdateTime = 0;
+    private boolean useInfiniteMap = false;
     
     /**
      * 构造函数
      */
     public AdaptivePathfinder(MapRenderer mapRenderer) {
         this.mapRenderer = mapRenderer;
+        this.infiniteMapManager = null;
         this.config = new PathfindingConfig();
         
         // 初始化A*路径寻找器
         MapInterfaceAdapter mapAdapter = new MapInterfaceAdapter(mapRenderer);
         this.aStarPathfinder = new AStarPathfinder(mapAdapter, config.isAllowDiagonal());
-        
-        // 初始化流体算法
-        this.flowField = new FlowField(
-            mapRenderer.getMapWidth(), 
-            mapRenderer.getTileWidth()
-        );
-        
-        // 同步障碍物到流体算法
-        syncObstaclesToFlowField();
     }
     
     /**
@@ -85,20 +82,44 @@ public class AdaptivePathfinder {
      */
     public AdaptivePathfinder(MapRenderer mapRenderer, PathfindingConfig config) {
         this.mapRenderer = mapRenderer;
+        this.infiniteMapManager = null;
         this.config = config;
         
         // 初始化A*路径寻找器
         MapInterfaceAdapter mapAdapter = new MapInterfaceAdapter(mapRenderer);
         this.aStarPathfinder = new AStarPathfinder(mapAdapter, config.isAllowDiagonal());
+    }
+    
+    /**
+     * 无限地图构造函数
+     */
+    public AdaptivePathfinder(InfiniteMapManager infiniteMapManager) {
+        this.mapRenderer = null;
+        this.infiniteMapManager = infiniteMapManager;
+        this.config = new PathfindingConfig();
+        this.useInfiniteMap = true;
         
-        // 初始化流体算法
-        this.flowField = new FlowField(
-            mapRenderer.getMapWidth(), 
-            mapRenderer.getTileWidth()
-        );
+        // 初始化A*路径寻找器（使用无限地图适配器）
+        InfiniteMapInterfaceAdapter mapAdapter = new InfiniteMapInterfaceAdapter(infiniteMapManager);
+        this.aStarPathfinder = new AStarPathfinder(mapAdapter, config.isAllowDiagonal());
         
-        // 同步障碍物到流体算法
-        syncObstaclesToFlowField();
+        System.out.println("✅ 无限地图路径寻找系统初始化完成（仅A*算法）");
+    }
+    
+    /**
+     * 无限地图构造函数，使用自定义配置
+     */
+    public AdaptivePathfinder(InfiniteMapManager infiniteMapManager, PathfindingConfig config) {
+        this.mapRenderer = null;
+        this.infiniteMapManager = infiniteMapManager;
+        this.config = config;
+        this.useInfiniteMap = true;
+        
+        // 初始化A*路径寻找器（使用无限地图适配器）
+        InfiniteMapInterfaceAdapter mapAdapter = new InfiniteMapInterfaceAdapter(infiniteMapManager);
+        this.aStarPathfinder = new AStarPathfinder(mapAdapter, config.isAllowDiagonal());
+        
+        System.out.println("✅ 无限地图路径寻找系统初始化完成（仅A*算法）");
     }
     
     /**
@@ -107,14 +128,11 @@ public class AdaptivePathfinder {
     public void updateEnemyCount(int enemyCount) {
         this.currentEnemyCount = enemyCount;
         
-        PathfindingType newAlgorithm = (enemyCount < config.getEnemyCountThreshold()) 
-            ? PathfindingType.ASTAR 
-            : PathfindingType.FLOW_FIELD;
+        // 始终使用A*算法，移除流场算法
+        PathfindingType newAlgorithm = PathfindingType.ASTAR;
             
         if (newAlgorithm != currentAlgorithm) {
             currentAlgorithm = newAlgorithm;
-            System.out.println("路径寻找算法切换: " + currentAlgorithm +
-                             " (敌人数量: " + enemyCount + ")");
         }
     }
     
@@ -129,6 +147,17 @@ public class AdaptivePathfinder {
      * 寻找路径（带强制算法选择）
      */
     public List<Point2D> findPath(double startX, double startY, double endX, double endY, boolean forceAStar) {
+        if (useInfiniteMap) {
+            return findPathInfiniteMap(startX, startY, endX, endY, forceAStar);
+        } else {
+            return findPathTraditional(startX, startY, endX, endY, forceAStar);
+        }
+    }
+    
+    /**
+     * 传统地图寻路
+     */
+    private List<Point2D> findPathTraditional(double startX, double startY, double endX, double endY, boolean forceAStar) {
         // 转换世界坐标到瓦片坐标
         int startTileX = (int) (startX / mapRenderer.getTileWidth());
         int startTileY = (int) (startY / mapRenderer.getTileHeight());
@@ -154,12 +183,8 @@ public class AdaptivePathfinder {
             }
             
         } else {
-            // 使用流体算法
-            flowField.setTarget(endTileX, endTileY);
-            flowField.updateFlowField();
-            
-            // 流体算法返回从起点到终点的方向向量序列
-            path = generateFlowFieldPath(startX, startY, endX, endY);
+            // 流场算法已移除，使用直接路径作为回退
+            path = generateDirectPath(startX, startY, endX, endY);
         }
         
         // 路径平滑处理
@@ -171,60 +196,84 @@ public class AdaptivePathfinder {
     }
     
     /**
-     * 获取移动方向（用于流体算法）
+     * 无限地图寻路
      */
-    public Point2D getMovementDirection(double currentX, double currentY) {
-        if (currentAlgorithm == PathfindingType.FLOW_FIELD) {
-            FlowField.Vector2D direction = flowField.getVectorAtWorldPos(currentX, currentY);
-            return new Point2D(direction.x, direction.y);
+    private List<Point2D> findPathInfiniteMap(double startX, double startY, double endX, double endY, boolean forceAStar) {
+        // 检查距离，如果超过一个区块距离，使用简化寻路
+        double distance = Math.sqrt((endX - startX) * (endX - startX) + (endY - startY) * (endY - startY));
+        // 区块大小：96瓦片 * 32像素 = 3072像素宽，54瓦片 * 32像素 = 1728像素高
+        // 使用半个区块宽度作为距离阈值，提高寻路响应速度
+        double maxDistance = 48 * 32; // 1536像素
+        
+        if (distance > maxDistance) {
+            // 远距离简化寻路：直接朝向目标移动
+            return generateDirectPath(startX, startY, endX, endY);
         }
-        return new Point2D(0, 0);
+        
+        // 近距离精细寻路：使用A*算法在邻近区块内寻路
+        return findPathInNeighboringChunks(startX, startY, endX, endY);
     }
     
     /**
-     * 生成流体算法路径
+     * 在邻近区块内寻路
      */
-    private List<Point2D> generateFlowFieldPath(double startX, double startY, double endX, double endY) {
-        List<Point2D> path = new ArrayList<>();
-        double currentX = startX;
-        double currentY = startY;
+    private List<Point2D> findPathInNeighboringChunks(double startX, double startY, double endX, double endY) {
+        // 计算起点和终点所在的区块
+        // 区块大小：96瓦片 * 32像素 = 3072像素宽，54瓦片 * 32像素 = 1728像素高
+        int startChunkX = (int) (startX / (96 * 32)); // 区块X坐标
+        int startChunkY = (int) (startY / (54 * 32)); // 区块Y坐标
+        int endChunkX = (int) (endX / (96 * 32));     // 区块X坐标
+        int endChunkY = (int) (endY / (54 * 32));     // 区块Y坐标
         
-        path.add(new Point2D(currentX, currentY));
-        
-        // 最大步数限制，避免无限循环
-        int maxSteps = 1000;
-        int stepCount = 0;
-        
-        while (stepCount < maxSteps) {
-            FlowField.Vector2D direction = flowField.getVectorAtWorldPos(currentX, currentY);
-            
-            if (direction.length() < 0.1) {
-                break; // 到达目标或无法继续
-            }
-            
-            // 移动一步
-            double stepSize = mapRenderer.getTileWidth() * 0.5;
-            currentX += direction.x * stepSize;
-            currentY += direction.y * stepSize;
-            
-            path.add(new Point2D(currentX, currentY));
-            
-            // 检查是否接近目标
-            double distanceToTarget = Math.sqrt(
-                (currentX - endX) * (currentX - endX) + 
-                (currentY - endY) * (currentY - endY)
-            );
-            
-            if (distanceToTarget < mapRenderer.getTileWidth()) {
-                path.add(new Point2D(endX, endY));
-                break;
-            }
-            
-            stepCount++;
+        // 检查是否在邻近区块内（3x3区块范围）
+        if (Math.abs(startChunkX - endChunkX) > 1 || Math.abs(startChunkY - endChunkY) > 1) {
+            // 超出邻近区块范围，使用简化寻路
+            return generateDirectPath(startX, startY, endX, endY);
         }
+        
+        // 在邻近区块内，使用A*算法
+        int startTileX = (int) (startX / 32);
+        int startTileY = (int) (startY / 32);
+        int endTileX = (int) (endX / 32);
+        int endTileY = (int) (endY / 32);
+        
+        List<AStarPathfinder.Node> nodePath = aStarPathfinder.findPath(startTileX, startTileY, endTileX, endTileY);
+        
+        if (nodePath == null || nodePath.isEmpty()) {
+            // A*寻路失败，回退到直接寻路
+            return generateDirectPath(startX, startY, endX, endY);
+        }
+        
+        // 转换为世界坐标
+        List<Point2D> path = new ArrayList<>();
+        for (AStarPathfinder.Node node : nodePath) {
+            double worldX = node.x * 32 + 16; // 瓦片中心
+            double worldY = node.y * 32 + 16;
+            path.add(new Point2D(worldX, worldY));
+        }
+        
         
         return path;
     }
+    
+    /**
+     * 生成直接路径（直线移动）
+     */
+    private List<Point2D> generateDirectPath(double startX, double startY, double endX, double endY) {
+        List<Point2D> path = new ArrayList<>();
+        path.add(new Point2D(startX, startY));
+        path.add(new Point2D(endX, endY));
+        return path;
+    }
+    
+    /**
+     * 获取移动方向（已移除流场算法，此方法保留用于兼容性）
+     */
+    public Point2D getMovementDirection(double currentX, double currentY) {
+        // 流场算法已移除，返回零向量
+        return new Point2D(0, 0);
+    }
+    
     
     /**
      * 路径平滑处理
@@ -256,39 +305,21 @@ public class AdaptivePathfinder {
     /**
      * 同步障碍物到流体算法
      */
-    private void syncObstaclesToFlowField() {
-        CollisionMap collisionMap = mapRenderer.getCollisionMap();
-        if (collisionMap != null) {
-            for (int y = 0; y < collisionMap.getHeight(); y++) {
-                for (int x = 0; x < collisionMap.getWidth(); x++) {
-                    boolean isObstacle = !collisionMap.isPassable(x, y);
-                    flowField.setObstacle(x, y, isObstacle);
-                }
-            }
-        }
-    }
     
     /**
      * 更新路径寻找系统
      */
     public void update(double deltaTime) {
-        lastUpdateTime += deltaTime;
-        
-        // 定期更新流体算法
-        if (currentAlgorithm == PathfindingType.FLOW_FIELD && 
-            lastUpdateTime >= config.getPathfindingUpdateInterval()) {
-            flowField.updateFlowField();
-            lastUpdateTime = 0;
-        }
+        // 移除流场算法更新逻辑，只使用A*算法
+        // 不需要定期更新
     }
     
     /**
-     * 设置目标位置（用于流体算法）
+     * 设置目标位置（已移除流场算法，此方法保留用于兼容性）
      */
     public void setTarget(double worldX, double worldY) {
-        int tileX = (int) (worldX / mapRenderer.getTileWidth());
-        int tileY = (int) (worldY / mapRenderer.getTileHeight());
-        flowField.setTarget(tileX, tileY);
+        // 流场算法已移除，此方法保留用于兼容性
+        // 不需要实际功能
     }
     
     /**
@@ -319,17 +350,12 @@ public class AdaptivePathfinder {
         return aStarPathfinder;
     }
     
-    /**
-     * 获取流体算法
-     */
-    public FlowField getFlowField() {
-        return flowField;
-    }
     
     /**
      * 地图接口适配器，将MapRenderer适配到A*算法的MapInterface
+     * 吸血鬼幸存者风格：不把玩家当作障碍物
      */
-    private static class MapInterfaceAdapter implements AStarPathfinder.MapInterface {
+    private class MapInterfaceAdapter implements AStarPathfinder.MapInterface {
         private final MapRenderer mapRenderer;
         
         public MapInterfaceAdapter(MapRenderer mapRenderer) {
@@ -338,6 +364,8 @@ public class AdaptivePathfinder {
         
         @Override
         public boolean isWalkable(int x, int y) {
+            // 吸血鬼幸存者风格：只检查地图瓦片障碍物，不检查玩家位置
+            // 敌人可以直接朝向玩家移动，不会被玩家阻挡
             return mapRenderer.isPassable(x, y);
         }
         
@@ -349,6 +377,44 @@ public class AdaptivePathfinder {
         @Override
         public int getMapHeight() {
             return mapRenderer.getMapHeight();
+        }
+    }
+    
+    /**
+     * 无限地图接口适配器，将InfiniteMapManager适配到A*算法的MapInterface
+     * 支持跨区块寻路
+     */
+    private class InfiniteMapInterfaceAdapter implements AStarPathfinder.MapInterface {
+        private final InfiniteMapManager infiniteMapManager;
+        
+        public InfiniteMapInterfaceAdapter(InfiniteMapManager infiniteMapManager) {
+            this.infiniteMapManager = infiniteMapManager;
+        }
+        
+        @Override
+        public boolean isWalkable(int x, int y) {
+            // 将瓦片坐标转换为世界坐标
+            // 使用正确的瓦片大小：32像素
+            double worldX = x * 32.0;
+            double worldY = y * 32.0;
+            
+            // 检查是否在邻近区块范围内
+            boolean passable = infiniteMapManager.isPassable(worldX, worldY);
+            
+            
+            return passable;
+        }
+        
+        @Override
+        public int getMapWidth() {
+            // 返回一个足够大的值，支持跨区块寻路
+            return 1000; // 足够大的值
+        }
+        
+        @Override
+        public int getMapHeight() {
+            // 返回一个足够大的值，支持跨区块寻路
+            return 1000; // 足够大的值
         }
     }
 }

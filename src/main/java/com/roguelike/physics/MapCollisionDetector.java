@@ -2,34 +2,43 @@ package com.roguelike.physics;
 
 import com.almasb.fxgl.entity.Entity;
 import com.roguelike.map.MapRenderer;
+import com.roguelike.map.InfiniteMapManager;
 import javafx.geometry.Point2D;
 import javafx.geometry.Rectangle2D;
 
 /**
  * 地图碰撞检测器
- * 负责检测实体与地图瓦片的碰撞
+ * 负责检测实体与地图瓦片的碰撞，支持无限地图
  */
 public class MapCollisionDetector {
     
     private MapRenderer mapRenderer;
+    private InfiniteMapManager infiniteMapManager;
     
     public MapCollisionDetector(MapRenderer mapRenderer) {
         this.mapRenderer = mapRenderer;
+        this.infiniteMapManager = null;
+    }
+    
+    public MapCollisionDetector(InfiniteMapManager infiniteMapManager) {
+        this.mapRenderer = null;
+        this.infiniteMapManager = infiniteMapManager;
     }
     
     /**
      * 检查实体是否可以移动到指定位置
      */
     public boolean canMoveTo(Entity entity, double newX, double newY) {
-        if (mapRenderer == null) {
+        if (infiniteMapManager != null) {
+            // 使用无限地图管理器
+            return checkInfiniteMapCollision(entity, newX, newY);
+        } else if (mapRenderer != null) {
+            // 使用传统地图渲染器
+            Rectangle2D entityBounds = getEntityBounds(entity, newX, newY);
+            return checkEntityBoundsCollision(entityBounds);
+        } else {
             return true; // 没有地图时允许移动
         }
-        
-        // 获取实体的碰撞框
-        Rectangle2D entityBounds = getEntityBounds(entity, newX, newY);
-        
-        // 检查实体碰撞框覆盖的所有瓦片
-        return checkEntityBoundsCollision(entityBounds);
     }
     
     /**
@@ -40,6 +49,35 @@ public class MapCollisionDetector {
         double newY = entity.getY() + deltaY;
         
         return canMoveTo(entity, newX, newY);
+    }
+    
+    /**
+     * 检查无限地图碰撞
+     */
+    private boolean checkInfiniteMapCollision(Entity entity, double newX, double newY) {
+        // 获取实体的碰撞框
+        Rectangle2D entityBounds = getEntityBounds(entity, newX, newY);
+        
+        // 计算实体碰撞框覆盖的瓦片范围
+        int startTileX = (int) Math.floor(entityBounds.getMinX() / 32); // 瓦片尺寸32
+        int startTileY = (int) Math.floor(entityBounds.getMinY() / 32);
+        int endTileX = (int) Math.ceil(entityBounds.getMaxX() / 32);
+        int endTileY = (int) Math.ceil(entityBounds.getMaxY() / 32);
+        
+        // 检查所有覆盖的瓦片
+        for (int tileY = startTileY; tileY < endTileY; tileY++) {
+            for (int tileX = startTileX; tileX < endTileX; tileX++) {
+                double worldX = tileX * 32.0;
+                double worldY = tileY * 32.0;
+                
+                // 使用isPassable方法进行碰撞检测，它正确处理世界坐标
+                if (!infiniteMapManager.isPassable(worldX, worldY)) {
+                    return false; // 发现不可通行的瓦片
+                }
+            }
+        }
+        
+        return true; // 所有瓦片都可通行
     }
     
     /**
@@ -174,13 +212,22 @@ public class MapCollisionDetector {
     public boolean isWithinMapBounds(Entity entity, double x, double y) {
         Rectangle2D entityBounds = getEntityBounds(entity, x, y);
         
-        double mapWidth = mapRenderer.getMapWidth() * mapRenderer.getTileWidth();
-        double mapHeight = mapRenderer.getMapHeight() * mapRenderer.getTileHeight();
+        if (infiniteMapManager != null) {
+            // 无限地图：只检查Y轴边界（上下封死）
+            double mapHeight = infiniteMapManager.getChunkHeightPixels();
+            return entityBounds.getMinY() >= 0 && entityBounds.getMaxY() <= mapHeight;
+        } else if (mapRenderer != null) {
+            // 传统地图：检查完整边界
+            double mapWidth = mapRenderer.getMapWidth() * mapRenderer.getTileWidth();
+            double mapHeight = mapRenderer.getMapHeight() * mapRenderer.getTileHeight();
+            
+            return entityBounds.getMinX() >= 0 && 
+                   entityBounds.getMinY() >= 0 && 
+                   entityBounds.getMaxX() <= mapWidth && 
+                   entityBounds.getMaxY() <= mapHeight;
+        }
         
-        return entityBounds.getMinX() >= 0 && 
-               entityBounds.getMinY() >= 0 && 
-               entityBounds.getMaxX() <= mapWidth && 
-               entityBounds.getMaxY() <= mapHeight;
+        return true; // 没有地图时允许移动
     }
     
     /**
@@ -195,5 +242,21 @@ public class MapCollisionDetector {
      */
     public void setMapRenderer(MapRenderer mapRenderer) {
         this.mapRenderer = mapRenderer;
+        this.infiniteMapManager = null; // 切换到传统地图模式
+    }
+    
+    /**
+     * 获取InfiniteMapManager实例
+     */
+    public InfiniteMapManager getInfiniteMapManager() {
+        return infiniteMapManager;
+    }
+    
+    /**
+     * 设置InfiniteMapManager实例
+     */
+    public void setInfiniteMapManager(InfiniteMapManager infiniteMapManager) {
+        this.infiniteMapManager = infiniteMapManager;
+        this.mapRenderer = null; // 切换到无限地图模式
     }
 }

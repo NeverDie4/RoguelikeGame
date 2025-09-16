@@ -35,7 +35,12 @@ public class GameEvent {
         MOVEMENT_SLIDING,
         // 暂停/恢复
         GAME_PAUSED,
-        GAME_RESUMED
+        GAME_RESUMED,
+        // 实体碰撞事件
+        PLAYER_ENEMY_COLLISION,
+        BULLET_ENEMY_COLLISION,
+        BULLET_PLAYER_COLLISION,
+        ENEMY_ENEMY_COLLISION
     }
 
     private static final Map<Type, List<Consumer<GameEvent>>> LISTENERS = new EnumMap<>(Type.class);
