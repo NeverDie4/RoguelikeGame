@@ -9,10 +9,10 @@
 /* 滚动条轨道 */
 .scroll-pane .scroll-bar:vertical {
     -fx-background-color: rgba(255, 215, 0, 0.2);
-    -fx-background-radius: 4;
+    -fx-background-radius: 0;
     -fx-border-color: #FFD700;
     -fx-border-width: 1;
-    -fx-border-radius: 4;
+    -fx-border-radius: 0;
     -fx-pref-width: 8px; /* 进一步减小滚动条宽度 */
     -fx-translate-x: 6px; /* 真正向右移动滚动条 */
 }
@@ -20,10 +20,10 @@
 /* 滚动条滑块 */
 .scroll-pane .scroll-bar:vertical .thumb {
     -fx-background-color: #FFD700; /* 使用纯金色，更加明显 */
-    -fx-background-radius: 3;
+    -fx-background-radius: 0;
     -fx-border-color: #FFA500; /* 橙色边框，更加突出 */
     -fx-border-width: 1;
-    -fx-border-radius: 3;
+    -fx-border-radius: 0;
     -fx-pref-width: 6px; /* 滑块宽度 */
     -fx-min-height: 20px; /* 确保滑块有最小高度 */
 }
@@ -49,8 +49,8 @@
     -fx-background-color: rgba(255, 215, 0, 0.3);
     -fx-border-color: #FFD700;
     -fx-border-width: 1;
-    -fx-background-radius: 4;
-    -fx-border-radius: 4;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
     -fx-pref-width: 8px; /* 箭头按钮宽度与轨道一致 */
     -fx-pref-height: 12px; /* 设置箭头按钮高度 */
     -fx-alignment: center; /* 居中对齐 */
@@ -94,20 +94,20 @@
 /* 水平滚动条样式（如果需要） */
 .scroll-pane .scroll-bar:horizontal {
     -fx-background-color: rgba(255, 215, 0, 0.2);
-    -fx-background-radius: 8;
+    -fx-background-radius: 0;
     -fx-border-color: #FFD700;
     -fx-border-width: 1;
-    -fx-border-radius: 8;
+    -fx-border-radius: 0;
 }
 
 .scroll-pane .scroll-bar:horizontal .thumb {
     -fx-background-color: linear-gradient(to right, 
         rgba(255, 215, 0, 0.8), 
         rgba(255, 193, 7, 0.6));
-    -fx-background-radius: 8;
+    -fx-background-radius: 0;
     -fx-border-color: #FFD700;
     -fx-border-width: 1;
-    -fx-border-radius: 8;
+    -fx-border-radius: 0;
 }
 
 .scroll-pane .scroll-bar:horizontal .thumb:hover {
@@ -123,8 +123,8 @@
     -fx-background-color: rgba(255, 215, 0, 0.3);
     -fx-border-color: #FFD700;
     -fx-border-width: 1;
-    -fx-background-radius: 8;
-    -fx-border-radius: 8;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
 }
 
 .scroll-pane .scroll-bar:horizontal .increment-arrow,
@@ -138,8 +138,8 @@
     -fx-background-color: rgba(40, 40, 50, 0.9);
     -fx-border-color: #FFD700;
     -fx-border-width: 3;
-    -fx-border-radius: 10;
-    -fx-background-radius: 10;
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
     -fx-padding: 10;
 }
 
@@ -147,16 +147,16 @@
     -fx-background-color: rgba(55, 55, 65, 0.95);
     -fx-border-color: #FFA500;
     -fx-border-width: 3;
-    -fx-border-radius: 10;
-    -fx-background-radius: 10;
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
 }
 
 /* 地图预览图容器 */
 .map-preview-container {
     -fx-border-color: #FFD700;
     -fx-border-width: 2;
-    -fx-border-radius: 8;
-    -fx-background-radius: 8;
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
     -fx-padding: 2;
 }
 
@@ -165,10 +165,10 @@
     -fx-background-color: linear-gradient(to bottom, 
         rgba(255, 215, 0, 0.8), 
         rgba(255, 193, 7, 0.6));
-    -fx-background-radius: 15;
+    -fx-background-radius: 0;
     -fx-border-color: #FFD700;
     -fx-border-width: 2;
-    -fx-border-radius: 15;
+    -fx-border-radius: 0;
     -fx-text-fill: white;
     -fx-font-family: "Segoe UI";
     -fx-font-size: 16px;

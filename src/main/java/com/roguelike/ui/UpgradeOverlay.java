@@ -76,6 +76,15 @@ public final class UpgradeOverlay {
         this.generator = new UpgradeGenerator(wm, pm);
     }
 
+    /**
+     * 重置全局静态状态，确保新游戏或返回主菜单后不遗留弹窗状态。
+     */
+    public static void resetGlobalState() {
+        OPEN = false;
+        PENDING = 0;
+        LAST_REQUEST_MS = 0L;
+    }
+
     public void show() {
         Platform.runLater(() -> {
             if (OPEN) { if (PENDING == 0) PENDING = 1; return; }

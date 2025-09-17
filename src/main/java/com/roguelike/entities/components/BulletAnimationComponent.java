@@ -30,7 +30,7 @@ public class BulletAnimationComponent extends Component {
     private boolean isPlaying = false;
     private ImageView spriteView;
     // 视觉放大倍数（不改变碰撞盒），用于统一放大所有子弹外观
-    private double visualScale = 1.5;
+    private double visualScale = 2.5;
     // 视觉旋转角度（度），发射时定死
     private double visualRotationDegrees = 0.0;
     // 播放完是否移除实体（仅在非循环时生效）

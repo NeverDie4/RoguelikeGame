@@ -4,6 +4,8 @@ import com.almasb.fxgl.entity.Entity;
 import com.roguelike.entities.config.EnemyConfig;
 import com.roguelike.entities.config.EnemyConfigManager;
 import com.roguelike.entities.config.SpawnConfig;
+import com.roguelike.core.TimeService;
+import com.roguelike.map.InfiniteMapManager;
 import javafx.geometry.Point2D;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -36,6 +38,7 @@ public class BackgroundEnemySpawnManager {
     // 依赖组件
     private InfiniteMapEnemySpawnManager infiniteMapSpawnManager;
     private EnemyConfigManager configManager;
+    private InfiniteMapManager infiniteMapManager;
     
     // 统计信息
     private final AtomicInteger totalSpawned = new AtomicInteger(0);
@@ -76,6 +79,13 @@ public class BackgroundEnemySpawnManager {
      */
     public void setInfiniteMapSpawnManager(InfiniteMapEnemySpawnManager spawnManager) {
         this.infiniteMapSpawnManager = spawnManager;
+    }
+    
+    /**
+     * 供外部注入地图管理器，以便判断Boss房隔离模式，切换刷怪策略。
+     */
+    public void setInfiniteMapManager(InfiniteMapManager mapManager) {
+        this.infiniteMapManager = mapManager;
     }
     
     /**
@@ -132,9 +142,15 @@ public class BackgroundEnemySpawnManager {
             return; // 并发任务数已达上限
         }
         
-        // 智能间隔调整
+        // 智能间隔调整 + 时间缩放
         long currentTime = System.currentTimeMillis();
-        if (currentTime - lastUpdateTime < calculateSmartInterval()) {
+        long smartInterval = calculateSmartInterval();
+        // 基于游戏时间的缩放：游戏时间越久，间隔越短
+        double seconds = TimeService.getSeconds();
+        double timeScale = SpawnConfig.getTimeScaleFactor(seconds);
+        long timeScaledInterval = (long) Math.max(50, smartInterval * timeScale);
+        
+        if (currentTime - lastUpdateTime < timeScaledInterval) {
             return; // 间隔时间未到
         }
         
@@ -193,9 +209,12 @@ public class BackgroundEnemySpawnManager {
         
         Point2D playerPos = player.getCenter();
         
-        // 生成1-2个敌人
-        int enemiesToSpawn = Math.min(MAX_ENEMIES_PER_BATCH, 
-            maxEnemiesInWorld - getCurrentEnemyCount());
+        // 计算批量：普通模式随时间提升，Boss模式用更高上限
+        boolean bossMode = infiniteMapManager != null && infiniteMapManager.isBossIsolationMode();
+        int cap = bossMode ? SpawnConfig.BOSS_MAX_BATCH_CAP : SpawnConfig.MAX_BATCH_CAP;
+        int base = SpawnConfig.MAX_BATCH_BASE;
+        int dynamicBatch = SpawnConfig.getDynamicBatchSize(TimeService.getSeconds(), base, cap);
+        int enemiesToSpawn = Math.min(dynamicBatch, maxEnemiesInWorld - getCurrentEnemyCount());
         
         for (int i = 0; i < enemiesToSpawn; i++) {
             if (!isRunning.get()) {
@@ -218,16 +237,37 @@ public class BackgroundEnemySpawnManager {
                 return;
             }
             
-            // 生成生成位置
+            // 生成位置：普通模式屏外；Boss模式屏内（距玩家一定距离）
             Point2D spawnPos = null;
+            boolean bossMode = infiniteMapManager != null && infiniteMapManager.isBossIsolationMode();
             if (infiniteMapSpawnManager != null) {
-                spawnPos = infiniteMapSpawnManager.generateEnemySpawnPosition(
-                    playerPos,
-                    config.getSize().getWidth(),
-                    config.getSize().getHeight(),
-                    minSpawnDistance,
-                    maxSpawnDistance
-                );
+                if (bossMode) {
+                    // 屏内生成，尽量填满视口
+                    try {
+                        var viewport = com.almasb.fxgl.dsl.FXGL.getGameScene().getViewport();
+                        double w = com.almasb.fxgl.dsl.FXGL.getAppWidth();
+                        double h = com.almasb.fxgl.dsl.FXGL.getAppHeight();
+                        double viewX = viewport.getX();
+                        double viewY = viewport.getY();
+                        spawnPos = infiniteMapSpawnManager.generateOnScreenSpawnPosition(
+                            viewX, viewY, w, h,
+                            playerPos,
+                            config.getSize().getWidth(),
+                            config.getSize().getHeight(),
+                            true
+                        );
+                    } catch (Throwable ignored) {}
+                }
+                if (spawnPos == null) {
+                    // 默认屏外生成（维持原有大多数屏外效果）
+                    spawnPos = infiniteMapSpawnManager.generateEnemySpawnPosition(
+                        playerPos,
+                        config.getSize().getWidth(),
+                        config.getSize().getHeight(),
+                        minSpawnDistance,
+                        maxSpawnDistance
+                    );
+                }
             }
             
             if (spawnPos == null) {
@@ -236,15 +276,40 @@ public class BackgroundEnemySpawnManager {
             }
             
             // 在JavaFX应用线程中创建敌人实体，使用高优先级确保及时执行
-            final EnemyConfig finalConfig = config;
             final Point2D finalSpawnPos = spawnPos;
             javafx.application.Platform.runLater(() -> {
                 try {
+                    // 联机下：仅房主负责刷怪并广播；客户端仅根据广播生成
+                    boolean isNetworkGame = false;
+                    boolean isHost = false;
+                    try {
+                        com.roguelike.network.NetworkManager nm = com.roguelike.network.NetworkManager.getInstance();
+                        isNetworkGame = nm != null && (nm.isHost() || nm.isClient());
+                        isHost = nm != null && nm.isHost();
+                        if (isNetworkGame && !isHost) {
+                            // 客户端：等待房主广播，不在本地自行生成
+                            return;
+                        }
+                        if (isNetworkGame && isHost) {
+                            // 房主：本地生成并广播
+                            Entity enemy = spawn("enemy", new com.almasb.fxgl.entity.SpawnData(finalSpawnPos.getX(), finalSpawnPos.getY()).put("enemyId", config.getId()));
+                            if (enemy != null) {
+                                totalSpawned.incrementAndGet();
+                                if (enemy instanceof Enemy) {
+                                    ((Enemy) enemy).initializeTargetPosition();
+                                }
+                            }
+                            // 广播生成事件（使用NetworkManager的游戏socket，避免NAT丢包）
+                            String msg = "SPAWN_ENEMY:" + config.getId() + ":" + finalSpawnPos.getX() + ":" + finalSpawnPos.getY();
+                            nm.broadcastToClients(msg);
+                            return;
+                        }
+                    } catch (Throwable ignored) {}
+
+                    // 单机：本地生成
                     Entity enemy = spawn("enemy", finalSpawnPos.getX(), finalSpawnPos.getY());
                     if (enemy != null) {
                         totalSpawned.incrementAndGet();
-                        
-                        // 确保新生成的敌人立即开始寻路
                         if (enemy instanceof Enemy) {
                             ((Enemy) enemy).initializeTargetPosition();
                         }
@@ -309,6 +374,15 @@ public class BackgroundEnemySpawnManager {
         System.out.println("   生成距离: " + minSpawnDistance + " - " + maxSpawnDistance);
         System.out.println("   最大敌人数: " + maxEnemiesInWorld);
         System.out.println("   使用智能间隔调整");
+    }
+
+    /**
+     * 降低敌人与敌人之间的最小刷新间距（提高密度）。
+     */
+    public void setGlobalMinEnemySpacing(double spacingPixels) {
+        if (infiniteMapSpawnManager != null) {
+            infiniteMapSpawnManager.setMinEnemySpacingOverride(spacingPixels);
+        }
     }
     
     /**

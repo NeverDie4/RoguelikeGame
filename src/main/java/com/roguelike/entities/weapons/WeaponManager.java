@@ -286,8 +286,8 @@ public class WeaponManager {
             ));
         }
 
-        // 攻击间隔
-        double interval = (lv == 5) ? 0.20 : 0.25;
+        // 攻击间隔（整体放慢，缓解过快问题）
+        double interval = (lv == 5) ? 0.35 : 0.40;
         com.roguelike.entities.configs.AttackRegistry.register(new com.roguelike.entities.configs.AttackSpec(
                 "weapon03", "Weapon 03", "straight_03", interval,
                 1, 0.0
@@ -307,17 +307,15 @@ public class WeaponManager {
             case 3 -> weapon03Dirs = java.util.List.of(
                     new javafx.geometry.Point2D(1, 0),
                     new javafx.geometry.Point2D(-1, 0),
-                    new javafx.geometry.Point2D(0, -1),
-                    new javafx.geometry.Point2D(0, 1)
+                    new javafx.geometry.Point2D(0, -1)
             );
-            default -> { // 4 与 5：正五角星，从正上开始每 72°
-                java.util.ArrayList<javafx.geometry.Point2D> list = new java.util.ArrayList<>();
-                for (int i = 0; i < 5; i++) {
-                    double deg = -90.0 + i * 72.0; // -90, -18, 54, 126, 198 （即上方开始）
-                    double rad = Math.toRadians(deg);
-                    list.add(new javafx.geometry.Point2D(Math.cos(rad), Math.sin(rad)));
-                }
-                weapon03Dirs = java.util.List.copyOf(list);
+            default -> { // 4 与 5：由 5 向降到 4 个方向，减少屏占与数量
+                weapon03Dirs = java.util.List.of(
+                        new javafx.geometry.Point2D(1, 0),
+                        new javafx.geometry.Point2D(-1, 0),
+                        new javafx.geometry.Point2D(0, -1),
+                        new javafx.geometry.Point2D(0, 1)
+                );
             }
         }
 
@@ -512,8 +510,8 @@ public class WeaponManager {
             ));
         }
 
-        // 发射间隔同 03：LV5=0.20，否则 0.25
-        double interval = (lv == 5) ? 0.20 : 0.25;
+        // 发射间隔同 03 调整：整体放慢
+        double interval = (lv == 5) ? 0.35 : 0.40;
         com.roguelike.entities.configs.AttackRegistry.register(new com.roguelike.entities.configs.AttackSpec(
                 "weapon07", "Weapon 07", "straight_07", interval, 1, 0.0
         ));
@@ -522,15 +520,12 @@ public class WeaponManager {
         switch (lv) {
             case 1 -> weapon07Dirs = java.util.List.of(new javafx.geometry.Point2D(1, 0), new javafx.geometry.Point2D(-1, 0));
             case 2 -> weapon07Dirs = java.util.List.of(new javafx.geometry.Point2D(0, -1), new javafx.geometry.Point2D(1, 0), new javafx.geometry.Point2D(-1, 0));
-            case 3 -> weapon07Dirs = java.util.List.of(new javafx.geometry.Point2D(1, 0), new javafx.geometry.Point2D(-1, 0), new javafx.geometry.Point2D(0, -1), new javafx.geometry.Point2D(0, 1));
+            case 3 -> weapon07Dirs = java.util.List.of(new javafx.geometry.Point2D(1, 0), new javafx.geometry.Point2D(-1, 0), new javafx.geometry.Point2D(0, -1));
             default -> {
-                java.util.ArrayList<javafx.geometry.Point2D> list = new java.util.ArrayList<>();
-                for (int i = 0; i < 5; i++) {
-                    double deg = -90.0 + i * 72.0;
-                    double rad = Math.toRadians(deg);
-                    list.add(new javafx.geometry.Point2D(Math.cos(rad), Math.sin(rad)));
-                }
-                weapon07Dirs = java.util.List.copyOf(list);
+                weapon07Dirs = java.util.List.of(
+                        new javafx.geometry.Point2D(1, 0), new javafx.geometry.Point2D(-1, 0),
+                        new javafx.geometry.Point2D(0, -1), new javafx.geometry.Point2D(0, 1)
+                );
             }
         }
 

@@ -34,8 +34,8 @@ public class AsyncChunkLoader {
         this.activeLoadingTasks = new AtomicInteger(0);
         
         // 配置参数 - 优化性能
-        this.maxConcurrentLoads = 5;  // 增加并发加载数
-        this.loadingThreadPoolSize = 4;  // 增加线程池大小
+        this.maxConcurrentLoads = 2;  // 降低并发，避免短时间解码过多PNG
+        this.loadingThreadPoolSize = 2;  // 降低线程池，减轻内存/IO压力
         this.maxLoadingTimeMs = 2000;  // 减少超时时间，更快失败
         
         // 创建线程池

@@ -2,6 +2,7 @@ package com.roguelike.map;
 
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.app.scene.GameView;
+import com.roguelike.map.fxgl.FXGLTileMapProvider;
 import javafx.scene.Group;
 import javafx.scene.image.Image;
 
@@ -32,6 +33,8 @@ public class MapChunk {
     private double worldOffsetX;           // 世界坐标X偏移
     private double worldOffsetY;           // 世界坐标Y偏移
     private Map<String, Image> tilesetImages = new HashMap<>(); // 瓦片集图像缓存
+    // 新增：Provider（双实现开关）
+    private TileMapProvider tileMapProvider;
     
     // 静态缓存，避免重复解析相同的地图文件
     // 基于mapName的缓存，所有区块共享相同的地图数据，但独立计算世界偏移
@@ -105,10 +108,25 @@ public class MapChunk {
             // 加载基础地图（所有区块使用相同的地图文件）
             loadBaseMap();
             
-            // 创建渲染视图
-            createMapView();
-            
-            // 构建碰撞地图
+            // Provider 开关：默认启用
+            if (MapRuntimeConfig.useFxglTileMap()) {
+                tileMapProvider = new FXGLTileMapProvider(
+                    this,
+                    cachedTiledMaps.get(mapName),
+                    TILE_SIZE,
+                    chunkWidth,
+                    chunkHeight,
+                    worldOffsetX,
+                    worldOffsetY,
+                    mapName
+                );
+                tileMapProvider.addToScene();
+            } else {
+                // 回退到旧渲染
+                createMapView();
+                if (mapView != null) FXGL.getGameScene().addGameView(mapView);
+            }
+            // 构建碰撞（保留旧方式作为回退与辅助数据）
             buildCollisionMap();
             
         isLoaded = true;
@@ -142,11 +160,15 @@ public class MapChunk {
         if (mapView != null) {
             FXGL.getGameScene().removeGameView(mapView);
         }
+        if (tileMapProvider != null) {
+            try { tileMapProvider.removeFromScene(); } catch (Throwable ignored) {}
+        }
         
         // 清理资源
         tiledMap = null;
         collisionMap = null;
         mapView = null;
+        tileMapProvider = null;
         isLoaded = false;
         
         System.out.println("🗑️ 区块 (" + chunkX + "," + chunkY + ") 已卸载");
@@ -430,6 +452,7 @@ public class MapChunk {
         if (mapView != null) {
             FXGL.getGameScene().addGameView(mapView);
         }
+        // 暂不添加 provider 的视图，避免重复；后续切换渲染时启用。
     }
     
     /**
@@ -604,8 +627,12 @@ public class MapChunk {
      * 检查指定位置是否可通行
      */
     public boolean isPassable(double worldX, double worldY) {
-        if (!isLoaded || collisionMap == null) {
+        if (!isLoaded) {
             return false; // 未加载时默认为不可通行，确保碰撞检测准确性
+        }
+        // 优先走新 Provider（合并属性/碰撞层）
+        if (tileMapProvider != null) {
+            return tileMapProvider.isPassable(worldX, worldY);
         }
         
         // 转换为区块内坐标
@@ -617,7 +644,7 @@ public class MapChunk {
             return false; // 超出区块范围时默认为不可通行，防止越界移动
         }
         
-        return collisionMap.isPassable(localX, localY);
+        return collisionMap != null && collisionMap.isPassable(localX, localY);
     }
     
     /**
@@ -655,13 +682,15 @@ public class MapChunk {
      * @param tileY 瓦片Y坐标
      */
     public void makeTilePassable(int tileX, int tileY) {
+        if (tileMapProvider != null) {
+            tileMapProvider.setTilePassable(tileX, tileY, true);
+            System.out.println("✅ 瓦片位置(" + tileX + "," + tileY + ") 已变为可通行 (provider)");
+            return;
+        }
         if (collisionMap != null && 
             tileX >= 0 && tileX < collisionMap.getWidth() && 
             tileY >= 0 && tileY < collisionMap.getHeight()) {
-            
-            // 将碰撞地图中该位置设置为可通行
             collisionMap.setCollision(tileX, tileY, false);
-            
             System.out.println("✅ 瓦片位置(" + tileX + "," + tileY + ") 已变为可通行");
         }
     }
@@ -672,13 +701,15 @@ public class MapChunk {
      * @param tileY 瓦片Y坐标
      */
     public void makeTileUnpassable(int tileX, int tileY) {
+        if (tileMapProvider != null) {
+            tileMapProvider.setTilePassable(tileX, tileY, false);
+            System.out.println("🚫 瓦片位置(" + tileX + "," + tileY + ") 已变为不可通行 (provider)");
+            return;
+        }
         if (collisionMap != null && 
             tileX >= 0 && tileX < collisionMap.getWidth() && 
             tileY >= 0 && tileY < collisionMap.getHeight()) {
-            
-            // 将碰撞地图中该位置设置为不可通行
             collisionMap.setCollision(tileX, tileY, true);
-            
             System.out.println("🚫 瓦片位置(" + tileX + "," + tileY + ") 已变为不可通行");
         }
     }

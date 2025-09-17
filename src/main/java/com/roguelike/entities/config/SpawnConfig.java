@@ -34,15 +34,15 @@ public class SpawnConfig {
     
     // ========== 敌人尺寸分类配置 ==========
     
-    // 小敌人（≤32像素）
+    // 小敌人（≤108像素）
     public static final int SMALL_ENEMY_STEP = 16;       // 16像素步长
     public static final double SMALL_ENEMY_SAFETY = 40.0; // 40像素安全距离
-    public static final double SMALL_ENEMY_MAX_SIZE = 32.0; // 最大尺寸阈值
+    public static final double SMALL_ENEMY_MAX_SIZE = 108.0; // 最大尺寸阈值（适配72x108）
     
-    // 中敌人（33-64像素）
+    // 中敌人（≤162像素）
     public static final int MEDIUM_ENEMY_STEP = 24;      // 24像素步长
     public static final double MEDIUM_ENEMY_SAFETY = 60.0; // 60像素安全距离
-    public static final double MEDIUM_ENEMY_MAX_SIZE = 64.0; // 最大尺寸阈值
+    public static final double MEDIUM_ENEMY_MAX_SIZE = 162.0; // 最大尺寸阈值（适配108x162）
     
     // 大敌人（≥65像素）
     public static final int LARGE_ENEMY_STEP = 32;       // 32像素步长
@@ -77,6 +77,12 @@ public class SpawnConfig {
     
     // 位置占用持续时间（毫秒）
     public static final long POSITION_OCCUPIED_DURATION = 5000; // 5秒
+
+    // ========== 时间缩放与批量配置 ==========
+    
+    // 基于时间的刷怪加速（分钟级指数衰减到最小系数）
+    public static final double TIME_ACCELERATION_DECAY = 0.90;   // 每分钟间隔乘以0.9
+    public static final double TIME_ACCELERATION_MIN = 0.80;     // 下限：原间隔的15%
     
     // ========== 性能配置 ==========
     
@@ -89,6 +95,16 @@ public class SpawnConfig {
     // 最大生成尝试次数
     public static final int DEFAULT_MAX_ATTEMPTS = 100;
     public static final int FALLBACK_MAX_ATTEMPTS = 30;
+
+    // ========== 批量与屏内距离（依赖于性能常量，需放在其后） ==========
+    // 批量上限（普通模式随时间提升，Boss模式单独上限）
+    public static final int MAX_BATCH_BASE = MAX_ENEMIES_PER_BATCH; // 基准批量
+    public static final int MAX_BATCH_CAP = 10;                     // 普通模式批量上限
+    public static final int BOSS_MAX_BATCH_CAP = 20;                // Boss模式批量上限
+    
+    // 屏内刷新时与玩家的最小距离
+    public static final double SCREEN_IN_PLAYER_MIN_DIST = 140.0;   // 像素
+    public static final double SCREEN_IN_PLAYER_MIN_DIST_BOSS = 180.0; // Boss时更大
     
     // ========== 工具方法 ==========
     
@@ -131,6 +147,27 @@ public class SpawnConfig {
         } else {
             return UPDATE_INTERVAL_FAST;
         }
+    }
+    
+    /**
+     * 基于游戏运行时间(秒)返回一个刷怪间隔缩放因子，时间越久越快（值越小）。
+     */
+    public static double getTimeScaleFactor(double seconds) {
+        int minutes = (int) Math.max(0, seconds / 60.0);
+        double factor = Math.pow(TIME_ACCELERATION_DECAY, minutes);
+        return Math.max(TIME_ACCELERATION_MIN, factor);
+    }
+    
+    /**
+     * 计算随时间增长的批量大小（向上取整但不超过cap）。
+     */
+    public static int getDynamicBatchSize(double seconds, int base, int cap) {
+        int minutes = (int) Math.max(0, seconds / 60.0);
+        int bonus = Math.max(0, minutes / 2); // 每2分钟+1
+        int size = base + bonus;
+        if (size > cap) size = cap;
+        if (size < 1) size = 1;
+        return size;
     }
     
     /**

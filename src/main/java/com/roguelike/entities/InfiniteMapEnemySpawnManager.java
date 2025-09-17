@@ -31,6 +31,8 @@ public class InfiniteMapEnemySpawnManager {
     private Set<Point2D> occupiedPositions = ConcurrentHashMap.newKeySet();
     private Map<Point2D, Long> positionOccupiedTime = new ConcurrentHashMap<>();
     private static final long POSITION_OCCUPIED_DURATION = SpawnConfig.POSITION_OCCUPIED_DURATION;
+    // 最小敌人间距（可调，默认使用之前常量计算，允许外部下调以增加密度）
+    private double minEnemySpacingOverride = -1.0;
     
     // 调试信息
     private boolean debugMode = false; // 关闭调试模式
@@ -53,6 +55,14 @@ public class InfiniteMapEnemySpawnManager {
         System.out.println("   预计算范围: " + PRECOMPUTE_RANGE + " 像素");
         System.out.println("   缓存持续时间: " + CACHE_DURATION + " 毫秒");
         System.out.println("   支持分层预计算和智能生成");
+    }
+
+    /**
+     * 外部可设置全局的最小敌人间距覆盖值（像素）。传入<=0则恢复默认按尺寸计算。
+     */
+    public void setMinEnemySpacingOverride(double spacingPixels) {
+        this.minEnemySpacingOverride = spacingPixels;
+        System.out.println("🔧 已设置最小敌人间距覆盖: " + spacingPixels + " px (<=0 表示使用默认)");
     }
     
     /**
@@ -128,6 +138,32 @@ public class InfiniteMapEnemySpawnManager {
             System.out.println("❌ 无法找到合适的敌人生成位置 (尝试次数: " + maxAttempts + ")");
         }
         
+        return null;
+    }
+
+    /**
+     * 生成屏幕内但离玩家一定距离的刷新点（用于Boss房）。
+     * 会尽量在当前视口内选择点，且与玩家至少保持 SpawnConfig.SCREEN_IN_PLAYER_MIN_DIST_* 的距离。
+     */
+    public Point2D generateOnScreenSpawnPosition(double viewX, double viewY, double appWidth, double appHeight,
+                                                Point2D playerPosition, double enemyWidth, double enemyHeight,
+                                                boolean bossMode) {
+        double minPlayerDist = bossMode ? SpawnConfig.SCREEN_IN_PLAYER_MIN_DIST_BOSS : SpawnConfig.SCREEN_IN_PLAYER_MIN_DIST;
+
+        // 多次尝试：在屏内采样
+        for (int attempt = 0; attempt < DEFAULT_MAX_ATTEMPTS; attempt++) {
+            double x = viewX + Math.random() * appWidth;
+            double y = viewY + Math.random() * appHeight;
+            Point2D candidate = new Point2D(x, y);
+            if (candidate.distance(playerPosition) < minPlayerDist) {
+                continue;
+            }
+            if (isValidSpawnPosition(candidate, enemyWidth, enemyHeight, playerPosition)) {
+                occupiedPositions.add(candidate);
+                positionOccupiedTime.put(candidate, System.currentTimeMillis());
+                return candidate;
+            }
+        }
         return null;
     }
     
@@ -381,7 +417,8 @@ public class InfiniteMapEnemySpawnManager {
      * 检查位置是否被占用（考虑敌人尺寸）
      */
     private boolean isPositionOccupied(Point2D position, double enemyWidth, double enemyHeight) {
-        double spacing = Math.max(DEFAULT_MIN_ENEMY_DISTANCE, Math.max(enemyWidth, enemyHeight) * 1.2);
+        double spacingBase = Math.max(DEFAULT_MIN_ENEMY_DISTANCE, Math.max(enemyWidth, enemyHeight) * 1.2);
+        double spacing = (minEnemySpacingOverride > 0) ? minEnemySpacingOverride : spacingBase;
         
         for (Point2D occupiedPos : occupiedPositions) {
             if (position.distance(occupiedPos) < spacing) {
@@ -395,7 +432,11 @@ public class InfiniteMapEnemySpawnManager {
      * 检查位置是否被占用（使用自定义间距）
      */
     private boolean isPositionOccupiedWithSpacing(Point2D position, double enemyWidth, double enemyHeight, double spacing) {
-        double actualSpacing = Math.max(spacing, Math.max(enemyWidth, enemyHeight) * 1.1);
+        double base = Math.max(enemyWidth, enemyHeight) * 1.1;
+        double actualSpacing = Math.max(spacing, base);
+        if (minEnemySpacingOverride > 0) {
+            actualSpacing = Math.min(actualSpacing, minEnemySpacingOverride);
+        }
         
         for (Point2D occupiedPos : occupiedPositions) {
             if (position.distance(occupiedPos) < actualSpacing) {

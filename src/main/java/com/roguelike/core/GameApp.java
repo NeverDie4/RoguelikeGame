@@ -54,6 +54,10 @@ public class GameApp extends GameApplication {
     private InfiniteMapEnemySpawnManager infiniteMapEnemySpawnManager;
     private BackgroundEnemySpawnManager backgroundEnemySpawnManager;
     private double enemySpawnAccumulator = 0.0;
+    
+    // 网络相关组件
+    private com.roguelike.network.NetworkManager networkManager;
+    private com.roguelike.ui.NetworkHUD networkHUD;
     private static final double ENEMY_SPAWN_INTERVAL = 2;
     private static boolean INPUT_BOUND = false;
     private static final double TARGET_DT = 1.0 / 60.0; // 目标帧时长
@@ -103,7 +107,7 @@ public class GameApp extends GameApplication {
 
     private static int TARGET_FPS = 60;
             // 使用固定移动距离，避免 tpf() 异常值导致的移动问题
-    private static double moveDistance = 6.0; // 固定移动距离，提高移动速度
+    private static double moveDistance = 15.0; // 固定移动距离，提高移动速度
 
     @Override
     protected void initSettings(GameSettings settings) {
@@ -120,6 +124,17 @@ public class GameApp extends GameApplication {
         // 使用自定义场景工厂来应用美化后的菜单系统
         settings.setSceneFactory(new CustomSceneFactory());
         System.out.println("已设置自定义场景工厂，使用美化后的菜单系统");
+    }
+
+    /**
+     * 由主菜单在开始游戏前设置选中的地图，避免在新游戏启动时因属性重置丢失。
+     */
+    public static void setSelectedMapName(String mapName) {
+        if (mapName != null && !mapName.isEmpty()) {
+            selectedMapName = mapName;
+            try { com.almasb.fxgl.dsl.FXGL.set("selectedMapName", mapName); } catch (Exception ignored) {}
+            System.out.println("[GameApp] 已设置选中地图: " + selectedMapName);
+        }
     }
 
     @Override
@@ -166,6 +181,7 @@ public class GameApp extends GameApplication {
         // 强制清理所有可能的覆盖层，防止重新进入游戏时出现交互问题
         com.roguelike.ui.ConfirmationDialog.forceCleanup();
         com.roguelike.ui.OptionsMenu.forceCleanup();
+        com.roguelike.ui.MapSelectMenu.forceCleanup();
         System.out.println("游戏初始化：已清理所有覆盖层");
 
         // 取消初期加载覆盖层：改为先进行关卡选择，选择后再进入游戏
@@ -195,6 +211,8 @@ public class GameApp extends GameApplication {
         // 重置武器和被动物品获得顺序
         com.roguelike.ui.ObtainedWeaponsOrder.INSTANCE.reset();
         com.roguelike.ui.ObtainedPassivesOrder.INSTANCE.reset();
+        // 重置升级弹窗的全局状态，避免上一次游戏的挂起状态影响新局
+        try { com.roguelike.ui.UpgradeOverlay.resetGlobalState(); } catch (Throwable ignored) {}
         System.out.println("游戏初始化：已重置武器和被动物品获得顺序");
 
         weaponManager = new com.roguelike.entities.weapons.WeaponManager();
@@ -212,77 +230,84 @@ public class GameApp extends GameApplication {
         // 注册实体工厂：每次新游戏都注册，确保 GameWorld 持有工厂
         com.roguelike.entities.EntityFactory.setGameState(gameState);
         FXGL.getGameWorld().addEntityFactory(new com.roguelike.entities.EntityFactory());
+        
+        // 初始化网络功能
+        initializeNetworkComponents();
 
+        // 检查是否为网络游戏模式
+        boolean isNetworkGame = false;
+        try {
+            com.roguelike.network.NetworkManager networkManager = com.roguelike.network.NetworkManager.getInstance();
+            if (networkManager != null && (networkManager.isHost() || networkManager.isClient())) {
+                isNetworkGame = true;
+                System.out.println("检测到网络游戏模式 - 房主: " + networkManager.isHost() + ", 客户端: " + networkManager.isClient());
+            }
+        } catch (Exception e) {
+            System.out.println("检查网络游戏模式时出错: " + e.getMessage());
+        }
 
         // 启动前先选择地图（确保在FX线程）
-        javafx.application.Platform.runLater(() -> com.roguelike.ui.MapSelectMenu.show(new com.roguelike.ui.MapSelectMenu.OnSelect() {
-            @Override
-            public void onChoose(String mapId) {
-                selectedMapName = mapId != null && !mapId.isEmpty() ? mapId : selectedMapName;
-                // 地图系统初始化
-                if (USE_INFINITE_MAP) {
-                    try {
-                        // 使用无限地图系统
-                        System.out.println("🔧 开始初始化无限地图系统...");
-                        System.out.println("🔧 地图名称: " + selectedMapName);
-                        infiniteMapManager = new InfiniteMapManager(selectedMapName);
-                        System.out.println("✅ 无限地图管理器初始化成功");
-
-                        collisionDetector = new MapCollisionDetector(infiniteMapManager);
-                        System.out.println("✅ 碰撞检测器初始化成功");
-                    } catch (Exception e) {
-                        System.err.println("❌ 无限地图系统初始化失败: " + e.getMessage());
-                        e.printStackTrace();
-                        System.err.println("❌ 异常类型: " + e.getClass().getSimpleName());
-                        System.err.println("❌ 异常堆栈: ");
-                        e.printStackTrace();
-                        return; // 如果初始化失败，直接返回
-                    }
-
-                    // 初始化传送门管理器
-                    teleportManager = new com.roguelike.map.TeleportManager(infiniteMapManager);
-                    infiniteMapManager.setTeleportManager(teleportManager);
-
-                    // 获取定时器瓦片管理器
-                    timerTileManager = infiniteMapManager.getTimerTileManager();
-
-                    System.out.println("🌍 无限地图系统已启用");
-                    System.out.println("🚪 传送门系统已启用");
-                    System.out.println("⏰ 定时器瓦片系统已启用");
-                    System.out.println("🏰 Boss房区块限制已启用（只能通过传送门到达）");
-                    System.out.println("   区块尺寸: " + infiniteMapManager.getChunkWidthPixels() + "x" + infiniteMapManager.getChunkHeightPixels() + " 像素");
-                    System.out.println("   瓦片尺寸: 32x32 像素");
-                    System.out.println("   加载半径: " + infiniteMapManager.getLoadRadius() + " 个区块");
-                    System.out.println("   预加载半径: " + infiniteMapManager.getPreloadRadius() + " 个区块");
-                    System.out.println("   异步加载: " + (infiniteMapManager.isUseAsyncLoading() ? "启用" : "禁用"));
-                    System.out.println("   玩家初始位置: 区块0中心");
-
-                    // 初始化无限地图敌人生成管理器
-                    infiniteMapEnemySpawnManager = new InfiniteMapEnemySpawnManager(infiniteMapManager);
-                    com.roguelike.entities.EntityFactory.setInfiniteMapSpawnManager(infiniteMapEnemySpawnManager);
-                    System.out.println("🎯 无限地图敌人生成器已启用");
-
-                    // 初始化后台敌人生成管理器
-                    backgroundEnemySpawnManager = new BackgroundEnemySpawnManager();
-                    backgroundEnemySpawnManager.setInfiniteMapSpawnManager(infiniteMapEnemySpawnManager);
-                    com.roguelike.entities.EntityFactory.setBackgroundSpawnManager(backgroundEnemySpawnManager);
-                    System.out.println("🎯 后台敌人生成管理器已启用");
+        // 网络游戏模式下跳过地图选择，直接进入游戏
+        if (isNetworkGame) {
+            System.out.println("网络游戏模式：跳过地图选择，直接进入游戏");
+            // 优先沿用已选择的地图（如果有），否则使用默认地图
+            try {
+                String selectedMap = FXGL.geto("selectedMapName");
+                if (selectedMap != null && !selectedMap.toString().isEmpty()) {
+                    selectedMapName = selectedMap.toString();
+                    System.out.println("网络游戏模式：使用已选择的地图: " + selectedMapName);
                 } else {
-                    // 使用传统地图系统
-                    mapRenderer = new MapRenderer(selectedMapName);
-                    mapRenderer.init();
-                    collisionDetector = new MapCollisionDetector(mapRenderer);
-                    System.out.println("🗺️ 传统地图系统已启用");
+                    String sysMap = System.getProperty("selectedMapName");
+                    if (sysMap != null && !sysMap.isEmpty()) {
+                        selectedMapName = sysMap;
+                        System.out.println("网络游戏模式：使用系统属性地图: " + selectedMapName);
+                    } else {
+                        selectedMapName = "test";
+                    }
+                    System.out.println("网络游戏模式：未选择地图，使用默认地图: " + selectedMapName);
                 }
-                afterMapReady();
+            } catch (Exception e) {
+                String sysMap = System.getProperty("selectedMapName");
+                if (sysMap != null && !sysMap.isEmpty()) {
+                    selectedMapName = sysMap;
+                    System.out.println("网络游戏模式：获取地图失败，但使用系统属性地图: " + selectedMapName);
+                } else {
+                    selectedMapName = "test";
+                }
+                System.out.println("网络游戏模式：获取地图失败，使用默认地图: " + selectedMapName);
             }
-            @Override
-            public void onCancel() {
-                // 返回主菜单
-                getGameController().gotoMainMenu();
-                try { com.roguelike.ui.MusicService.playLobby(); } catch (Exception ignored) {}
+            javafx.application.Platform.runLater(() -> {
+                // 直接初始化地图系统
+                initializeMapSystem();
+            });
+        } else {
+            // 单机游戏模式：地图选择已经在CustomMainMenu中处理
+            // 优先保留已有的 static 变量，其次尝试从FXGL全局变量获取
+            try {
+                String selectedMap = FXGL.geto("selectedMapName");
+                if (selectedMap != null && !selectedMap.toString().isEmpty()) {
+                    selectedMapName = selectedMap.toString();
+                }
+            } catch (Exception ignored) {}
+            // 再尝试系统属性兜底（避免FXGL在新游戏时清空属性导致丢失）
+            if (selectedMapName == null || selectedMapName.isEmpty()) {
+                String sysMap = System.getProperty("selectedMapName");
+                if (sysMap != null && !sysMap.isEmpty()) {
+                    selectedMapName = sysMap;
+                }
             }
-        }));
+            if (selectedMapName == null || selectedMapName.isEmpty()) {
+                selectedMapName = "test";
+                System.out.println("单机游戏模式：未选择地图，使用默认地图: " + selectedMapName);
+            } else {
+                System.out.println("单机游戏模式：使用已选择的地图: " + selectedMapName);
+            }
+            
+            javafx.application.Platform.runLater(() -> {
+                // 调用统一的地图系统初始化方法
+                initializeMapSystem();
+            });
+        }
 
         // 碰撞、路径与调试打印均推迟到地图加载完成后创建（afterMapReady）
 
@@ -314,6 +339,94 @@ public class GameApp extends GameApplication {
         });
 
         // 自定义菜单系统已通过CustomSceneFactory设置
+    }
+
+    /**
+     * 初始化地图系统（用于网络游戏模式）
+     */
+    private void initializeMapSystem() {
+        try {
+            // 再次从全局读取一次，防止时序问题导致回退到默认
+            try {
+                String selectedMap = FXGL.geto("selectedMapName");
+                if (selectedMap != null && !selectedMap.toString().isEmpty()) {
+                    selectedMapName = selectedMap.toString();
+                }
+            } catch (Exception ignored) {}
+            if (selectedMapName == null || selectedMapName.isEmpty()) {
+                String sysMap = System.getProperty("selectedMapName");
+                if (sysMap != null && !sysMap.isEmpty()) {
+                    selectedMapName = sysMap;
+                }
+            }
+            System.out.println("🔧 开始初始化地图系统...");
+            System.out.println("🔧 地图名称: " + selectedMapName);
+            
+            // 地图系统初始化
+            if (USE_INFINITE_MAP) {
+                try {
+                    // 使用无限地图系统
+                    System.out.println("🔧 开始初始化无限地图系统...");
+                    infiniteMapManager = new InfiniteMapManager(selectedMapName);
+                    System.out.println("✅ 无限地图管理器初始化成功");
+
+                    collisionDetector = new MapCollisionDetector(infiniteMapManager);
+                    System.out.println("✅ 碰撞检测器初始化成功");
+                } catch (Exception e) {
+                    System.err.println("❌ 无限地图系统初始化失败: " + e.getMessage());
+                    e.printStackTrace();
+                    System.err.println("❌ 异常类型: " + e.getClass().getSimpleName());
+                    System.err.println("❌ 异常堆栈: ");
+                    e.printStackTrace();
+                    return; // 如果初始化失败，直接返回
+                }
+
+                // 初始化传送门管理器
+                teleportManager = new com.roguelike.map.TeleportManager(infiniteMapManager);
+                infiniteMapManager.setTeleportManager(teleportManager);
+
+                // 获取定时器瓦片管理器
+                timerTileManager = infiniteMapManager.getTimerTileManager();
+
+                System.out.println("🌍 无限地图系统已启用");
+                System.out.println("🚪 传送门系统已启用");
+                System.out.println("⏰ 定时器瓦片系统已启用");
+                System.out.println("🏰 Boss房区块限制已启用（只能通过传送门到达）");
+                System.out.println("   区块尺寸: " + infiniteMapManager.getChunkWidthPixels() + "x" + infiniteMapManager.getChunkHeightPixels() + " 像素");
+                System.out.println("   瓦片尺寸: 32x32 像素");
+                System.out.println("   加载半径: " + infiniteMapManager.getLoadRadius() + " 个区块");
+                System.out.println("   预加载半径: " + infiniteMapManager.getPreloadRadius() + " 个区块");
+                System.out.println("   异步加载: " + (infiniteMapManager.isUseAsyncLoading() ? "启用" : "禁用"));
+                System.out.println("   玩家初始位置: 区块0中心");
+
+                // 初始化无限地图敌人生成管理器
+                infiniteMapEnemySpawnManager = new InfiniteMapEnemySpawnManager(infiniteMapManager);
+                com.roguelike.entities.EntityFactory.setInfiniteMapSpawnManager(infiniteMapEnemySpawnManager);
+                System.out.println("🎯 无限地图敌人生成器已启用");
+
+                // 初始化后台敌人生成管理器
+                backgroundEnemySpawnManager = new BackgroundEnemySpawnManager();
+                backgroundEnemySpawnManager.setInfiniteMapSpawnManager(infiniteMapEnemySpawnManager);
+                backgroundEnemySpawnManager.setInfiniteMapManager(infiniteMapManager);
+                // 降低全局敌人最小间隔，提升刷怪密度（可按需调参）
+                backgroundEnemySpawnManager.setGlobalMinEnemySpacing(60.0);
+                com.roguelike.entities.EntityFactory.setBackgroundSpawnManager(backgroundEnemySpawnManager);
+                System.out.println("🎯 后台敌人生成管理器已启用");
+            } else {
+                // 使用传统地图系统（保留回退路径），但默认新系统由 InfiniteMapManager 驱动
+                mapRenderer = new MapRenderer(selectedMapName);
+                mapRenderer.init();
+                collisionDetector = new MapCollisionDetector(mapRenderer);
+                System.out.println("🗺️ 传统地图系统已启用");
+            }
+            
+            // 调用地图准备完成后的处理
+            afterMapReady();
+            
+        } catch (Exception e) {
+            System.err.println("初始化地图系统失败: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private void afterMapReady() {
@@ -368,7 +481,34 @@ public class GameApp extends GameApplication {
                     (mapRenderer.getMapHeight() * mapRenderer.getTileHeight()) / 2.0 : 360;
         }
 
+        // 若存在权威出生点（来自房主），优先使用
+        try {
+            Object sx = com.almasb.fxgl.dsl.FXGL.geto("authoritativeSpawnX");
+            Object sy = com.almasb.fxgl.dsl.FXGL.geto("authoritativeSpawnY");
+            if (sx instanceof Double ax && sy instanceof Double ay) {
+                playerX = ax;
+                playerY = ay;
+                System.out.println("使用权威出生点: (" + playerX + ", " + playerY + ")");
+            }
+        } catch (Throwable ignored) {}
+
         Player player = (Player) getGameWorld().spawn("player", new SpawnData(playerX, playerY));
+        // 关键：将玩家攻击配置重置到默认（避免上局注册残留影响新局）
+        try {
+            com.roguelike.entities.configs.AttackRegistry.register(new com.roguelike.entities.configs.AttackSpec(
+                    "weapon01", "Weapon 01", "straight_01", 1.0, 1, 0.0
+            ));
+            com.roguelike.entities.configs.BulletSpec b = com.roguelike.entities.configs.BulletRegistry.get("straight_01");
+            if (b != null) {
+                com.roguelike.entities.configs.BulletRegistry.register(new com.roguelike.entities.configs.BulletSpec(
+                        b.getId(), b.getDisplayName(), b.getBulletType(),
+                        15, b.isPiercing(), b.getBaseSpeed(),
+                        b.getLifetimeSeconds(), b.getWidth(), b.getHeight(), b.getRadius(),
+                        b.getAnimationBasePath(), b.getFrameCount(), b.getFrameDuration(),
+                        b.getVisualScale()
+                ));
+            }
+        } catch (Throwable ignored) {}
         // 应用被动：最大HP加成（P04）
         try {
             Object pmObj = com.almasb.fxgl.dsl.FXGL.geto("passiveManager");
@@ -412,6 +552,24 @@ public class GameApp extends GameApplication {
         arrowIndicator = new ArrowIndicator();
         getGameScene().addUINode(arrowIndicator.getNode());
         System.out.println("🎯 箭头指示器已初始化");
+
+        // 显示网络HUD（如果是网络游戏）；房主在玩家生成后再次广播权威出生点，确保客户端对齐
+        try {
+            com.roguelike.network.NetworkManager networkManager = com.roguelike.network.NetworkManager.getInstance();
+            if (networkManager != null && (networkManager.isHost() || networkManager.isClient())) {
+                if (networkHUD != null) {
+                    networkHUD.show();
+                    System.out.println("🌐 网络HUD已显示");
+                }
+                if (networkManager.isHost()) {
+                    try {
+                        networkManager.sendAuthoritativeSpawn(player.getX(), player.getY());
+                    } catch (Throwable ignored) {}
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("显示网络HUD时出错: " + e.getMessage());
+        }
 
         // 地图加载完成后，恢复输入与计时
         getInput().setProcessInput(true);
@@ -1186,6 +1344,17 @@ public class GameApp extends GameApplication {
 
         // 重新初始化系统（确保路径寻找器等组件正确设置）
         reinitializeSystems();
+
+        // 清理地图与缓存，避免多次重开导致内存累积
+        try {
+            if (infiniteMapManager != null) {
+                infiniteMapManager.cleanup();
+                infiniteMapManager = null;
+            }
+            com.roguelike.map.MapChunk.clearCache();
+        } catch (Throwable ignored) {}
+        // 重置升级弹窗静态状态
+        try { com.roguelike.ui.UpgradeOverlay.resetGlobalState(); } catch (Throwable ignored) {}
     }
 
     /**
@@ -1212,14 +1381,59 @@ public class GameApp extends GameApplication {
      * 清理游戏资源
      */
     public void cleanup() {
+        System.out.println("=== 开始清理游戏资源 ===");
+        
+        // 清理网络资源
+        if (networkManager != null) {
+            System.out.println("清理网络管理器...");
+            networkManager.cleanup();
+            networkManager = null;
+        }
+        
+        // 清理网络HUD
+        if (networkHUD != null) {
+            System.out.println("清理网络HUD...");
+            networkHUD.hide();
+            networkHUD = null;
+        }
+        
+        // 清理敌人生成管理器
         if (backgroundEnemySpawnManager != null) {
+            System.out.println("清理后台敌人生成管理器...");
             backgroundEnemySpawnManager.shutdown();
             backgroundEnemySpawnManager = null;
         }
         if (infiniteMapEnemySpawnManager != null) {
+            System.out.println("清理无限地图敌人生成管理器...");
             infiniteMapEnemySpawnManager.shutdown();
             infiniteMapEnemySpawnManager = null;
         }
+        
+        // 清理FPS显示
+        if (fpsDisplay != null) {
+            System.out.println("清理FPS显示...");
+            fpsDisplay.cleanup();
+            fpsDisplay = null;
+        }
+        
+        // 清理箭头指示器
+        if (arrowIndicator != null) {
+            System.out.println("清理箭头指示器...");
+            arrowIndicator = null;
+        }
+        // 清理地图与缓存
+        try {
+            if (infiniteMapManager != null) {
+                System.out.println("清理无限地图管理器与区块...");
+                infiniteMapManager.cleanup();
+                infiniteMapManager = null;
+            }
+            com.roguelike.map.MapChunk.clearCache();
+        } catch (Throwable ignored) {}
+        // 重置升级弹窗全局状态
+        try { com.roguelike.ui.UpgradeOverlay.resetGlobalState(); } catch (Throwable ignored) {}
+        
+        System.out.println("=== 游戏资源清理完成 ===");
     }
 
     /**
@@ -1241,12 +1455,10 @@ public class GameApp extends GameApplication {
         int currentChunkY = infiniteMapManager.worldToChunkY(cachedPlayer.getY());
         String currentChunkKey = currentChunkX + "," + currentChunkY;
 
-        // 特殊区块坐标（传送门地图和Boss房）
-        final String DOOR_CHUNK_1 = "2,0";
-        final String BOSS_CHUNK_1 = "3,0";
-
-        // 检查当前区块是否为特殊区块 - 所有地图都只有X方向的特殊区块
-        boolean isSpecialChunk = currentChunkKey.equals(DOOR_CHUNK_1) || currentChunkKey.equals(BOSS_CHUNK_1);
+        // 从无限地图管理器读取配置驱动的特殊区块
+        java.util.Set<String> doorChunks = infiniteMapManager != null ? infiniteMapManager.getDoorChunkKeys() : java.util.Set.of();
+        java.util.Set<String> bossChunks = infiniteMapManager != null ? infiniteMapManager.getBossChunkKeys() : java.util.Set.of();
+        boolean isSpecialChunk = doorChunks.contains(currentChunkKey) || bossChunks.contains(currentChunkKey);
 
         if (isSpecialChunk) {
             // 玩家在特殊区块（传送门地图或Boss房），隐藏箭头
@@ -1256,7 +1468,6 @@ public class GameApp extends GameApplication {
         } else {
             // 玩家不在特殊区块，显示箭头指向最近的传送门区块
             if (!arrowIndicator.isVisible()) {
-                // 计算最近的传送门区块位置
                 double[] nearestDoor = findNearestDoorChunk(currentChunkX, currentChunkY);
                 double doorChunkCenterX = nearestDoor[0];
                 double doorChunkCenterY = nearestDoor[1];
@@ -1280,31 +1491,137 @@ public class GameApp extends GameApplication {
      * 找到最近的传送门区块位置
      */
     private double[] findNearestDoorChunk(int currentChunkX, int currentChunkY) {
-        // 传送门区块坐标
-        // 所有地图都只有X方向的传送门区块
-        int[][] doorChunks = new int[][]{{2, 0}};
+        // 从无限地图管理器读取所有 door 区块
+        java.util.Set<String> doorKeys = infiniteMapManager != null ? infiniteMapManager.getDoorChunkKeys() : java.util.Set.of();
 
         double minDistance = Double.MAX_VALUE;
         double[] nearestDoor = new double[2];
 
-        for (int[] doorChunk : doorChunks) {
-            int doorX = doorChunk[0];
-            int doorY = doorChunk[1];
+        for (String key : doorKeys) {
+            String[] ps = key.split(",");
+            int doorX = Integer.parseInt(ps[0]);
+            int doorY = Integer.parseInt(ps[1]);
 
             // 计算距离（使用曼哈顿距离）
             double distance = Math.abs(doorX - currentChunkX) + Math.abs(doorY - currentChunkY);
 
             if (distance < minDistance) {
                 minDistance = distance;
-                // 计算传送门区块的中心世界坐标
+                // 计算传送门区块的中心世界坐标（使用该区块对应地图的尺寸）
+                String mapForDoor = infiniteMapManager.getMapNameForChunk(doorX, doorY);
                 nearestDoor[0] = infiniteMapManager.chunkToWorldX(doorX) +
-                                infiniteMapManager.getChunkWidthPixels() / 2.0;
+                                com.roguelike.map.MapChunkFactory.getChunkWidthPixels(mapForDoor) / 2.0;
                 nearestDoor[1] = infiniteMapManager.chunkToWorldY(doorY) +
-                                infiniteMapManager.getChunkHeightPixels() / 2.0;
+                                com.roguelike.map.MapChunkFactory.getChunkHeightPixels(mapForDoor) / 2.0;
             }
         }
 
         return nearestDoor;
+    }
+    
+    /**
+     * 初始化网络组件
+     */
+    private void initializeNetworkComponents() {
+        try {
+            // 初始化网络管理器
+            networkManager = com.roguelike.network.NetworkManager.getInstance();
+            System.out.println("网络管理器已初始化");
+            
+            // 初始化网络HUD
+            networkHUD = new com.roguelike.ui.NetworkHUD();
+            networkHUD.setNetworkManager(networkManager);
+            System.out.println("网络HUD已初始化");
+            
+            // 设置网络事件监听器
+            networkManager.setEventListener(new com.roguelike.network.NetworkManager.NetworkEventListener() {
+                @Override
+                public void onRoomDiscovered(com.roguelike.network.GameRoom room) {
+                    System.out.println("发现房间: " + room.getName());
+                }
+                
+                @Override
+                public void onRoomLost(String roomId) {
+                    System.out.println("房间丢失: " + roomId);
+                }
+                
+                @Override
+                public void onPlayerJoined(com.roguelike.network.NetworkPlayer player) {
+                    System.out.println("玩家加入: " + player.getName());
+                    // 更新网络HUD
+                    if (networkHUD != null) {
+                        networkHUD.updatePlayerList();
+                    }
+                }
+                
+                @Override
+                public void onPlayerLeft(String playerId) {
+                    System.out.println("玩家离开: " + playerId);
+                    // 更新网络HUD
+                    if (networkHUD != null) {
+                        networkHUD.updatePlayerList();
+                    }
+                }
+                
+                @Override
+                public void onGameStateReceived(com.roguelike.network.PlayerState state) {
+                    // 游戏状态同步在NetworkManager中处理
+                    System.out.println("收到玩家状态: " + state.getPlayerName());
+                }
+                
+                @Override
+                public void onConnectionLost() {
+                    System.out.println("网络连接丢失");
+                    // 可以在这里添加重连逻辑或显示错误信息
+                }
+            });
+            
+            System.out.println("网络功能初始化完成");
+        } catch (Exception e) {
+            System.err.println("网络功能初始化失败: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * 获取网络管理器
+     */
+    public com.roguelike.network.NetworkManager getNetworkManager() {
+        return networkManager;
+    }
+    
+    /**
+     * 获取网络HUD
+     */
+    public com.roguelike.ui.NetworkHUD getNetworkHUD() {
+        return networkHUD;
+    }
+    
+    /**
+     * 显示网络菜单
+     */
+    public void showNetworkMenu() {
+        if (networkManager != null) {
+            com.roguelike.ui.NetworkMenu.getInstance().show();
+        }
+    }
+    
+    /**
+     * 显示网络HUD
+     */
+    public void showNetworkHUD() {
+        if (networkHUD != null) {
+            networkHUD.show();
+        }
+    }
+    
+    /**
+     * 隐藏网络HUD
+     */
+    public void hideNetworkHUD() {
+        if (networkHUD != null) {
+            networkHUD.hide();
+        }
     }
 
     public static void main(String[] args) {

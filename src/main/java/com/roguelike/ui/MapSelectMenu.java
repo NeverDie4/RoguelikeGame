@@ -37,6 +37,7 @@ public final class MapSelectMenu {
 
     private static StackPane overlay;
     private static boolean showing = false;
+    private static javafx.scene.Parent overlayParent;
     private static List<BorderPane> mapCards;
     private static Button backButton;
     private static int selectedIndex = 0;
@@ -52,6 +53,7 @@ public final class MapSelectMenu {
         showing = true;
 
         overlay = new StackPane();
+        overlay.setId("map-select-overlay");
         overlay.setStyle("-fx-background-color: rgba(0, 0, 0, 0.75);");
         overlay.setPrefSize(FXGL.getAppWidth(), FXGL.getAppHeight());
         overlay.setMaxSize(FXGL.getAppWidth(), FXGL.getAppHeight());
@@ -88,7 +90,7 @@ public final class MapSelectMenu {
         VBox contentPanel = new VBox(15);
         contentPanel.setAlignment(Pos.TOP_CENTER);
         contentPanel.setMaxWidth(500); // 进一步限制最大宽度为500px，让界面更瘦长
-        contentPanel.setStyle("-fx-background-color: rgba(0, 0, 0, 0.6); -fx-background-radius: 15; -fx-border-color: #FFD700; -fx-border-width: 3; -fx-border-radius: 15;");
+        contentPanel.setStyle("-fx-background-color: rgba(0, 0, 0, 0.6); -fx-background-radius: 0; -fx-border-color: #FFD700; -fx-border-width: 3; -fx-border-radius: 0;");
         contentPanel.setPadding(new Insets(30, 30, 30, 30));
 
         Label title = new Label("关卡选择");
@@ -141,8 +143,52 @@ public final class MapSelectMenu {
             overlay.getStylesheets().add(MapSelectMenu.class.getResource("/assets/ui/keyboard-navigation.css").toExternalForm());
         } catch (Exception ignored) {}
         
-        // 加入场景（使用FXGL UI层，避免根节点类型不匹配导致无法挂载）
-        FXGL.getGameScene().addUINode(overlay);
+        // 检测当前场景类型并添加到正确的场景
+        boolean isInGameScene = false;
+        try {
+            // 检查当前是否在游戏场景中
+            if (FXGL.getGameScene() != null && 
+                FXGL.getPrimaryStage().getScene() != null) {
+                // 检查游戏场景的根节点是否包含子节点（说明游戏已开始）
+                if (FXGL.getGameScene().getRoot().getChildren().size() > 0) {
+                    // 进一步检查主舞台的场景根节点是否包含游戏场景的根节点
+                    if (FXGL.getPrimaryStage().getScene().getRoot().getChildrenUnmodifiable().contains(FXGL.getGameScene().getRoot())) {
+                        isInGameScene = true;
+                        System.out.println("[MapSelectMenu] 检测到游戏场景：游戏场景根节点在主舞台中");
+                    } else {
+                        System.out.println("[MapSelectMenu] 检测到主菜单场景：游戏场景根节点不在主舞台中");
+                    }
+                } else {
+                    System.out.println("[MapSelectMenu] 检测到主菜单场景：游戏场景根节点为空");
+                }
+            } else {
+                System.out.println("[MapSelectMenu] 检测到主菜单场景：游戏场景或主舞台为空");
+            }
+        } catch (Exception e) {
+            System.out.println("[MapSelectMenu] 检测场景类型时出错: " + e.getMessage());
+            isInGameScene = false;
+        }
+        
+        if (!isInGameScene) {
+            System.out.println("[MapSelectMenu] 当前在主菜单场景，添加到主舞台场景");
+            // 在主菜单场景中，添加到主舞台场景
+            if (FXGL.getPrimaryStage().getScene() != null && 
+                FXGL.getPrimaryStage().getScene().getRoot() instanceof javafx.scene.layout.Pane) {
+                javafx.scene.layout.Pane pane = (javafx.scene.layout.Pane) FXGL.getPrimaryStage().getScene().getRoot();
+                pane.getChildren().add(overlay);
+                overlayParent = pane;
+            } else if (FXGL.getPrimaryStage().getScene() != null &&
+                       FXGL.getPrimaryStage().getScene().getRoot() instanceof javafx.scene.Group) {
+                javafx.scene.Group group = (javafx.scene.Group) FXGL.getPrimaryStage().getScene().getRoot();
+                group.getChildren().add(overlay);
+                overlayParent = group;
+            }
+        } else {
+            System.out.println("[MapSelectMenu] 当前在游戏场景，添加到游戏场景");
+            // 在游戏场景中，使用FXGL UI层
+            FXGL.getGameScene().addUINode(overlay);
+            overlayParent = FXGL.getGameScene().getRoot();
+        }
 
         // 添加键盘导航
         setupKeyboardNavigation(callback);
@@ -225,12 +271,122 @@ public final class MapSelectMenu {
     public static void hide() {
         if (!showing) return;
         showing = false;
-        try { FXGL.getGameScene().removeUINode(overlay); } catch (Exception ignored) {}
+        
+        // 尝试从不同场景移除overlay
+        try {
+            boolean removed = false;
+            try {
+                FXGL.getGameScene().removeUINode(overlay);
+                System.out.println("[MapSelectMenu] 已从游戏场景移除");
+                removed = true;
+            } catch (Exception ignored) {}
+            if (!removed && overlay != null && overlay.getParent() != null) {
+                javafx.scene.Parent parent = overlay.getParent();
+                try {
+                    if (parent instanceof javafx.scene.layout.Pane pane) {
+                        removed = pane.getChildren().remove(overlay);
+                    } else if (parent instanceof javafx.scene.Group group) {
+                        removed = group.getChildren().remove(overlay);
+                    }
+                    if (removed) {
+                        System.out.println("[MapSelectMenu] 已从父节点移除 overlay");
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception e1) {
+            try {
+                // 如果游戏场景移除失败，尝试从主舞台场景移除
+                if (FXGL.getPrimaryStage().getScene() != null) {
+                    javafx.scene.Parent root = FXGL.getPrimaryStage().getScene().getRoot();
+                    boolean removed = false;
+                    if (root instanceof javafx.scene.layout.Pane pane) {
+                        removed = pane.getChildren().remove(overlay);
+                    } else if (root instanceof javafx.scene.Group group) {
+                        removed = group.getChildren().remove(overlay);
+                    }
+                    if (removed) System.out.println("[MapSelectMenu] 已从主舞台场景移除");
+                }
+            } catch (Exception e2) {
+                System.out.println("[MapSelectMenu] 移除overlay时出错: " + e2.getMessage());
+            }
+        }
+        
         overlay = null;
+        overlayParent = null;
         mapCards = null;
         backButton = null;
         selectedIndex = 0;
         isBackButtonSelected = false;
+    }
+
+    /**
+     * 强制清理覆盖层（无论当前showing状态如何）。
+     * 用于场景切换后遗留UI的兜底清理。
+     */
+    public static void forceCleanup() {
+        try {
+            if (overlay != null) {
+                try {
+                    FXGL.getGameScene().removeUINode(overlay);
+                    System.out.println("[MapSelectMenu] forceCleanup: 已从游戏场景移除");
+                } catch (Exception ignored) {}
+                try {
+                    if (overlay.getParent() != null) {
+                        javafx.scene.Parent parent = overlay.getParent();
+                        if (parent instanceof javafx.scene.layout.Pane pane) {
+                            pane.getChildren().remove(overlay);
+                        } else if (parent instanceof javafx.scene.Group group) {
+                            group.getChildren().remove(overlay);
+                        }
+                        System.out.println("[MapSelectMenu] forceCleanup: 已从父节点移除");
+                    } else if (FXGL.getPrimaryStage().getScene() != null) {
+                        javafx.scene.Parent root = FXGL.getPrimaryStage().getScene().getRoot();
+                        if (root instanceof javafx.scene.layout.Pane pane) {
+                            pane.getChildren().remove(overlay);
+                        } else if (root instanceof javafx.scene.Group group) {
+                            group.getChildren().remove(overlay);
+                        }
+                        System.out.println("[MapSelectMenu] forceCleanup: 已从主舞台根节点尝试移除");
+                    }
+                } catch (Exception ignored) {}
+            } else {
+                // 尝试通过ID扫描并移除遗留节点
+                try {
+                    javafx.scene.Parent gameRoot = FXGL.getGameScene() != null ? FXGL.getGameScene().getRoot() : null;
+                    if (gameRoot != null) {
+                        javafx.scene.Node orphan = gameRoot.lookup("#map-select-overlay");
+                        if (orphan != null && orphan.getParent() instanceof javafx.scene.layout.Pane pane) {
+                            pane.getChildren().remove(orphan);
+                            System.out.println("[MapSelectMenu] forceCleanup: 通过ID从GameScene移除遗留overlay");
+                        }
+                    }
+                } catch (Exception ignored) {}
+                try {
+                    if (FXGL.getPrimaryStage().getScene() != null) {
+                        javafx.scene.Parent root = FXGL.getPrimaryStage().getScene().getRoot();
+                        javafx.scene.Node orphan = root.lookup("#map-select-overlay");
+                        if (orphan != null) {
+                            if (orphan.getParent() instanceof javafx.scene.layout.Pane pane) {
+                                pane.getChildren().remove(orphan);
+                            } else if (orphan.getParent() instanceof javafx.scene.Group group) {
+                                group.getChildren().remove(orphan);
+                            }
+                            System.out.println("[MapSelectMenu] forceCleanup: 通过ID从主舞台根节点移除遗留overlay");
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception e) {
+            System.out.println("[MapSelectMenu] forceCleanup 出错: " + e.getMessage());
+        } finally {
+            overlay = null;
+            overlayParent = null;
+            mapCards = null;
+            backButton = null;
+            selectedIndex = 0;
+            isBackButtonSelected = false;
+            showing = false;
+        }
     }
     
     /**

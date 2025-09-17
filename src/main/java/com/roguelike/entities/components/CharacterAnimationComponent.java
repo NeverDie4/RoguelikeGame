@@ -29,6 +29,7 @@ public class CharacterAnimationComponent extends Component {
     private double frameDuration = 0.2; // 默认每帧200毫秒
     private boolean isLooping = true;
     private Direction currentDirection = Direction.RIGHT; // 默认向右
+    // 使用 JSON 的 animationWidth/animationHeight 或实体尺寸进行渲染，不再使用视觉缩放倍数
     
     // 动画类型和参数
     private AnimationType animationType = AnimationType.GIF;
@@ -57,7 +58,11 @@ public class CharacterAnimationComponent extends Component {
      * 获取当前方向的动画帧列表
      */
     private List<Texture> getCurrentAnimationFrames() {
-        return currentDirection == Direction.RIGHT ? rightAnimationFrames : leftAnimationFrames;
+        if (currentDirection == Direction.RIGHT) {
+            return rightAnimationFrames;
+        }
+        // 当左向帧未加载时，回退使用右向帧（渲染时再水平翻转）
+        return leftAnimationFrames.isEmpty() ? rightAnimationFrames : leftAnimationFrames;
     }
     
     /**
@@ -308,27 +313,30 @@ public class CharacterAnimationComponent extends Component {
                     
                     getEntity().getViewComponent().clearChildren();
                     
-                    // 对于PNG动画（敌人），根据方向动态设置翻转
-                    if (animationType == AnimationType.PNG) {
-                        if (currentDirection == Direction.LEFT) {
-                            currentTexture.setScaleX(-1); // 向左时水平翻转
-                        } else {
-                            currentTexture.setScaleX(1);  // 向右时正常显示
-                        }
-                        
-                        // 确保行走动画居中显示，使用配置的动画大小
-                        Image image = currentTexture.getImage();
-                        if (image != null) {
-                            double imageWidth = image.getWidth();
-                            double imageHeight = image.getHeight();
-                            
-                            // 计算偏移量，使动画居中显示
-                            double offsetX = (animationWidth - imageWidth) / 2.0;
-                            double offsetY = (animationHeight - imageHeight) / 2.0;
-                            
-                            currentTexture.setTranslateX(offsetX);
-                            currentTexture.setTranslateY(offsetY);
-                        }
+                    // 统一的左右翻转与尺寸居中逻辑（兼容 GIF 与 PNG）
+                    Image image = currentTexture.getImage();
+                    if (image != null) {
+                        double imgW = image.getWidth();
+                        double imgH = image.getHeight();
+                        // 渲染目标尺寸优先使用动画尺寸，否则使用实体尺寸
+                        double baseW = animationWidth > 0 ? animationWidth : getEntity().getWidth();
+                        double baseH = animationHeight > 0 ? animationHeight : getEntity().getHeight();
+                        double targetW = Math.max(1.0, baseW);
+                        double targetH = Math.max(1.0, baseH);
+                        double scaleXAbs = targetW / Math.max(1.0, imgW);
+                        double scaleY = targetH / Math.max(1.0, imgH);
+                        // 左向使用负 scaleX 实现水平翻转；若GIF已提供独立左向帧则不再翻转
+                        boolean shouldFlip = currentDirection == Direction.LEFT &&
+                                (animationType == AnimationType.PNG || leftAnimationFrames.isEmpty());
+                        double scaleX = shouldFlip ? -scaleXAbs : scaleXAbs;
+                        currentTexture.setScaleX(scaleX);
+                        currentTexture.setScaleY(scaleY);
+                        // 实际渲染尺寸（考虑了翻转后的绝对宽度）
+                        double realW = Math.abs(scaleX) * imgW;
+                        double realH = Math.abs(scaleY) * imgH;
+                        // 居中对齐到实体中心
+                        currentTexture.setTranslateX((baseW - realW) / 2.0);
+                        currentTexture.setTranslateY((baseH - realH) / 2.0);
                     }
                     
                     getEntity().getViewComponent().addChild(currentTexture);
@@ -344,6 +352,7 @@ public class CharacterAnimationComponent extends Component {
             }
         }
     }
+
     
     /**
      * 重新加载指定帧
@@ -355,7 +364,8 @@ public class CharacterAnimationComponent extends Component {
         
         if (animationType == AnimationType.GIF) {
             // GIF动画（玩家）
-            if (currentDirection == Direction.RIGHT) {
+            boolean useRight = (currentDirection == Direction.RIGHT) || leftAnimationFrames.isEmpty();
+            if (useRight) {
                 filename = String.format("player_%03d.gif", frameIndex);
                 resourcePath = basePath + "/" + filename;
                 targetFrames = rightAnimationFrames;
@@ -453,4 +463,23 @@ public class CharacterAnimationComponent extends Component {
     }
     
     // 死亡动画相关方法已移除，改用粒子效果
+
+    /**
+     * 设置动画渲染目标尺寸（像素）。若设置为0或以下，表示退回使用实体尺寸。
+     */
+    public void setAnimationSize(double width, double height) {
+        this.animationWidth = width;
+        this.animationHeight = height;
+        updateFrame();
+    }
+
+    /** 获取动画渲染目标宽度（像素），0 表示使用实体宽度 */
+    public double getAnimationWidth() {
+        return animationWidth;
+    }
+
+    /** 获取动画渲染目标高度（像素），0 表示使用实体高度 */
+    public double getAnimationHeight() {
+        return animationHeight;
+    }
 }

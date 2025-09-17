@@ -155,6 +155,8 @@ public class EnemyConfig {
         
         public double getAnimationHeight() { return animationHeight; }
         public void setAnimationHeight(double animationHeight) { this.animationHeight = animationHeight; }
+
+        // 视觉缩放已移除，统一使用 animationWidth/animationHeight 或实体尺寸
     }
     
     /**

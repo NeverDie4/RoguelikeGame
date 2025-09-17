@@ -11,7 +11,7 @@ import com.roguelike.physics.OptimizedMovementValidator.MovementResult;
 import com.roguelike.physics.OptimizedMovementValidator.MovementType;
 import com.roguelike.utils.AdaptivePathfinder;
 import com.roguelike.ui.HitSoundThrottle;
-import com.roguelike.utils.AdaptivePathfinder.PathfindingType;
+// import com.roguelike.utils.AdaptivePathfinder.PathfindingType;
 import com.roguelike.entities.config.EnemyConfig;
 import com.roguelike.entities.effects.ParticleEffectManager;
 import com.roguelike.entities.effects.ParticleEffectConfig;
@@ -30,7 +30,7 @@ public class Enemy extends EntityBase {
     private double targetX = 0;
     private double targetY = 0;
     private double lastTargetUpdateTime = 0;
-    private static final double TARGET_UPDATE_INTERVAL = 0.1; // 每0.5秒更新一次目标，减少寻路频率
+    private static final double TARGET_UPDATE_INTERVAL = 0.05; // 每0.05秒更新一次目标，提升寻路响应
     private boolean isNewlySpawned = true; // 标记是否为新生成的敌人
 
     // 平滑转向相关
@@ -129,6 +129,9 @@ public class Enemy extends EntityBase {
             // 设置动画参数
             animationComponent.setFrameDuration(animConfig.getFrameDuration());
             animationComponent.setLooping(true);
+            // 使用实体尺寸进行渲染，避免动画尺寸过大导致显示偏大
+            // 将动画尺寸设为0表示回退到实体 setSize 的宽高
+            animationComponent.setAnimationSize(0, 0);
             
         } catch (Exception e) {
             System.err.println("敌人动画初始化失败: " + e.getMessage());
@@ -145,14 +148,15 @@ public class Enemy extends EntityBase {
             animationComponent = new CharacterAnimationComponent();
             addComponent(animationComponent);
 
-            // 加载敌人行走动画帧（10帧PNG图片）
-            animationComponent.loadPngAnimationFrames("assets/textures/enemy", 10, "enemy_walk_%02d.png");
+            // 加载敌人行走动画帧（默认资源，配置失败时兜底）
+            animationComponent.loadPngAnimationFrames("assets/textures/enemy/goblin", 10, "goblin_walk_%02d.png");
 
             // 死亡动画已移除，改用粒子效果
 
             // 设置动画参数
             animationComponent.setFrameDuration(0.15); // 每帧150毫秒，比玩家稍快
             animationComponent.setLooping(true);
+            // 兜底渲染尺寸由实体 setSize 决定，不再使用视觉缩放
 
         } catch (Exception e) {
             System.err.println("敌人动画初始化失败: " + e.getMessage());
@@ -410,13 +414,19 @@ public class Enemy extends EntityBase {
 
 
     public void takeDamage(int damage) {
+        takeDamage(damage, false);
+    }
+
+    public void takeDamage(int damage, boolean silent) {
         if (damage <= 0) return;
         // 显示伤害数字（世界坐标 -> 服务内部转换至屏幕坐标）
         try {
             com.roguelike.ui.DamageNumberService.spawn(getCenter().getX(), getCenter().getY(), damage);
         } catch (Throwable ignored) {}
         // 播放受击音效（使用节流机制防止重叠）
-        try { HitSoundThrottle.tryPlayHitSound(); } catch (Throwable ignored) {}
+        if (!silent) {
+            try { HitSoundThrottle.tryPlayHitSound(); } catch (Throwable ignored) {}
+        }
         currentHP -= damage;
         GameEvent.post(new GameEvent(GameEvent.Type.ENEMY_HP_CHANGED));
 

@@ -53,32 +53,43 @@ public class MapRenderer {
      * 支持特殊地图：test_door -> map1, square_door -> map2, dungeon_door -> map3
      */
     private String getMapDirectoryName(String mapName) {
-        // 处理特殊地图名称（_door, _boss）
-        if (mapName.endsWith("_door") || mapName.endsWith("_boss")) {
-            String baseName = mapName.substring(0, mapName.lastIndexOf("_"));
-            switch (baseName) {
-                case "test":
-                    return "map1";
-                case "square":
-                    return "map2";
-                case "dungeon":
-                    return "map3";
-                default:
-                    return baseName; // 如果不在映射中，使用原名称
+        try {
+            com.roguelike.map.config.MapConfig cfg = com.roguelike.map.config.MapConfigLoader.load();
+            if (cfg != null && cfg.maps != null) {
+                // 首先查找完全匹配的条目
+                for (java.util.Map.Entry<String, com.roguelike.map.config.MapConfig.SingleMapConfig> e : cfg.maps.entrySet()) {
+                    com.roguelike.map.config.MapConfig.SingleMapConfig m = e.getValue();
+                    if (m != null && m.dimensions != null && m.dimensions.containsKey(mapName)) {
+                        // 若 SingleMapConfig 提供 assetsDir，优先用它
+                        java.lang.reflect.Field f = null;
+                        try {
+                            f = com.roguelike.map.config.MapConfig.SingleMapConfig.class.getDeclaredField("assetsDir");
+                            f.setAccessible(true);
+                            Object v = f.get(m);
+                            if (v instanceof String s && !s.isEmpty()) {
+                                return s;
+                            }
+                        } catch (Throwable ignored) {}
+                        // 回退：根据基础地图键名
+                        return e.getKey();
+                    }
+                }
+                // 回退：若 maps 中有与 mapName 同名的基础键
+                if (cfg.maps.containsKey(mapName)) {
+                    com.roguelike.map.config.MapConfig.SingleMapConfig m = cfg.maps.get(mapName);
+                    try {
+                        java.lang.reflect.Field f = com.roguelike.map.config.MapConfig.SingleMapConfig.class.getDeclaredField("assetsDir");
+                        f.setAccessible(true);
+                        Object v = f.get(m);
+                        if (v instanceof String s && !s.isEmpty()) {
+                            return s;
+                        }
+                    } catch (Throwable ignored) {}
+                    return mapName;
+                }
             }
-        }
-        
-        // 处理基础地图名称
-        switch (mapName) {
-            case "test":
-                return "map1";
-            case "square":
-                return "map2";
-            case "dungeon":
-                return "map3";
-            default:
-                return mapName; // 如果不在映射中，使用原名称
-        }
+        } catch (Throwable ignored) {}
+        return mapName;
     }
 
     public void init() {

@@ -71,8 +71,21 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
             configManager.initialize();
         }
 
-        // 随机选择一个敌人配置
-        EnemyConfig config = configManager.getRandomEnemyConfig();
+        // 优先使用网络广播的固定敌人ID（确保多人一致）
+        EnemyConfig config = null;
+        try {
+            Object enemyIdObj = data.get("enemyId");
+            if (enemyIdObj instanceof String enemyId && enemyId != null && !enemyId.isEmpty()) {
+                config = configManager.getEnemyConfig(enemyId);
+                if (config == null) {
+                    System.err.println("⚠️ 未找到指定敌人ID: " + enemyId + "，回退随机");
+                }
+            }
+        } catch (Throwable ignored) {}
+        if (config == null) {
+            // 随机选择一个敌人配置（单机或回退）
+            config = configManager.getRandomEnemyConfig();
+        }
 
         Enemy enemy;
         if (config != null) {
@@ -103,7 +116,7 @@ public class EntityFactory implements com.almasb.fxgl.entity.EntityFactory {
             enemy = new Enemy(baseHP, expReward);
         }
 
-        // 设置位置（由后台生成管理器传入）
+        // 设置位置（由后台生成管理器或网络传入）
         enemy.setX(data.getX());
         enemy.setY(data.getY());
 

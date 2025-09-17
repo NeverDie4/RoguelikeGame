@@ -21,6 +21,8 @@ module com.roguelike.main {
     opens com.roguelike.entities.weapons to javafx.fxml;
     opens com.roguelike.entities.components to javafx.fxml;
     opens com.roguelike.map to javafx.fxml;
+    opens com.roguelike.map.config to com.google.gson;
+    opens com.roguelike.network to javafx.fxml;
     opens com.roguelike.physics to javafx.fxml;
     opens com.roguelike.ui to javafx.fxml;
     opens com.roguelike.utils to javafx.fxml;
@@ -35,6 +37,7 @@ module com.roguelike.main {
     exports com.roguelike.entities.weapons;
     exports com.roguelike.entities.config;
     exports com.roguelike.map to com.almasb.fxgl.all;
+    exports com.roguelike.network;
     exports com.roguelike.physics;
     exports com.roguelike.ui;
     exports com.roguelike.utils;

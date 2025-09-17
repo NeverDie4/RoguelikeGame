@@ -1,0 +1,61 @@
+{
+  "tileSize": 32,
+  "maps": {
+    "test": {
+      "assetsDir": "map1",
+      "mode": "horizontal",
+      "chunkWidthTiles": 96,
+      "chunkHeightTiles": 54,
+      "useAsyncLoading": true,
+      "loadRadius": 1,
+      "preloadRadius": 2,
+      "dimensions": {
+        "test": {"w": 96, "h": 54},
+        "test_door": {"w": 96, "h": 54},
+        "test_boss": {"w": 96, "h": 54}
+      },
+      "specialChunks": {
+        "door": [{"x": 3, "y": 0, "map": "test_door", "type": "door"}],
+        "boss": [{"x": 5, "y": 0, "map": "test_boss", "type": "boss"}]
+      }
+    },
+    "square": {
+      "assetsDir": "map2",
+      "mode": "four_direction",
+      "chunkWidthTiles": 50,
+      "chunkHeightTiles": 50,
+      "useAsyncLoading": true,
+      "loadRadius": 1,
+      "preloadRadius": 2,
+      "dimensions": {
+        "square": {"w": 50, "h": 50},
+        "square_door": {"w": 50, "h": 50},
+        "square_boss": {"w": 50, "h": 50}
+      },
+      "specialChunks": {
+        "door": [{"x": 2, "y": 1, "map": "square_door", "type": "door"}],
+        "boss": [{"x": 10000, "y": 0, "map": "square_boss", "type": "boss"}]
+      }
+    },
+    "dungeon": {
+      "assetsDir": "map3",
+      "mode": "four_direction",
+      "chunkWidthTiles": 50,
+      "chunkHeightTiles": 50,
+      "useAsyncLoading": true,
+      "loadRadius": 1,
+      "preloadRadius": 2,
+      "dimensions": {
+        "dungeon": {"w": 50, "h": 50},
+        "dungeon_door": {"w": 50, "h": 50},
+        "dungeon_boss": {"w": 50, "h": 50}
+      },
+      "specialChunks": {
+        "door": [{"x": -1, "y": 2, "map": "dungeon_door", "type": "door"}],
+        "boss": [{"x": 10000, "y": 0, "map": "dungeon_boss", "type": "boss"}]
+      }
+    }
+  }
+}
+
+

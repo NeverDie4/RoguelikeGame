@@ -1,14 +1,14 @@
 package com.roguelike.entities;
 
 import com.almasb.fxgl.dsl.FXGL;
-import com.almasb.fxgl.dsl.components.ProjectileComponent;
-import com.almasb.fxgl.entity.Entity;
-import com.almasb.fxgl.entity.SpawnData;
-import com.almasb.fxgl.entity.Spawns;
-import com.almasb.fxgl.entity.component.Component;
+// import com.almasb.fxgl.dsl.components.ProjectileComponent;
+// import com.almasb.fxgl.entity.Entity;
+// import com.almasb.fxgl.entity.SpawnData;
+// import com.almasb.fxgl.entity.Spawns;
+// import com.almasb.fxgl.entity.component.Component;
 import com.almasb.fxgl.entity.components.CollidableComponent;
-import com.almasb.fxgl.entity.components.TypeComponent;
-import com.almasb.fxgl.texture.Texture;
+// import com.almasb.fxgl.entity.components.TypeComponent;
+// import com.almasb.fxgl.texture.Texture;
 import com.roguelike.core.GameEvent;
 import com.roguelike.core.GameState;
 import com.roguelike.entities.components.CharacterAnimationComponent;
@@ -40,19 +40,22 @@ public class Player extends EntityBase {
     // 面朝方向（用于子弹发射方向对齐），默认向右
     private double forwardX = 1.0;
     private double forwardY = 0.0;
+    
+    // 网络玩家标识
+    private boolean isNetworkPlayer = false;
 
     public Player() {
         // 添加碰撞组件
         addComponent(new CollidableComponent(true));
 
         // 设置实体大小（根据GIF动画帧大小调整）
-        setSize(16, 16);
+        //setSize(128, 192);
 
         // 吸血鬼幸存者风格：设置更小的碰撞箱
         // 视觉大小32x32，但碰撞箱只有16x16，让玩家感觉更灵活
-        getBoundingBoxComponent().clearHitBoxes();
+        //getBoundingBoxComponent().clearHitBoxes();
         getBoundingBoxComponent().addHitBox(new com.almasb.fxgl.physics.HitBox(
-            com.almasb.fxgl.physics.BoundingShape.box(16, 16)
+            com.almasb.fxgl.physics.BoundingShape.box(16, 24)
         ));
 
         // 初始化动画
@@ -69,13 +72,19 @@ public class Player extends EntityBase {
     }
 
     private void initHealthBar() {
-        // 根据角色大小计算血条尺寸
-        double characterWidth = getWidth();
-        double characterHeight = getHeight();
+        // 使用渲染尺寸（优先动画尺寸，其次实体尺寸）
+        double renderWidth = getWidth();
+        double renderHeight = getHeight();
+        if (animationComponent != null) {
+            double aw = animationComponent.getAnimationWidth();
+            double ah = animationComponent.getAnimationHeight();
+            if (aw > 0) renderWidth = aw;
+            if (ah > 0) renderHeight = ah;
+        }
 
-        // 血条宽度为角色宽度的1.2倍，高度为角色高度的0.2倍
-        double hpBarWidth = characterWidth * 1.2;
-        double hpBarHeight = characterHeight * 0.2;
+        // 血条宽度为角色宽度的1.0倍，高度为角色高度的0.12倍（更细一些）
+        double hpBarWidth = Math.max(1.0, renderWidth * 1.0);
+        double hpBarHeight = Math.max(1.0, renderHeight * 0.12);
 
         // 血条背景 - 使用圆角矩形
         hpBarBackground = new Rectangle(hpBarWidth, hpBarHeight, Color.color(0, 0, 0, 0.8));
@@ -97,9 +106,9 @@ public class Player extends EntityBase {
         getViewComponent().addChild(hpBarContainer);
 
         // 设置血条位置（在角色脚下，保持适当距离）
-        double distanceFromCharacter = characterHeight * 0.3; // 距离为角色高度的30%
-        hpBarContainer.setTranslateY(characterHeight / 2 + distanceFromCharacter); // 角色中心下方
-        hpBarContainer.setTranslateX(-(hpBarWidth - characterWidth) / 2); // 居中对齐
+        double distanceFromCharacter = renderHeight * 0.35; // 距离为角色高度的22%
+        hpBarContainer.setTranslateY(renderHeight / 2 + distanceFromCharacter); // 角色中心下方
+        hpBarContainer.setTranslateX(-(hpBarWidth - renderWidth) / 2); // 居中对齐
 
         // 监听血量变化事件
         GameEvent.listen(GameEvent.Type.PLAYER_HURT, e -> updateHealthBar());
@@ -114,15 +123,14 @@ public class Player extends EntityBase {
             animationComponent = new CharacterAnimationComponent();
             addComponent(animationComponent);
 
-            // 加载向右方向的GIF动画帧（6帧，每帧128x128像素）
+            // 加载GIF动画帧（仅需一套，左向由渲染时水平翻转实现）
             animationComponent.loadGifAnimationFrames("assets/textures/player", 6);
-
-            // 加载向左方向的GIF动画帧（6帧，每帧128x128像素）
-            animationComponent.loadLeftGifAnimationFrames("assets/textures/player", 6);
 
             // 设置动画参数
             animationComponent.setFrameDuration(0.2); // 每帧200毫秒
             animationComponent.setLooping(true);
+            // 确保玩家贴图显示为建议的 48x72（与玩家可读性匹配）
+            animationComponent.setAnimationSize(48, 72);
 
             System.out.println("玩家动画初始化完成（支持左右转向）");
 
@@ -148,10 +156,10 @@ public class Player extends EntityBase {
 
         double ratio = maxHP <= 0 ? 0 : (double) currentHP / (double) maxHP;
 
-        // 使用动态计算的血条宽度，而不是硬编码的44像素
-        double characterWidth = getWidth();
-        double hpBarWidth = characterWidth * 1.2; // 与initHealthBar中的计算保持一致
-        hpBar.setWidth(hpBarWidth * Math.max(0, Math.min(1, ratio)));
+        // 与初始化保持一致：以血条背景当前宽度为满血参考，确保不出现“半满”
+        double clamped = Math.max(0, Math.min(1, ratio));
+        double fullWidth = hpBarBackground != null ? hpBarBackground.getWidth() : getWidth();
+        hpBar.setWidth(fullWidth * clamped);
 
         // 根据血量改变颜色，使用更丰富的颜色渐变
         if (ratio > 0.7) {
@@ -304,6 +312,8 @@ public class Player extends EntityBase {
 
     public void onDeath() {
         GameEvent.post(new GameEvent(GameEvent.Type.PLAYER_DEATH));
+        // 播放主角死亡音效（类路径加载，不使用FXGL）
+        try { com.roguelike.audio.ClasspathSoundPlayer.playOnce("assets/sounds/dies/die.mp3"); } catch (Throwable ignored) {}
         // 可以在这里添加死亡逻辑，比如显示游戏结束界面
     }
 
@@ -330,6 +340,20 @@ public class Player extends EntityBase {
      */
     public com.roguelike.map.TeleportManager getTeleportManager() {
         return teleportManager;
+    }
+    
+    /**
+     * 设置是否为网络玩家
+     */
+    public void setNetworkPlayer(boolean isNetworkPlayer) {
+        this.isNetworkPlayer = isNetworkPlayer;
+    }
+    
+    /**
+     * 获取是否为网络玩家
+     */
+    public boolean isNetworkPlayer() {
+        return isNetworkPlayer;
     }
 
     public static class Types {

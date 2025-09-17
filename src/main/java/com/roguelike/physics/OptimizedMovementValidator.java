@@ -512,7 +512,7 @@ public class OptimizedMovementValidator {
             // 敌人处于墙壁内，扣血
             int damage = 5; // 每次扣5点血
             //System.out.println("💥 敌人处于墙壁内，扣血 " + damage + " 点，当前血量: " + enemy.getCurrentHP() + "/" + enemy.getMaxHP());
-            enemy.takeDamage(damage);
+            enemy.takeDamage(damage, true); // 静音：不播放受击音效
         }
     }
     

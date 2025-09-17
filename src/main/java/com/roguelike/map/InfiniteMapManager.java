@@ -1,14 +1,22 @@
 package com.roguelike.map;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.Entity;
+import com.roguelike.map.config.MapConfig;
+import com.roguelike.map.config.MapConfigLoader;
 import javafx.application.Platform;
+import com.roguelike.core.GameApp;
+import com.roguelike.map.strategy.MapModeStrategy;
+import com.roguelike.map.strategy.HorizontalStrategy;
+import com.roguelike.map.strategy.FourDirectionalStrategy;
 
 /**
  * 无限地图管理器，管理区块的加载、卸载和坐标转换
@@ -39,19 +47,29 @@ public class InfiniteMapManager {
     private ArrayList<Integer> lastPreloadedChunkList = new ArrayList<>(); // 上次预加载的区块列表
     
     // 地图常量
-    private static final int DEFAULT_LOAD_RADIUS = 1; // 默认加载半径：5个区块
-    private static final int DEFAULT_PRELOAD_RADIUS = 2; // 默认预加载半径：5个区块
+    private static final int DEFAULT_LOAD_RADIUS = 1; // 默认加载半径
+    private static final int DEFAULT_PRELOAD_RADIUS = 2; // 默认预加载半径
     
     // 地图类型配置
     private boolean isHorizontalInfinite; // 是否为横向无限地图
+    private MapModeStrategy strategy;
     
-    // 特殊区块地图配置：2D坐标 -> 地图名称
-    // 根据基础地图名称动态生成特殊地图名称
+    // 特殊区块地图配置：2D坐标 -> 地图名称（来自配置）
     private Map<String, String> specialChunkMaps;
-    
-    // Boss房区块配置：2D坐标
-    private static final String BOSS_CHUNK_1 = "3,0";
+    private Set<String> doorChunkKeys = new HashSet<>();
+    private Set<String> bossChunkKeys = new HashSet<>();
+    private static final String BOSS_CHUNK_1 = "3,0"; // 兼容旧接口
     private String bossMapName;
+    
+    // Boss房隔离模式：进入Boss区后仅加载当前区块，周围区块不再加载
+    private boolean bossIsolationMode = false;
+
+    /**
+     * 对外暴露Boss房隔离模式状态，用于刷怪管理器在Boss战时切换刷怪策略。
+     */
+    public boolean isBossIsolationMode() {
+        return bossIsolationMode;
+    }
     
     // 传送门管理器引用
     private TeleportManager teleportManager;
@@ -60,7 +78,7 @@ public class InfiniteMapManager {
     private TimerTileManager timerTileManager;
     
     public InfiniteMapManager() {
-        this("square"); // 默认地图名称，使用square地图
+        this("square"); // 默认地图名称
     }
     
     public InfiniteMapManager(String mapName) {
@@ -73,21 +91,62 @@ public class InfiniteMapManager {
         this.lastUpdateTime = System.currentTimeMillis();
         this.mapName = mapName;
         
-        // 判断地图类型：test地图使用横向无限地图，square和dungeon地图使用四向无限地图
-        this.isHorizontalInfinite = "test".equals(mapName);
-        
-        // 根据基础地图名称动态生成特殊地图配置
-        this.specialChunkMaps = new HashMap<>();
-        if (isHorizontalInfinite) {
-            // 横向无限地图：只配置X方向的特殊区块
-            this.specialChunkMaps.put("2,0", mapName + "_door");    // 传送门地图 (2,0)
-            this.specialChunkMaps.put("3,0", mapName + "_boss");    // Boss房 (3,0)
+        // 从 JSON 配置读取模式、初始量与特殊区块
+        MapConfig cfg = null;
+        MapConfig.SingleMapConfig mapCfg = null;
+        try {
+            cfg = MapConfigLoader.load();
+            if (cfg != null && cfg.maps != null) {
+                mapCfg = cfg.maps.getOrDefault(mapName, null);
+            }
+        } catch (Throwable ignored) {}
+
+        // 地图模式：默认规则与旧行为保持一致（test 为横向）
+        if (mapCfg != null && mapCfg.mode != null) {
+            this.isHorizontalInfinite = "horizontal".equalsIgnoreCase(mapCfg.mode);
         } else {
-            // 四向无限地图：只有X方向的特殊区块（每张地图只有一个传送门和一个boss房）
-            this.specialChunkMaps.put("2,0", mapName + "_door");    // 传送门地图 (2,0)
-            this.specialChunkMaps.put("3,0", mapName + "_boss");    // Boss房 (3,0)
+            this.isHorizontalInfinite = "test".equals(mapName);
         }
-        this.bossMapName = mapName + "_boss";
+        this.strategy = this.isHorizontalInfinite ? new HorizontalStrategy() : new FourDirectionalStrategy();
+
+        // 初始量覆盖
+        if (mapCfg != null) {
+            if (mapCfg.loadRadius != null) this.loadRadius = Math.max(1, mapCfg.loadRadius);
+            if (mapCfg.preloadRadius != null) this.preloadRadius = Math.max(0, mapCfg.preloadRadius);
+            if (mapCfg.useAsyncLoading != null) this.useAsyncLoading = mapCfg.useAsyncLoading;
+        }
+
+        // 构建特殊区块映射
+        this.specialChunkMaps = new HashMap<>();
+        if (mapCfg != null && mapCfg.specialChunks != null) {
+            List<MapConfig.SpecialChunk> doors = mapCfg.specialChunks.get("door");
+            if (doors != null) {
+                for (MapConfig.SpecialChunk sc : doors) {
+                    if (sc == null || sc.x == null || sc.y == null || sc.map == null) continue;
+                    int yInternal = -sc.y; // 坐标系：上为正 -> 内部向下为正，取反
+                    if (!strategy.isSpecialChunkAllowed(sc.x, yInternal)) continue;
+                    String key = chunkToKey(sc.x, yInternal);
+                    specialChunkMaps.put(key, sc.map);
+                    doorChunkKeys.add(key);
+                }
+            }
+            List<MapConfig.SpecialChunk> bosses = mapCfg.specialChunks.get("boss");
+            if (bosses != null) {
+                for (MapConfig.SpecialChunk sc : bosses) {
+                    if (sc == null || sc.x == null || sc.y == null || sc.map == null) continue;
+                    int yInternal = -sc.y; // 坐标系取反
+                    if (!strategy.isSpecialChunkAllowed(sc.x, yInternal)) continue;
+                    String key = chunkToKey(sc.x, yInternal);
+                    specialChunkMaps.put(key, sc.map);
+                    bossChunkKeys.add(key);
+                    // 记录一个 boss 地图名（用于兼容旧接口）
+                    if (bossMapName == null) bossMapName = sc.map;
+                }
+            }
+        }
+        if (bossMapName == null) {
+            bossMapName = mapName + "_boss";
+        }
         
         // 初始化状态管理器
         this.stateManager = new ChunkStateManager();
@@ -100,11 +159,15 @@ public class InfiniteMapManager {
         
         // 初始加载玩家所在区块和预加载区块
         System.out.println("🔧 开始初始加载区块...");
+        // 优先同步加载中心区块，避免首帧并发解码多张 PNG 造成 OOM
+        try {
+            loadChunk(0, 0);
+        } catch (Throwable e) {
+            System.err.println("❌ 同步加载中心区块失败: " + e.getMessage());
+        }
         if (useAsyncLoading) {
-            loadChunkAsync(0, 0);
             preloadChunksAsync(0, 0);
         } else {
-            loadChunk(0, 0);
             preloadChunks(0, 0);
         }
         
@@ -113,7 +176,7 @@ public class InfiniteMapManager {
         if (isHorizontalInfinite) {
             // 横向无限地图：只加载左右区块
             try {
-                loadChunk(1, 0);   // 右侧区块
+                loadChunkAsync(1, 0);   // 右侧区块
                 System.out.println("✅ 右侧区块(1,0)加载成功");
             } catch (Exception e) {
                 System.err.println("❌ 右侧区块(1,0)加载失败: " + e.getMessage());
@@ -121,7 +184,7 @@ public class InfiniteMapManager {
             }
             
             try {
-                loadChunk(-1, 0);  // 左侧区块
+                loadChunkAsync(-1, 0);  // 左侧区块
                 System.out.println("✅ 左侧区块(-1,0)加载成功");
             } catch (Exception e) {
                 System.err.println("❌ 左侧区块(-1,0)加载失败: " + e.getMessage());
@@ -130,7 +193,7 @@ public class InfiniteMapManager {
         } else {
             // 四向无限地图：加载四个方向的区块
             try {
-                loadChunk(1, 0);   // 右侧区块
+                loadChunkAsync(1, 0);   // 右侧区块
                 System.out.println("✅ 右侧区块(1,0)加载成功");
             } catch (Exception e) {
                 System.err.println("❌ 右侧区块(1,0)加载失败: " + e.getMessage());
@@ -138,7 +201,7 @@ public class InfiniteMapManager {
             }
             
             try {
-                loadChunk(-1, 0);  // 左侧区块
+                loadChunkAsync(-1, 0);  // 左侧区块
                 System.out.println("✅ 左侧区块(-1,0)加载成功");
             } catch (Exception e) {
                 System.err.println("❌ 左侧区块(-1,0)加载失败: " + e.getMessage());
@@ -146,7 +209,7 @@ public class InfiniteMapManager {
             }
             
             try {
-                loadChunk(0, 1);   // 下方区块
+                loadChunkAsync(0, 1);   // 下方区块
                 System.out.println("✅ 下方区块(0,1)加载成功");
             } catch (Exception e) {
                 System.err.println("❌ 下方区块(0,1)加载失败: " + e.getMessage());
@@ -154,7 +217,7 @@ public class InfiniteMapManager {
             }
             
             try {
-                loadChunk(0, -1);  // 上方区块
+                loadChunkAsync(0, -1);  // 上方区块
                 System.out.println("✅ 上方区块(0,-1)加载成功");
             } catch (Exception e) {
                 System.err.println("❌ 上方区块(0,-1)加载失败: " + e.getMessage());
@@ -168,6 +231,11 @@ public class InfiniteMapManager {
         System.out.println("   地图名称: " + mapName);
         System.out.println("   区块尺寸: " + getChunkWidthPixels() + "x" + getChunkHeightPixels() + " 像素");
         System.out.println("   异步加载: " + (useAsyncLoading ? "启用" : "禁用"));
+
+        // 额外一次范围填充：四向模式下补全角落，避免开场斜向移动出现空白
+        try {
+            loadRequiredChunks();
+        } catch (Exception ignored) {}
     }
     
     /**
@@ -183,6 +251,9 @@ public class InfiniteMapManager {
     }
     
     public int worldToChunkY(double worldY) {
+        if (isHorizontalInfinite) {
+            return 0;
+        }
         return MapChunkFactory.worldToChunkY(worldY, mapName);
     }
     
@@ -194,18 +265,17 @@ public class InfiniteMapManager {
      * 更新区块加载状态（根据玩家位置）
      */
     public void updateChunks(int newPlayerChunkX, int newPlayerChunkY) {
-        if (isHorizontalInfinite) {
-            // 横向无限地图：Y坐标固定为0
-            newPlayerChunkY = 0;
-        }
+        int[] norm = strategy.normalizePlayerChunk(newPlayerChunkX, newPlayerChunkY);
+        newPlayerChunkX = norm[0];
+        newPlayerChunkY = norm[1];
         
         if (newPlayerChunkX == playerChunkX && newPlayerChunkY == playerChunkY) {
             return; // 玩家仍在同一区块
         }
         
-        // 检查是否尝试进入Boss房区块 - 所有地图都只有X方向的boss区块
+        // 检查是否尝试进入Boss房区块（基于配置）
         String newChunkKey = chunkToKey(newPlayerChunkX, newPlayerChunkY);
-        boolean isBossChunk = "3,0".equals(newChunkKey);
+        boolean isBossChunk = bossChunkKeys.contains(newChunkKey);
         
         if (isBossChunk && teleportManager != null && !teleportManager.isBossChunkActivated()) {
             System.out.println("🚫 玩家尝试进入Boss房区块，但Boss房未被激活，阻止进入");
@@ -223,6 +293,19 @@ public class InfiniteMapManager {
         // 调试信息：显示横向无限地图的玩家移动
         if (isHorizontalInfinite && playerChunkX > 3) {
             System.out.println("🔍 横向无限地图玩家移动到区块 (" + playerChunkX + "," + playerChunkY + ")");
+        }
+        
+        // Boss房隔离模式开关：进入Boss区开启，离开关闭
+        boolean enteringBossChunk = isBossChunk;
+        boolean previouslyInBossChunk = bossChunkKeys.contains(chunkToKey(oldPlayerChunkX, oldPlayerChunkY));
+        if (enteringBossChunk && (teleportManager == null || teleportManager.isBossChunkActivated())) {
+            if (!bossIsolationMode) {
+                bossIsolationMode = true;
+                System.out.println("🧿 已进入Boss房隔离模式");
+            }
+        } else if (!enteringBossChunk && bossIsolationMode && previouslyInBossChunk) {
+            bossIsolationMode = false;
+            System.out.println("🧿 已退出Boss房隔离模式");
         }
         
         // 卸载远离的区块
@@ -266,6 +349,27 @@ public class InfiniteMapManager {
      * 卸载远离玩家的区块
      */
     private void unloadDistantChunks() {
+        // Boss房隔离：仅保留当前玩家所在区块，卸载其他所有区块
+        if (bossIsolationMode) {
+            ArrayList<String> chunksToUnload = new ArrayList<>();
+            String keepKey = chunkToKey(playerChunkX, playerChunkY);
+            for (String chunkKey : new java.util.ArrayList<>(loadedChunks.keySet())) {
+                if (!chunkKey.equals(keepKey)) {
+                    chunksToUnload.add(chunkKey);
+                }
+            }
+            for (String chunkKey : chunksToUnload) {
+                if (useAsyncLoading && asyncLoader.isLoading(chunkKey)) {
+                    asyncLoader.cancelLoading(chunkKey);
+                }
+                unloadChunk(chunkKey);
+            }
+            if (!chunksToUnload.isEmpty()) {
+                System.out.println("🗑️ [Boss隔离] 卸载了 " + chunksToUnload.size() + " 个区块: " + chunksToUnload);
+            }
+            return;
+        }
+        
         ArrayList<String> chunksToUnload = new ArrayList<>();
         
         for (String chunkKey : loadedChunks.keySet()) {
@@ -275,20 +379,7 @@ public class InfiniteMapManager {
             
             boolean shouldUnload = false;
             
-            if (isHorizontalInfinite) {
-                // 横向无限地图：只检查X方向距离
-                int distanceX = Math.abs(chunkX - playerChunkX);
-                if (distanceX > loadRadius) {
-                    shouldUnload = true;
-                }
-            } else {
-                // 四向无限地图：检查X和Y方向距离
-                int distanceX = Math.abs(chunkX - playerChunkX);
-                int distanceY = Math.abs(chunkY - playerChunkY);
-                if (distanceX > loadRadius || distanceY > loadRadius) {
-                    shouldUnload = true;
-                }
-            }
+            shouldUnload = strategy.shouldUnload(chunkX, chunkY, playerChunkX, playerChunkY, loadRadius);
             
             if (shouldUnload) {
                 chunksToUnload.add(chunkKey);
@@ -312,29 +403,26 @@ public class InfiniteMapManager {
      * 加载玩家周围需要的区块
      */
     private void loadRequiredChunks() {
-        ArrayList<String> chunksToLoad = new ArrayList<>();
-        
-        if (isHorizontalInfinite) {
-            // 横向无限地图：只加载左右区块
-            for (int chunkX = playerChunkX - loadRadius; chunkX <= playerChunkX + loadRadius; chunkX++) {
-                String chunkKey = chunkToKey(chunkX, 0); // Y坐标固定为0
-                if (!loadedChunks.containsKey(chunkKey)) {
-                    chunksToLoad.add(chunkKey);
-                    // 调试信息：显示要加载的区块
-                    if (chunkX > 3) {
-                        System.out.println("🔍 准备加载区块: " + chunkKey + " (玩家区块: " + playerChunkX + ")");
-                    }
+        // Boss房隔离：仅确保当前区块被加载
+        if (bossIsolationMode) {
+            String currentKey = chunkToKey(playerChunkX, playerChunkY);
+            if (!loadedChunks.containsKey(currentKey)) {
+                int[] coords = keyToChunk(currentKey);
+                try {
+                    loadChunk(coords[0], coords[1]);
+                    System.out.println("📦 [Boss隔离] 加载当前区块: " + currentKey);
+                } catch (Exception e) {
+                    System.err.println("❌ [Boss隔离] 加载当前区块失败: " + currentKey + " - " + e.getMessage());
                 }
             }
-        } else {
-            // 四向无限地图：加载四个方向的区块
-            for (int chunkY = playerChunkY - loadRadius; chunkY <= playerChunkY + loadRadius; chunkY++) {
-                for (int chunkX = playerChunkX - loadRadius; chunkX <= playerChunkX + loadRadius; chunkX++) {
-                    String chunkKey = chunkToKey(chunkX, chunkY);
-                    if (!loadedChunks.containsKey(chunkKey)) {
-                        chunksToLoad.add(chunkKey);
-                    }
-                }
+            return;
+        }
+        
+        ArrayList<String> chunksToLoad = new ArrayList<>();
+        
+        for (String key : strategy.listChunksInRadius(playerChunkX, playerChunkY, loadRadius)) {
+            if (!loadedChunks.containsKey(key)) {
+                chunksToLoad.add(key);
             }
         }
         
@@ -357,31 +445,26 @@ public class InfiniteMapManager {
      * 异步加载玩家周围需要的区块
      */
     private void loadRequiredChunksAsync() {
-        ArrayList<String> chunksToLoad = new ArrayList<>();
-        
-        if (isHorizontalInfinite) {
-            // 横向无限地图：只加载左右区块
-            for (int chunkX = playerChunkX - loadRadius; chunkX <= playerChunkX + loadRadius; chunkX++) {
-                String chunkKey = chunkToKey(chunkX, 0); // Y坐标固定为0
-                // 检查区块是否需要加载：未在loadedChunks中且不在加载中
-                if (!loadedChunks.containsKey(chunkKey) && !stateManager.isLoading(chunkKey)) {
-                    chunksToLoad.add(chunkKey);
-                    // 调试信息：显示要异步加载的区块
-                    if (chunkX > 3) {
-                        System.out.println("🔍 准备异步加载区块: " + chunkKey + " (玩家区块: " + playerChunkX + ")");
-                    }
+        // Boss房隔离：仅确保当前区块被加载（异步）
+        if (bossIsolationMode) {
+            String currentKey = chunkToKey(playerChunkX, playerChunkY);
+            if (!loadedChunks.containsKey(currentKey) && !stateManager.isLoading(currentKey)) {
+                int[] coords = keyToChunk(currentKey);
+                try {
+                    loadChunkAsync(coords[0], coords[1]);
+                    System.out.println("📦 [Boss隔离] 异步加载当前区块: " + currentKey);
+                } catch (Exception e) {
+                    System.err.println("❌ [Boss隔离] 异步加载当前区块失败: " + currentKey + " - " + e.getMessage());
                 }
             }
-        } else {
-            // 四向无限地图：加载四个方向的区块
-            for (int chunkY = playerChunkY - loadRadius; chunkY <= playerChunkY + loadRadius; chunkY++) {
-                for (int chunkX = playerChunkX - loadRadius; chunkX <= playerChunkX + loadRadius; chunkX++) {
-                    String chunkKey = chunkToKey(chunkX, chunkY);
-                    // 检查区块是否需要加载：未在loadedChunks中且不在加载中
-                    if (!loadedChunks.containsKey(chunkKey) && !stateManager.isLoading(chunkKey)) {
-                        chunksToLoad.add(chunkKey);
-                    }
-                }
+            return;
+        }
+        
+        ArrayList<String> chunksToLoad = new ArrayList<>();
+        
+        for (String key : strategy.listChunksInRadius(playerChunkX, playerChunkY, loadRadius)) {
+            if (!loadedChunks.containsKey(key) && !stateManager.isLoading(key)) {
+                chunksToLoad.add(key);
             }
         }
         
@@ -403,16 +486,27 @@ public class InfiniteMapManager {
      * 获取指定区块对应的地图名称
      * 如果区块有特殊配置则使用特殊地图，否则使用默认地图
      */
-    private String getMapNameForChunk(int chunkX, int chunkY) {
+    public String getMapNameForChunk(int chunkX, int chunkY) {
         String chunkKey = chunkToKey(chunkX, chunkY);
         String mapNameForChunk = specialChunkMaps.getOrDefault(chunkKey, mapName);
-        
-        // 调试信息：显示区块对应的地图名称
         if (isHorizontalInfinite && chunkX > 3) {
             System.out.println("🔍 区块 (" + chunkX + "," + chunkY + ") 使用地图: " + mapNameForChunk);
         }
-        
         return mapNameForChunk;
+    }
+
+    /**
+     * 获取传送门区块集合（返回副本）。
+     */
+    public java.util.Set<String> getDoorChunkKeys() {
+        return new java.util.HashSet<>(doorChunkKeys);
+    }
+
+    /**
+     * 获取Boss区块集合（返回副本）。
+     */
+    public java.util.Set<String> getBossChunkKeys() {
+        return new java.util.HashSet<>(bossChunkKeys);
     }
     
     /**
@@ -436,13 +530,17 @@ public class InfiniteMapManager {
         if (timerTileManager != null) {
             timerTileManager.scanChunkForTimerTiles(chunk);
         }
+        // 扫描传送瓦片
+        if (teleportManager != null) {
+            teleportManager.scanChunkForTeleportTiles(chunk);
+        }
         
         System.out.println("🗺️ 区块 (" + chunkX + "," + chunkY + ") 使用地图: " + chunkMapName);
         
         // 调试信息：显示特殊区块的加载情况
-        if ("2,0".equals(chunkKey)) {
+        if (doorChunkKeys.contains(chunkKey)) {
             System.out.println("🚪 传送门区块 (" + chunkX + "," + chunkY + ") 加载完成，使用地图: " + chunkMapName);
-        } else if ("3,0".equals(chunkKey)) {
+        } else if (bossChunkKeys.contains(chunkKey)) {
             System.out.println("👹 Boss房区块 (" + chunkX + "," + chunkY + ") 加载完成，使用地图: " + chunkMapName);
         }
         
@@ -469,19 +567,22 @@ public class InfiniteMapManager {
                     loadedChunks.put(chunkKey, chunk);
                     // 立即在主线程中添加地图视图到场景，减少延迟
                     Platform.runLater(() -> {
-                        chunk.addToScene();
+                        // Provider 渲染在 MapChunk 内部控制；此处不重复添加
                         
                         // 扫描新加载区块中的定时器瓦片
                         if (timerTileManager != null) {
                             timerTileManager.scanChunkForTimerTiles(chunk);
                         }
+                        if (teleportManager != null) {
+                            teleportManager.scanChunkForTeleportTiles(chunk);
+                        }
                         
                         System.out.println("✅ 区块 (" + chunkX + "," + chunkY + ") 异步加载完成并添加到场景 (地图: " + chunkMapName + ")");
                         
                         // 调试信息：显示特殊区块的异步加载情况
-                        if ("2,0".equals(chunkKey)) {
+                        if (doorChunkKeys.contains(chunkKey)) {
                             System.out.println("🚪 传送门区块 (" + chunkX + "," + chunkY + ") 异步加载完成，使用地图: " + chunkMapName);
-                        } else if ("3,0".equals(chunkKey)) {
+                        } else if (bossChunkKeys.contains(chunkKey)) {
                             System.out.println("👹 Boss房区块 (" + chunkX + "," + chunkY + ") 异步加载完成，使用地图: " + chunkMapName);
                         }
                         
@@ -513,6 +614,10 @@ public class InfiniteMapManager {
             chunk.unload();
         }
         stateManager.transitionToState(chunkKey, ChunkState.UNLOADED);
+        // 清理注册的定时器/传送瓦片
+        if (teleportManager != null) {
+            teleportManager.clearChunkTeleportTiles(chunkKey);
+        }
     }
     
     /**
@@ -565,6 +670,10 @@ public class InfiniteMapManager {
      * 预加载区块（以玩家为中心，预加载半径内的区块）
      */
     private void preloadChunks(int centerChunkX, int centerChunkY) {
+        if (bossIsolationMode) {
+            // Boss房隔离：不进行任何预加载
+            return;
+        }
         ArrayList<String> preloadedChunks = new ArrayList<>();
         
         if (isHorizontalInfinite) {
@@ -598,6 +707,10 @@ public class InfiniteMapManager {
      * 异步预加载区块
      */
     private void preloadChunksAsync(int centerChunkX, int centerChunkY) {
+        if (bossIsolationMode) {
+            // Boss房隔离：不进行任何预加载
+            return;
+        }
         ArrayList<String> chunksToPreload = new ArrayList<>();
         
         if (isHorizontalInfinite) {
@@ -642,7 +755,9 @@ public class InfiniteMapManager {
         String chunkKey = chunkToKey(chunkX, chunkY);
         MapChunk chunk = loadedChunks.get(chunkKey);
         if (chunk == null) {
-            System.out.println("❌ 区块未找到: " + chunkKey + " (已加载区块: " + loadedChunks.keySet() + ")");
+            if (GameApp.DEBUG_MODE) {
+                System.out.println("❌ 区块未找到: " + chunkKey + " (已加载区块: " + loadedChunks.keySet() + ")");
+            }
         }
         return chunk;
     }
@@ -671,20 +786,16 @@ public class InfiniteMapManager {
                 }
                 return passable;
             } else {
-                // 超出区块范围，检查相邻区块
-                System.out.println("🔍 跨区块检测: 世界坐标(" + String.format("%.1f", worldX) + "," + String.format("%.1f", worldY) + ") -> 区块(" + chunkX + "," + chunkY + ") 超出范围");
-                
-                // 重新计算正确的区块坐标
+                // 超出区块范围，检查相邻区块（抑制日志，避免频繁I/O影响性能）
                 int correctChunkX = worldToChunkX(worldX);
                 int correctChunkY = worldToChunkY(worldY);
                 MapChunk correctChunk = getChunk(correctChunkX, correctChunkY);
-                
                 if (correctChunk != null) {
-                    boolean passable = correctChunk.isPassable(worldX, worldY);
-                    System.out.println("🔍 跨区块检测结果: 世界坐标(" + String.format("%.1f", worldX) + "," + String.format("%.1f", worldY) + ") -> 区块(" + correctChunkX + "," + correctChunkY + ") 可通行: " + passable);
-                    return passable;
+                    return correctChunk.isPassable(worldX, worldY);
                 } else {
-                    System.out.println("⚠️ 跨区块检测失败: 区块(" + correctChunkX + "," + correctChunkY + ") 未加载");
+                    if (GameApp.DEBUG_MODE) {
+                        System.out.println("⚠️ 跨区块检测失败: 区块(" + correctChunkX + "," + correctChunkY + ") 未加载");
+                    }
                     return false;
                 }
             }

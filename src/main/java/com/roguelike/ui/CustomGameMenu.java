@@ -296,12 +296,29 @@ public class CustomGameMenu extends FXGLMenu {
     private void customExitToMainMenu() {
         // 直接执行返回主菜单操作，不显示确认弹窗
         com.almasb.fxgl.dsl.FXGL.getGameController().gotoMainMenu();
+        // 场景切换后强制清理可能遗留的覆盖层
+        try {
+            javafx.application.Platform.runLater(() -> {
+                try { com.roguelike.ui.MapSelectMenu.forceCleanup(); } catch (Exception ignored) {}
+                try { com.roguelike.ui.OptionsMenu.forceCleanup(); } catch (Exception ignored) {}
+                try { com.roguelike.ui.ConfirmationDialog.forceCleanup(); } catch (Exception ignored) {}
+            });
+        } catch (Exception ignored) {}
     }
 
     /**
      * 自定义退出游戏方法，绕过原来的确认机制
      */
     private void customExit() {
+        // 清理网络资源
+        try {
+            com.roguelike.network.NetworkManager networkManager = com.roguelike.network.NetworkManager.getInstance();
+            if (networkManager != null) {
+                networkManager.cleanup();
+            }
+        } catch (Exception e) {
+            System.err.println("清理网络资源时出错: " + e.getMessage());
+        }
         // 直接执行退出游戏操作，不显示确认弹窗
         com.almasb.fxgl.dsl.FXGL.getGameController().exit();
     }

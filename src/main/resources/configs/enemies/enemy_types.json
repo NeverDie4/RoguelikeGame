@@ -12,22 +12,22 @@
         "expReward": 5
       },
       "size": {
-        "width": 32,
-        "height": 32
+      "width": 120,
+        "height": 120
       },
       "animations": {
-        "walkFrames": 10,
+        "walkFrames": 11,
         "frameDuration": 0.15,
-        "texturePath": "assets/textures/enemy",
-        "walkPattern": "enemy_walk_%02d.png",
-        "animationWidth": 32,
-        "animationHeight": 32
+        "texturePath": "assets/textures/enemy/goblin",
+        "walkPattern": "goblin_walk_%02d.png",
+        "animationWidth": 150,
+        "animationHeight": 150
       },
       "collision": {
-        "width": 24,
-        "height": 24,
-        "offsetX": 4,
-        "offsetY": 4
+        "width": 102,
+        "height": 102,
+        "offsetX": 2,
+        "offsetY": 2
       },
       "deathEffect": {
         "effectType": "explosion",
@@ -54,22 +54,22 @@
         "expReward": 15
       },
       "size": {
-        "width": 48,
-        "height": 64
+        "width": 144,
+        "height": 144
       },
       "animations": {
         "walkFrames": 4,
         "frameDuration": 0.2,
         "texturePath": "assets/textures/enemy/orc",
         "walkPattern": "orc_walk_%02d.png",
-        "animationWidth": 64,
-        "animationHeight": 64
+        "animationWidth": 150,
+        "animationHeight": 150
       },
       "collision": {
-        "width": 48,
-        "height": 48,
-        "offsetX": 8,
-        "offsetY": 8
+        "width": 132,
+        "height": 132,
+        "offsetX": 2,
+        "offsetY": 2
       },
       "deathEffect": {
         "effectType": "blood",
@@ -96,20 +96,20 @@
         "expReward": 8
       },
       "size": {
-        "width": 40,
-        "height": 48
+        "width": 38,
+        "height": 75
       },
       "animations": {
-        "walkFrames": 12,
-        "frameDuration": 0.12,
-        "texturePath": "assets/textures/enemy/orc",
-        "walkPattern": "orc_walk_%02d.png",
-        "animationWidth": 40,
-        "animationHeight": 48
+        "walkFrames": 4,
+        "frameDuration": 0.18,
+        "texturePath": "assets/textures/enemy/skeleton",
+        "walkPattern": "skeleton_walk_%02d.png",
+        "animationWidth": 75,
+        "animationHeight": 150
       },
       "collision": {
-        "width": 32,
-        "height": 40,
+        "width": 38,
+        "height": 75,
         "offsetX": 4,
         "offsetY": 4
       },
@@ -138,22 +138,22 @@
         "expReward": 30
       },
       "size": {
-        "width": 64,
-        "height": 80
+        "width": 128,
+        "height": 128
       },
       "animations": {
-        "walkFrames": 6,
-        "frameDuration": 0.25,
-        "texturePath": "assets/textures/enemy/orc",
-        "walkPattern": "orc_walk_%02d.png",
+        "walkFrames": 4,
+        "frameDuration": 0.17,
+        "texturePath": "assets/textures/enemy/troll",
+        "walkPattern": "troll_walk_%02d.png",
         "animationWidth": 64,
-        "animationHeight": 80
+        "animationHeight": 64
       },
       "collision": {
-        "width": 48,
-        "height": 64,
-        "offsetX": 8,
-        "offsetY": 8
+        "width": 112,
+        "height": 112,
+        "offsetX": 0,
+        "offsetY": 0
       },
       "deathEffect": {
         "effectType": "explosion",
@@ -180,22 +180,22 @@
         "expReward": 100
       },
       "size": {
-        "width": 96,
-        "height": 96
+        "width": 216,
+        "height": 216
       },
       "animations": {
-        "walkFrames": 8,
-        "frameDuration": 0.3,
-        "texturePath": "assets/textures/enemy/orc",
-        "walkPattern": "orc_walk_%02d.png",
-        "animationWidth": 96,
-        "animationHeight": 96
+        "walkFrames": 6,
+        "frameDuration": 0.14,
+        "texturePath": "assets/textures/enemy/dragon",
+        "walkPattern": "dragon_walk_%02d.png",
+        "animationWidth": 150,
+        "animationHeight": 150
       },
       "collision": {
-        "width": 80,
-        "height": 80,
-        "offsetX": 8,
-        "offsetY": 8
+        "width": 192,
+        "height": 192,
+        "offsetX": 0,
+        "offsetY": 0
       },
       "deathEffect": {
         "effectType": "magic",

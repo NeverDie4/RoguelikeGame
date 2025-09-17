@@ -2,114 +2,95 @@ package com.roguelike.ui;
 
 import com.almasb.fxgl.dsl.FXGL;
 import com.roguelike.core.GameState;
+import javafx.animation.FadeTransition;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
+import javafx.util.Duration;
 
 public class GameOverScreen {
-    
+
+    private static StackPane overlayRoot;
+
     public static void show(GameState gameState, Runnable onContinue) {
-        // 创建主容器
-        VBox container = new VBox(20);
-        container.setAlignment(Pos.CENTER);
-        container.setStyle("-fx-background-color: rgba(0, 0, 0, 0.8);");
-        
-        // 游戏结束标题
-        Label titleLabel = new Label("游戏结束");
-        titleLabel.setTextFill(Color.RED);
-        titleLabel.setFont(Font.font("Arial Bold", 48));
-        titleLabel.setTextAlignment(TextAlignment.CENTER);
-        
-        // 统计数据
-        VBox statsContainer = new VBox(10);
-        statsContainer.setAlignment(Pos.CENTER);
-        
-        Label levelLabel = new Label("等级: " + gameState.getCurrentLevel());
-        Label expLabel = new Label("经验: " + gameState.getExperience() + "/" + gameState.getExperienceToNextLevel());
-        Label killsLabel = new Label("杀敌数: " + gameState.getKillCount());
-        Label timeLabel = new Label("存活时间: " + gameState.getFormattedTime());
-        Label coinsLabel = new Label("获得金币: " + gameState.getCoins());
-        
-        // 设置统计标签样式
-        Font statsFont = Font.font("Arial", 24);
-        Color statsColor = Color.WHITE;
-        
-        levelLabel.setFont(statsFont);
-        levelLabel.setTextFill(statsColor);
-        expLabel.setFont(statsFont);
-        expLabel.setTextFill(statsColor);
-        killsLabel.setFont(statsFont);
-        killsLabel.setTextFill(statsColor);
-        timeLabel.setFont(statsFont);
-        timeLabel.setTextFill(statsColor);
-        coinsLabel.setFont(statsFont);
-        coinsLabel.setTextFill(statsColor);
-        
-        statsContainer.getChildren().addAll(levelLabel, expLabel, killsLabel, timeLabel, coinsLabel);
-        
-        // 按钮容器
-        HBox buttonContainer = new HBox(20);
-        buttonContainer.setAlignment(Pos.CENTER);
-        
-        // 主界面按钮
-        Button mainMenuButton = new Button("主界面");
-        mainMenuButton.setStyle(
-            "-fx-background-color: linear-gradient(to bottom, #2196F3, #1976D2); " +
-            "-fx-text-fill: white; " +
-            "-fx-font-size: 20px; " +
-            "-fx-padding: 10 20 10 20; " +
-            "-fx-background-radius: 5;"
-        );
-        mainMenuButton.setOnAction(e -> {
+        hide();
+
+        // 覆盖层根节点
+        overlayRoot = new StackPane();
+        overlayRoot.setPickOnBounds(true);
+        overlayRoot.setPrefSize(FXGL.getAppWidth(), FXGL.getAppHeight());
+
+        // 红色过渡遮罩（从透明淡入）
+        Rectangle redOverlay = new Rectangle(FXGL.getAppWidth(), FXGL.getAppHeight());
+        redOverlay.setFill(Color.color(0.7, 0.0, 0.0));
+        redOverlay.setOpacity(0.0);
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(500), redOverlay);
+        fadeIn.setFromValue(0.0);
+        fadeIn.setToValue(0.6);
+        fadeIn.play();
+
+        // 主布局：顶部标题与底部按钮，保持上下边距相同
+        BorderPane layout = new BorderPane();
+        layout.setPrefSize(FXGL.getAppWidth(), FXGL.getAppHeight());
+
+        // 顶部“Game Over”标题（金色）
+        Label title = new Label("Game Over");
+        title.setTextFill(Color.web("#FFD700"));
+        title.setFont(Font.font("Segoe UI", 72));
+
+        VBox topBox = new VBox(title);
+        topBox.setAlignment(Pos.TOP_CENTER);
+        BorderPane.setMargin(topBox, new Insets(80, 0, 0, 0)); // 距离上边界
+        layout.setTop(topBox);
+
+        // 底部“返回菜单”按钮（复用主界面按钮样式）
+        Button backToMenu = new Button("返回菜单");
+        backToMenu.getStyleClass().add("fxgl-button");
+        backToMenu.setPrefWidth(200);
+        backToMenu.setPrefHeight(50);
+        backToMenu.setDefaultButton(true); // 支持 Enter
+        backToMenu.setOnAction(e -> {
+            try { com.roguelike.ui.SoundService.playOnce("clicks/click.mp3"); } catch (Throwable ignored) {}
             hide();
-            // 先恢复游戏引擎，然后回到主界面
+            // 恢复引擎并返回主菜单
             com.almasb.fxgl.dsl.FXGL.getGameController().resumeEngine();
             com.almasb.fxgl.dsl.FXGL.getGameController().gotoMainMenu();
         });
-        
-        // 重新开始按钮
-        Button restartButton = new Button("重新开始");
-        restartButton.setStyle(
-            "-fx-background-color: linear-gradient(to bottom, #4CAF50, #45a049); " +
-            "-fx-text-fill: white; " +
-            "-fx-font-size: 20px; " +
-            "-fx-padding: 10 20 10 20; " +
-            "-fx-background-radius: 5;"
-        );
-        restartButton.setOnAction(e -> {
-            hide();
-            if (onContinue != null) {
-                onContinue.run();
+
+        VBox bottomBox = new VBox(backToMenu);
+        bottomBox.setAlignment(Pos.BOTTOM_CENTER);
+        BorderPane.setMargin(bottomBox, new Insets(0, 0, 80, 0)); // 距离下边界，与上边界一致
+        layout.setBottom(bottomBox);
+
+        // 中间保持足够空间，避免上下元素过近（这里留空中心区域即可）
+
+        overlayRoot.getChildren().addAll(redOverlay, layout);
+
+        // 处理 Enter 键（若按钮未聚焦也可触发）
+        overlayRoot.setOnKeyPressed(ev -> {
+            if (ev.getCode() == KeyCode.ENTER) {
+                backToMenu.fire();
             }
         });
-        
-        buttonContainer.getChildren().addAll(mainMenuButton, restartButton);
-        
-        // 组装界面
-        container.getChildren().addAll(titleLabel, statsContainer, buttonContainer);
-        
-        // 添加到游戏场景
-        FXGL.getGameScene().addUINode(container);
+
+        // 将覆盖层添加到场景并请求焦点
+        FXGL.getGameScene().addUINode(overlayRoot);
+        overlayRoot.requestFocus();
     }
-    
+
     public static void hide() {
-        // 移除游戏结束界面
-        var uiNodes = FXGL.getGameScene().getUINodes();
-        var nodesToRemove = uiNodes.stream()
-            .filter(node -> node instanceof VBox && 
-                ((VBox) node).getChildren().stream()
-                    .anyMatch(child -> child instanceof Label && 
-                        "游戏结束".equals(((Label) child).getText())))
-            .toList();
-        
-        // 逐个移除节点
-        for (var node : nodesToRemove) {
-            FXGL.getGameScene().removeUINode(node);
+        if (overlayRoot != null) {
+            FXGL.getGameScene().removeUINode(overlayRoot);
+            overlayRoot = null;
         }
     }
 }

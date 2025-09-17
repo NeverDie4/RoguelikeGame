@@ -38,6 +38,10 @@ public class CustomMainMenu extends FXGLMenu {
     }
 
     private void initCustomMainMenu() {
+        // 进入主菜单前，兜底清理可能遗留的覆盖层
+        try { MapSelectMenu.forceCleanup(); } catch (Exception ignored) {}
+        try { OptionsMenu.forceCleanup(); } catch (Exception ignored) {}
+        try { ConfirmationDialog.forceCleanup(); } catch (Exception ignored) {}
         // 进入主菜单时切换到大厅音乐
         try { MusicService.playLobby(); } catch (Exception ignored) {}
         // 创建根节点StackPane，用于背景和菜单的层叠
@@ -133,8 +137,59 @@ public class CustomMainMenu extends FXGLMenu {
 
         // 创建菜单按钮
         Button startButton = createStyledButton("开始游戏", () -> {
-            try { MusicService.playBattle(); } catch (Exception ignored) {}
-            fireNewGame();
+            System.out.println("=== 开始游戏按钮被点击 ===");
+            try { 
+                MusicService.playBattle(); 
+                System.out.println("战斗音乐播放成功");
+            } catch (Exception e) {
+                System.out.println("战斗音乐播放失败: " + e.getMessage());
+            }
+            
+            // 先显示地图选择菜单，而不是直接开始游戏
+            // 直接显示地图选择菜单，不调用Menus.hideAll()避免重复添加节点
+            System.out.println("准备显示地图选择菜单...");
+            try {
+                MapSelectMenu.show(new MapSelectMenu.OnSelect() {
+                    @Override
+                    public void onChoose(String mapId) {
+                        System.out.println("=== 地图选择完成 ===");
+                        // 设置选择的地图
+                        if (mapId != null && !mapId.isEmpty()) {
+                            // 通过FXGL设置全局变量，让GameApp能够获取到选择的地图
+                            FXGL.set("selectedMapName", mapId);
+                            try { com.roguelike.core.GameApp.setSelectedMapName(mapId); } catch (Exception ignored) {}
+                            try { System.setProperty("selectedMapName", mapId); } catch (Exception ignored) {}
+                            System.out.println("已选择地图: " + mapId);
+                        }
+                        // 地图选择完成后，开始游戏
+                        System.out.println("开始调用fireNewGame()...");
+                        try { com.roguelike.ui.MapSelectMenu.forceCleanup(); } catch (Exception ignored) {}
+                        fireNewGame();
+                    }
+                    @Override
+                    public void onCancel() {
+                        System.out.println("=== 地图选择被取消 ===");
+                        // 取消选择，返回主菜单
+                        // 不需要重新显示主菜单，因为CustomMainMenu仍然存在
+                        try { 
+                            MusicService.playLobby(); 
+                            System.out.println("大厅音乐播放成功");
+                        } catch (Exception e) {
+                            System.out.println("大厅音乐播放失败: " + e.getMessage());
+                        }
+                    }
+                });
+                System.out.println("MapSelectMenu.show()调用完成");
+            } catch (Exception e) {
+                System.err.println("显示地图选择菜单失败: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+
+        Button multiplayerButton = createStyledButton("多人游戏", () -> {
+            System.out.println("多人游戏按钮被点击");
+            // 显示网络菜单
+            NetworkMenu.getInstance().show();
         });
 
         Button optionsButton = createStyledButton("游戏设置", () -> {
@@ -146,6 +201,15 @@ public class CustomMainMenu extends FXGLMenu {
         Button exitButton = createStyledButton("退出游戏", () -> {
             // 显示确认弹窗，确认后直接退出游戏
             ConfirmationDialog.show("退出游戏", "确定要退出游戏吗？\n所有未保存的进度将会丢失。", "退出", "取消", () -> {
+                // 清理网络资源
+                try {
+                    com.roguelike.network.NetworkManager networkManager = com.roguelike.network.NetworkManager.getInstance();
+                    if (networkManager != null) {
+                        networkManager.cleanup();
+                    }
+                } catch (Exception e) {
+                    System.err.println("清理网络资源时出错: " + e.getMessage());
+                }
                 // 直接调用游戏控制器退出，绕过确认机制
                 com.almasb.fxgl.dsl.FXGL.getGameController().exit();
             }, null);
@@ -153,6 +217,7 @@ public class CustomMainMenu extends FXGLMenu {
 
         // 将按钮添加到列表
         menuButtons.add(startButton);
+        menuButtons.add(multiplayerButton);
         menuButtons.add(optionsButton);
         menuButtons.add(exitButton);
 

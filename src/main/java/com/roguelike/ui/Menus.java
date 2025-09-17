@@ -74,6 +74,15 @@ public class Menus {
 
         // 退出游戏按钮
         Button exitButton = createStyledButton("退出游戏", () -> {
+            // 清理网络资源
+            try {
+                com.roguelike.network.NetworkManager networkManager = com.roguelike.network.NetworkManager.getInstance();
+                if (networkManager != null) {
+                    networkManager.cleanup();
+                }
+            } catch (Exception e) {
+                System.err.println("清理网络资源时出错: " + e.getMessage());
+            }
             FXGL.getGameController().exit();
         });
 
@@ -131,7 +140,15 @@ public class Menus {
         Button mainMenuButton = createStyledButton("返回主菜单", () -> {
             hideAll();
             try { MusicService.playLobby(); } catch (Exception ignored) {}
-            FXGL.getGameController().startNewGame();
+            // 返回主菜单使用 gotoMainMenu，并强制清理可能遗留的覆盖层
+            FXGL.getGameController().gotoMainMenu();
+            try {
+                javafx.application.Platform.runLater(() -> {
+                    try { MapSelectMenu.forceCleanup(); } catch (Exception ignored) {}
+                    try { OptionsMenu.forceCleanup(); } catch (Exception ignored) {}
+                    try { ConfirmationDialog.forceCleanup(); } catch (Exception ignored) {}
+                });
+            } catch (Exception ignored) {}
         });
 
         buttonContainer.getChildren().addAll(resumeButton, settingsButton, mainMenuButton);
@@ -168,7 +185,14 @@ public class Menus {
             hideAll();
             // 返回主菜单：切回大厅音乐
             try { MusicService.playLobby(); } catch (Exception ignored) {}
-            FXGL.getGameController().startNewGame();
+            FXGL.getGameController().gotoMainMenu();
+            try {
+                javafx.application.Platform.runLater(() -> {
+                    try { MapSelectMenu.forceCleanup(); } catch (Exception ignored) {}
+                    try { OptionsMenu.forceCleanup(); } catch (Exception ignored) {}
+                    try { ConfirmationDialog.forceCleanup(); } catch (Exception ignored) {}
+                });
+            } catch (Exception ignored) {}
         });
 
         buttonContainer.getChildren().addAll(restartButton, mainMenuButton);
